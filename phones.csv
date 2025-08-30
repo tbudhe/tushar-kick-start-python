@@ -1,0 +1,308 @@
+Brand,Model,Price,Stock,Rating
+Apple,iPhone 14,799,50,4.8
+Apple,iPhone 14 Pro,999,30,4.9
+Apple,iPhone 13,699,20,4.7
+Apple,iPhone SE,429,100,4.5
+Samsung,Galaxy S23,799,40,4.8
+Samsung,Galaxy S23 Ultra,1199,25,4.9
+Samsung,Galaxy A54,449,80,4.6
+Samsung,Galaxy Z Flip 5,999,15,4.7
+Google,Pixel 7,599,60,4.7
+Google,Pixel 7 Pro,899,35,4.8
+OnePlus,OnePlus 11,699,45,4.6
+OnePlus,OnePlus Nord 3,499,70,4.5
+Xiaomi,Redmi Note 12,299,120,4.4
+Xiaomi,Mi 13,799,50,4.7
+Xiaomi,Poco X5,399,90,4.5
+Realme,Realme 11 Pro,349,110,4.4
+Realme,Realme GT 3,599,40,4.6
+Oppo,Find X6,899,30,4.7
+Oppo,Reno 10,499,75,4.5
+Vivo,Vivo X90,799,40,4.6
+Vivo,Vivo Y100,299,130,4.3
+Sony,Xperia 1 IV,1299,20,4.8
+Sony,Xperia 5 IV,999,25,4.7
+LG,V60 ThinQ,799,35,4.6
+LG,Velvet 5G,599,50,4.5
+Motorola,Edge 30 Pro,999,30,4.6
+Motorola,One 5G Ace,399,80,4.4
+Nokia,G50,299,100,4.3
+Nokia,X20,499,60,4.5
+Asus,Rog Phone 6,999,20,4.8
+Asus,Zenfone 9,799,25,4.7
+HTC,Desire 22 Pro,499,40,4.5
+HTC,U 12+ ,649,30,4.6
+BlackBerry,Key2,649,15,4.4
+BlackBerry,Motion,399,50,4.3
+Huawei,P50 Pro,1199,10,4.9
+Huawei,Mate 40 Pro,1399,5,4.8
+Honor,Magic 4 Pro,899,20,4.7
+Honor,50 Lite,299,100,4.3
+Lenovo,Legion Phone Duel 2,999,10,4.6
+Lenovo,K13 Note,199,150,4.2
+Micromax,In Note 2,199,200,4.1
+Micromax,In 1b,149,250,4.0
+Tecno,Pova 5 Pro,229,180,4.2
+Tecno,Spark 9,139,220,4.0
+Infinix,Zero Ultra,329,140,4.3
+Infinix,Hot 20,179,200,4.1
+Lava,Agni 2 5G,199,150,4.2
+Lava,Blaze 5G,249,120,4.3
+ZTE,A71,299,100,4.4
+ZTE,Axon 20,499,60,4.5
+TCL,30 XL,249,130,4.2
+TCL,10 Pro,499,70,4.4
+Alcatel,1S,139,200,4.0
+Alcatel,3X,179,180,4.1
+Panasonic,Eluga I7,149,220,4.0
+Panasonic,Eluga Ray 800,199,150,4.2
+Realme,Realme 10,199,200,4.1
+Realme,Realme 9i,249,180,4.3
+Oppo,A78 5G,249,150,4.2
+Oppo,F21s Pro,349,120,4.3
+Vivo,V25 Pro,349,150,4.4
+Vivo,Y35,229,180,4.2
+Xiaomi,Redmi 12C,149,200,4.1
+Xiaomi,Poco M5,199,180,4.2
+Samsung,Galaxy M14,199,200,4.3
+Samsung,Galaxy A34,279,150,4.4
+Apple,iPhone 14 Plus,899,30,4.8
+Apple,iPhone 13 Mini,699,20,4.7
+Google,Pixel 6a,449,100,4.5
+Google,Pixel 5a,349,120,4.4
+OnePlus,OnePlus 10 Pro,899,35,4.7
+OnePlus,OnePlus Nord CE 2,299,90,4.5
+Xiaomi,Mi 11,749,50,4.6
+Xiaomi,Poco F4,349,150,4.3
+Realme,Realme GT Master,399,120,4.4
+Realme,Realme 8i,249,180,4.2
+Oppo,Find X5,999,25,4.9
+Oppo,Reno 8,599,40,4.6
+Vivo,Vivo X80,899,30,4.7
+Vivo,Vivo Y21,199,200,4.1
+Sony,Xperia 10 IV,849,30,4.6
+Sony,Xperia 5 III,999,25,4.7
+LG,V50 ThinQ,899,30,4.6
+LG,Stylo 6,299,100,4.3
+Motorola,Edge 20,499,60,4.5
+Motorola,One Fusion+,349,90,4.4
+Nokia,G20,199,200,4.2
+Nokia,X10,249,150,4.3
+Asus,Rog Phone 5,999,20,4.8
+Asus,Zenfone 8,699,35,4.6
+HTC,Desire 21 Pro,399,80,4.4
+HTC,U 11,649,25,4.7
+BlackBerry,KeyOne,549,40,4.5
+BlackBerry,Motion 2,399,60,4.4
+Huawei,P40 Pro,999,30,4.9
+Huawei,Enjoy 20,199,200,4.1
+Honor,30 Pro,799,50,4.6
+Honor,9A,199,200,4.0
+Lenovo,Legion Phone Duel,899,25,4.7
+Lenovo,K14,249,150,4.3
+Micromax,In 2b,149,250,4.0
+Micromax,In Note 1,199,200,4.1
+Tecno,Pova 4,199,200,4.1
+Tecno,Spark 8,129,300,4.0
+Infinix,Zero 5G,329,140,4.3
+Infinix,Hot 11,179,200,4.1
+Lava,Agni 1,149,250,4.0
+Lava,Blaze 4G,199,200,4.1
+ZTE,A51,349,120,4.3
+ZTE,Blade 20,249,150,4.2
+TCL,20 SE,199,200,4.1
+TCL,10L,249,150,4.3
+Alcatel,3L,149,250,4.0
+Alcatel,1V,99,350,3.9
+Panasonic,Eluga I5,199,200,4.1
+Panasonic,Eluga Ray 600,249,150,4.3
+Realme,Realme 9,199,200,4.1
+Realme,Realme 8,149,250,4.0
+Oppo,A77 5G,249,150,4.2
+Oppo,F19 Pro,349,120,4.3
+Vivo,V25,299,180,4.2
+Vivo,Y55s,229,200,4.1
+Xiaomi,Redmi 10,199,200,4.1
+Xiaomi,Poco M4,249,150,4.3
+Samsung,Galaxy M13,249,150,4.2
+Samsung,Galaxy A54s,279,120,4.3
+Apple,iPhone 13 Pro,999,30,4.9
+Apple,iPhone 12,699,20,4.7
+Google,Pixel 6,499,60,4.6
+Google,Pixel 5,399,80,4.5
+OnePlus,OnePlus 9,729,45,4.6
+OnePlus,OnePlus Nord N200,239,90,4.3
+Xiaomi,Mi 10T,499,50,4.5
+Xiaomi,Poco X3 Pro,349,150,4.4
+Realme,Realme GT,499,120,4.5
+Realme,Realme 7,199,200,4.1
+Oppo,Find X3,799,30,4.8
+Oppo,Reno 6,499,75,4.4
+Vivo,Vivo X70 Pro,899,30,4.7
+Vivo,Vivo Y73,299,130,4.3
+Sony,Xperia 1 III,1299,20,4.8
+Sony,Xperia 5 II,899,25,4.7
+LG,V40 ThinQ,899,30,4.6
+LG,Stylo 5,199,200,4.2
+Motorola,Edge 10,599,60,4.5
+Motorola,One 5G,349,90,4.4
+Nokia,G10,199,200,4.2
+Nokia,X20 5G,299,150,4.3
+Asus,Rog Phone 3,999,20,4.8
+Asus,Zenfone 7,699,35,4.6
+HTC,Desire 20,299,100,4.3
+HTC,U 12,699,25,4.7
+BlackBerry,Key2 LE,399,60,4.4
+BlackBerry,Motion 2,299,100,4.3
+Huawei,P30 Pro,999,30,4.9
+Huawei,Enjoy 10,149,250,4.0
+Honor,20 Pro,799,50,4.6
+Honor,9C,199,200,4.0
+Lenovo,Legion Phone 2,899,25,4.7
+Lenovo,K12,199,200,4.1
+Micromax,In 1,199,200,4.1
+Micromax,In Note 2,249,150,4.3
+Tecno,Pova 3,199,200,4.1
+Tecno,Spark 7,139,220,4.0
+Infinix,Zero 4G,329,140,4.3
+Infinix,Hot 10,179,200,4.1
+Lava,Agni 2 5G,199,150,4.2
+Lava,Blaze 5G,249,120,4.3
+ZTE,A31,249,150,4.3
+ZTE,Blade 10,199,200,4.1
+TCL,20 Pro,249,150,4.3
+TCL,10SE,199,200,4.1
+Alcatel,3X,149,250,4.0
+Alcatel,1S,99,350,3.9
+Panasonic,Eluga I8,199,200,4.1
+Panasonic,Eluga Ray 500,249,150,4.3
+Realme,Realme 7i,199,200,4.1
+Realme,Realme 6,149,250,4.0
+Oppo,A78,249,150,4.2
+Oppo,F19,349,120,4.3
+Vivo,V25e,299,180,4.2
+Vivo,Y55,229,200,4.1
+Xiaomi,Redmi 9,199,200,4.1
+Xiaomi,Poco M3,249,150,4.3
+Samsung,Galaxy M12,249,150,4.2
+Samsung,Galaxy A53,279,120,4.3
+Apple,iPhone 13 Pro Max,1099,20,4.9
+Apple,iPhone 12 Mini,699,20,4.7
+Google,Pixel 6 Pro,899,35,4.8
+Google,Pixel 5 XL,499,60,4.6
+OnePlus,OnePlus 8T,749,45,4.6
+OnePlus,OnePlus Nord N100,199,200,4.1
+Xiaomi,Mi 10,599,50,4.5
+Xiaomi,Poco F3,349,150,4.4
+Realme,Realme GT 5G,499,120,4.5
+Realme,Realme 6i,199,200,4.1
+Oppo,Find X2,799,30,4.8
+Oppo,Reno 5,499,75,4.4
+Vivo,Vivo X60 Pro,899,30,4.7
+Vivo,Vivo Y50,199,200,4.2
+Sony,Xperia 1 II,1299,20,4.8
+Sony,Xperia 5,899,25,4.7
+LG,V30 ThinQ,899,30,4.6
+LG,Stylo 4,149,250,4.0
+Motorola,Edge 20 Pro,799,40,4.6
+Motorola,One Hyper,349,90,4.4
+Nokia,G11,199,200,4.2
+Nokia,X20 4G,299,150,4.3
+Asus,Rog Phone 2,999,20,4.8
+Asus,Zenfone 6,699,35,4.6
+HTC,Desire 19,249,150,4.3
+HTC,U 11+,799,25,4.7
+BlackBerry,Key2,549,40,4.5
+BlackBerry,Motion,399,60,4.4
+Huawei,P40,799,30,4.8
+Huawei,Enjoy 9,129,300,4.0
+Honor,30 Lite,699,50,4.6
+Honor,9X,199,200,4.0
+Lenovo,Legion Phone,899,25,4.7
+Lenovo,K10,149,250,4.0
+Micromax,In 2,199,200,4.1
+Micromax,In Note 3,249,150,4.3
+Tecno,Pova 2,199,200,4.1
+Tecno,Spark 6,139,220,4.0
+Infinix,Zero 3,329,140,4.3
+Infinix,Hot 9,179,200,4.1
+Lava,Agni 1 5G,199,150,4.2
+Lava,Blaze 4G,249,120,4.3
+ZTE,A31,249,150,4.3
+ZTE,Blade 10,199,200,4.1
+TCL,20 SE 5G,249,150,4.3
+TCL,10L,199,200,4.1
+Alcatel,3L,149,250,4.0
+Alcatel,1V,99,350,3.9
+Panasonic,Eluga I7,199,200,4.1
+Panasonic,Eluga Ray 600,249,150,4.3
+Realme,Realme 9,199,200,4.1
+Realme,Realme 8,149,250,4.0
+Oppo,A77 5G,249,150,4.2
+Oppo,F19 Pro,349,120,4.3
+Vivo,V25,299,180,4.2
+Vivo,Y55s,229,200,4.1
+Xiaomi,Redmi 10,199,200,4.1
+Xiaomi,Poco M4,249,150,4.3
+Samsung,Galaxy M13,249,150,4.2
+Samsung,Galaxy A54s,279,120,4.3
+Apple,iPhone 13 Pro,999,30,4.9
+Apple,iPhone 12,699,20,4.7
+Google,Pixel 6a,449,100,4.5
+Google,Pixel 5a,349,120,4.4
+OnePlus,OnePlus 9,729,45,4.6
+OnePlus,OnePlus Nord CE 2,299,90,4.5
+Xiaomi,Mi 11,749,50,4.6
+Xiaomi,Poco X3 Pro,349,150,4.4
+Realme,Realme GT Master,399,120,4.4
+Realme,Realme 8i,249,180,4.2
+Oppo,Find X5,999,25,4.9
+Oppo,Reno 8,599,40,4.6
+Vivo,Vivo X80,899,30,4.7
+Vivo,Vivo Y21,199,200,4.1
+Sony,Xperia 10 IV,849,30,4.6
+Sony,Xperia 5 III,999,25,4.7
+LG,V50 ThinQ,899,30,4.6
+LG,Stylo 6,299,100,4.3
+Motorola,Edge 20,499,60,4.5
+Motorola,One Fusion+,349,90,4.4
+Nokia,G20,199,200,4.2
+Nokia,X10,249,150,4.3
+Asus,Rog Phone 5,999,20,4.8
+Asus,Zenfone 8,699,35,4.6
+HTC,Desire 21 Pro,399,80,4.4
+HTC,U 11,649,25,4.7
+BlackBerry,KeyOne,549,40,4.5
+BlackBerry,Motion 2,399,60,4.4
+Huawei,P40 Pro,999,30,4.9
+Huawei,Enjoy 20,199,200,4.1
+Honor,30 Pro,799,50,4.6
+Honor,9A,199,200,4.0
+Lenovo,Legion Phone Duel,899,25,4.7
+Lenovo,K14,249,150,4.3
+Micromax,In 2b,149,250,4.0
+Micromax,In Note 1,199,200,4.1
+Tecno,Pova 4,199,200,4.1
+Tecno,Spark 8,129,300,4.0
+Infinix,Zero 5G,329,140,4.3
+Infinix,Hot 11,179,200,4.1
+Lava,Agni 2 5G,199,150,4.2
+Lava,Blaze 5G,249,120,4.3
+ZTE,A51,349,120,4.3
+ZTE,Blade 20,249,150,4.2
+TCL,20 Pro,249,150,4.3
+TCL,10SE,199,200,4.1
+Alcatel,3X,149,250,4.0
+Alcatel,1S,99,350,3.9
+Panasonic,Eluga I8,199,200,4.1
+Panasonic,Eluga Ray 500,249,150,4.3
+Realme,Realme 7i,199,200,4.1
+Realme,Realme 6,149,250,4.0
+Oppo,A78,249,150,4.2
+Oppo,F19,349,120,4.3
+Vivo,V25e,299,180,4.2
+Vivo,Y55,229,200,4.1
+Xiaomi,Redmi 9,199,200,4.1
+Xiaomi,Poco M3,249,150,4.3
+Samsung,Galaxy M12,249,150,4.2
+Samsung,Galaxy A53,279,120,4.3
