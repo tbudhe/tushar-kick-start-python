@@ -1,97 +1,48 @@
+# AI/ML Learning Lab
 
-#### TODO:
+Personal, hands-on curriculum for learning the building blocks of LLM applications: tokenization, embeddings, retrieval-augmented generation (RAG), prompting, and vector databases — using the Claude API and a running Autodesk Revit example.
 
-1. Standard Deviation
-2. Mean of array
-3. Identical matrix 
-4. GPU vs CPU 
+Organized by topic rather than by week, so related exercises stay together regardless of when they were written.
 
+## Structure
 
-# NumPy and Pandas Documentation
+| Folder | What's in it |
+| --- | --- |
+| [tokenization/](tokenization/) | How text becomes tokens (`tiktoken`) |
+| [embeddings/similarity/](embeddings/similarity/) | Sentence embeddings + cosine similarity |
+| [embeddings/persisted/](embeddings/persisted/) | Chunking text and persisting embeddings to Chroma |
+| [rag/basics/](rag/basics/) | Minimal retrieval-augmented generation from scratch |
+| [rag/metadata-filtering/](rag/metadata-filtering/) | Filtering Chroma retrieval results by metadata |
+| [prompting/](prompting/) | Few-shot prompting with the Claude API |
+| [vector-db/](vector-db/) | Basic Chroma persistent vector store usage |
+| [ml-foundations/](ml-foundations/) | Train/test splits, overfitting demo (scikit-learn) |
+| [chatbots/revit-chatbot/](chatbots/revit-chatbot/) | Small multi-turn chatbot project using the Claude API |
+| [deepfashion-multimodal-rag/](deepfashion-multimodal-rag/) | In-progress: DeepFashion dataset for a multimodal RAG project |
+| [exercises/](exercises/) | NumPy/Pandas tutorials, data analysis practice, LeetCode-style practice |
+| [notebooks/](notebooks/) | Jupyter notebooks (conceptual walkthroughs) |
+| [scratch/](scratch/) | Empty/in-progress files not yet tied to a topic |
 
-## NumPy
+Chroma-backed scripts (`embeddings/persisted`, `rag/metadata-filtering`, `vector-db`) write their database files next to the script when run (e.g. `revit_db/`) — these are regenerated output and gitignored, not source.
 
-NumPy (Numerical Python) is a powerful library for numerical computing in Python. It provides support for large, multi-dimensional arrays and matrices, along with a collection of mathematical functions to operate on these arrays.
+## Setup
 
-### Key Features:
-- Efficient handling of large datasets with multi-dimensional arrays (`ndarray`)
-- Mathematical operations such as linear algebra, Fourier transforms, and random number generation
-- Broadcasting for element-wise operations
-- Integration with other libraries like SciPy and Matplotlib
+```bash
+pip3 install -r requirements.txt
 
-### Example Usage:
-```python
-import numpy as np
-
-# Create a 1D array
-array = np.array([1, 2, 3, 4, 5])
-
-# Create a 2D array
-matrix = np.array([[1, 2], [3, 4]])
-
-# Perform operations
-mean = np.mean(array)  # Calculate mean
-std_dev = np.std(array)  # Calculate standard deviation
-
-print("Mean:", mean)
-print("Standard Deviation:", std_dev)
+cp .env.example .env
+# then fill in CLAUDE_API_KEY (and OPENAI_API_KEY if needed)
 ```
 
-### Common Functions:
-- `np.mean()`: Calculate the mean of an array
-- `np.std()`: Calculate the standard deviation
-- `np.sum()`: Sum of array elements
-- `np.random.randint()`: Generate random integers
-- `np.dot()`: Perform matrix multiplication
+## Running an exercise
 
----
+Each script assumes it's run from its own directory (relative paths for Chroma DBs and CSVs are relative to cwd):
 
-## Pandas
-
-Pandas is a library for data manipulation and analysis. It provides data structures like `DataFrame` and `Series` for handling structured data.
-
-### Key Features:
-- DataFrame: 2D labeled data structure (like a table)
-- Series: 1D labeled array
-- Handling missing data
-- Grouping, merging, and reshaping data
-- Integration with NumPy for numerical operations
-
-### Example Usage:
-```python
-import pandas as pd
-
-# Create a DataFrame
-data = {
-    'Name': ['Alice', 'Bob', 'Charlie'],
-    'Age': [25, 30, 35],
-    'Department': ['HR', 'IT', 'Finance']
-}
-df = pd.DataFrame(data)
-
-# Access data
-print(df.head())  # Display first few rows
-
-# Filter data
-filtered_df = df[df['Age'] > 28]
-print(filtered_df)
-
-# Add a new column
-df['Salary'] = [50000, 60000, 70000]
-print(df)
+```bash
+cd prompting
+python3 claude_prompting.py
 ```
 
-### Common Functions:
-- `df.head()`: Display the first few rows of a DataFrame
-- `df.describe()`: Summary statistics of numerical columns
-- `df.sort_values()`: Sort DataFrame by a column
-- `df.merge()`: Merge two DataFrames
-- `df.groupby()`: Group data and perform aggregate operations
+## Requirements
 
----
-
-### When to Use NumPy vs Pandas
-- **NumPy**: For numerical computations and working with raw arrays/matrices
-- **Pandas**: For structured data analysis and manipulation (e.g., tabular data)
-
-Both libraries are essential for data science and machine learning workflows.
+- Python 3.13
+- A `CLAUDE_API_KEY` (Anthropic) for anything under `prompting/` and `chatbots/`
