@@ -15,8 +15,8 @@ Organized by topic rather than by week, so related exercises stay together regar
 | [rag/metadata-filtering/](rag/metadata-filtering/) | Filtering Chroma retrieval results by metadata |
 | [prompting/](prompting/) | Few-shot prompting with the Claude API |
 | [vector-db/](vector-db/) | Basic Chroma persistent vector store usage |
-| [ml-foundations/](ml-foundations/) | Train/test splits, overfitting demo (scikit-learn) |
-| [chatbots/revit-chatbot/](chatbots/revit-chatbot/) | Small multi-turn chatbot project using the Claude API |
+| [ml-foundations/](ml-foundations/) | Train/test splits, overfitting demo, k-means, self-supervised training pairs, positional encoding |
+| [chatbots/revit-chatbot/](chatbots/revit-chatbot/) | Multi-turn streaming chatbot, tool use, and chain-of-thought prompting with the Claude API |
 | [deepfashion-multimodal-rag/](deepfashion-multimodal-rag/) | In-progress: DeepFashion dataset for a multimodal RAG project |
 | [exercises/](exercises/) | NumPy/Pandas tutorials, data analysis practice, LeetCode-style practice |
 | [notebooks/](notebooks/) | Jupyter notebooks (conceptual walkthroughs) |
