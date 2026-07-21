@@ -7,7 +7,12 @@ client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
 
 system_prompt = "You are a helpful assistant for Autodesk Revit questions. Keep answers short and practical."
 
-conversation = []  # this list IS the memory
+conversation = [
+    {"role": "user", "content": "How do I add a door in Revit?"},
+    {"role": "assistant", "content": "Architecture tab → Door (or press DR). Click a wall to place it. Set position with temporary dimensions."},
+    {"role": "user", "content": "How do I change a wall's height?"},
+    {"role": "assistant", "content": "Select the wall → Properties panel → set Unconnected Height. Or attach its top to a level."},
+]
 
 
 def ask(user_input):
