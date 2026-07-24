@@ -1,0 +1,19 @@
+@baseUrl = http://127.0.0.1:8000
+
+### Health check
+GET {{baseUrl}}/heartbeat
+
+### Ask - valid request
+POST {{baseUrl}}/ask
+Content-Type: application/json
+
+{
+  "question": "What is FastAPI?"
+}
+
+### Ask - missing required field (expect 422)
+POST {{baseUrl}}/ask
+Content-Type: application/json
+
+{
+}

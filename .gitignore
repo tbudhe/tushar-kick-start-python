@@ -25,3 +25,4 @@ chroma.sqlite3
 
 # Downloaded datasets (too large for git)
 deepfashion-multimodal-rag/
+.venv/
