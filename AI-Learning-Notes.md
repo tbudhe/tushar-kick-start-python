@@ -1,4 +1,5 @@
 # Tushar's AI / GenAI / Agentic AI Learning Notes
+# (ARCHIVE — for content review only. Current progress lives in STATUS.md.)
 
 Staff Software Engineer → AI Backend Engineer (Autodesk) → target: Staff/Principal AI Engineer, Walmart, July 2027.
 
@@ -48,6 +49,16 @@ Staff Software Engineer → AI Backend Engineer (Autodesk) → target: Staff/Pri
 1. Two problems solved vs. Day 3's in-memory approach: persistence (survives restarts) and indexed search (fast at scale, no full re-scan).
 2. Distance vs. similarity: Chroma gives distance, not similarity — the read flips. Lower distance = better match (<0.5 cutoff used), instead of higher = better.
 3. Pizza query returned distances >2.0 — why, and whose job is filtering? ChromaDB always returns the N nearest documents in the collection, no matter how far away they actually are — it has no concept of "good enough," only "closest available." Filtering by a distance threshold is application code's job, not the database's.
+
+
+## 🚢 Project 1 — Streaming CLI Chatbot (SHIPPED — built across Days 4–16)
+**What it is:** Multi-turn Revit CLI chatbot in `chatbots/revit-chatbot/` — chatbot.py (memory + streaming + TTFT measurement), tool_use.py (function calling), chain_of_thought.py.
+
+1. Multi-turn memory: the `conversation` list — append user message, call Claude with FULL history, append assistant reply. The API is stateless; memory is my job (like session state in a stateless REST service).
+2. Streaming: `client.messages.stream(...)` + `stream.text_stream`, print chunks with `flush=True` — decode tokens shown as they arrive instead of waiting for the full response.
+3. System prompt: sets role + behavior rules once, outside the message history (middleware, not request body).
+4. TTFT instrumentation: timestamp before the stream, log elapsed time at first chunk — measured prefill cost directly, and saw a fat system prompt raise TTFT (Day 16 lesson in code).
+5. Roadmap check: Project 1 of 4 done. Next: Project 2 (RAG API), then LangGraph agent, then production AI backend.
 
 ## Day 6 — Chunking
 **One-liner:** Chunking splits documents into small pieces so each embedding stays sharp; overlap ensures a sentence cut at a boundary still appears whole in at least one chunk.
@@ -156,6 +167,33 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 1. Prefill vs. decode — what does each do, and which is parallel vs. sequential? Prefill reads the entire prompt in one parallel pass (processes input, system prompt, and RAG chunks all at once). Decode generates output one token at a time, each new token conditioned on everything generated so far — which is why it can't be parallelized.
 2. Which metric is the UX metric for a streaming chatbot, and what drives it? TTFT. Driven by prompt size: more chunks, longer system prompt, bigger context = more prefill work = longer pause before the first word appears.
 3. Mechanically, why do output tokens cost ~5x input tokens? Prefill processes input tokens in a single parallel GPU pass — cheap per token. Decode can't do that; it runs sequentially, running the entire model per output token, because each token depends on the one before it.
+
+## Day 17 — Phase 1 Capstone + Project 2 v1 (RAG API shipped)
+**One-liner:** Wired FastAPI + ChromaDB + Claude into a working /ask endpoint with calibrated threshold, empty-context short-circuit, refusal system prompt, and evals that test the production code path.
+
+1. How do you pick a distance threshold? Calibrate, don't guess — run known-relevant and known-irrelevant queries, look at the distance gap (relevant: 0.18–0.75, junk: 1.69+), pick a value inside the gap (chose 1.2).
+2. Where does the threshold live and why? Application code (retriever.py) — vector DBs return "closest," not "relevant."
+3. Write path vs. read path rule? ingest.py writes (upsert, idempotent, run manually), retriever.py reads (per-request, threshold applied); neither imports the other.
+4. What happens when retrieval returns zero chunks? Short-circuit — return "I don't know" WITHOUT calling Claude: no hallucination, no cost, faster response.
+5. What makes a system prompt hallucination-resistant? Answer ONLY from provided context; reply exactly "I don't know" if context lacks the answer; keep answers short. Rules go in system (middleware policy), context + question go in the user message (request payload).
+6. Why did "Revite" (typo) still retrieve door docs? Embeddings are semantic, not lexical — cosine/L2 distance tolerates typos that string matching would not.
+7. Why must evals import the same function the API uses? Duplicated pipeline logic means evals test a copy — they can pass while production code is broken. Extracted rag_service.answer_question() so evals exercise the real path.
+8. Why anchor the ChromaDB path with Path(__file__).parent? A relative path resolves against the process's cwd — launching uvicorn from another directory silently creates a fresh empty DB and every answer becomes "I don't know" with no error.
+
+## 🚢 Project 2 — RAG API over Revit Docs (SHIPPED v1 — Day 17)
+**What it is:** FastAPI RAG service — `POST /ask` answers Revit questions grounded in ChromaDB docs with sources. Files: ingest.py, retriever.py, rag_service.py, app.py, prompting/revit_context_qa.py, evals.py.
+
+1. Architecture: write path (ingest.py, idempotent upsert) vs. read path (retriever.py, per-request) — neither imports the other; app.py and evals.py share rag_service.answer_question() so evals test the production pipeline.
+2. Calibrated threshold: measured distances (relevant 0.18–0.75, junk 1.69+) → chose 1.2. Threshold is an output of an experiment, not a guess.
+3. Hallucination control: refusal system prompt (context-only, exact "I don't know", short answers) + empty-retrieval short-circuit that skips Claude entirely.
+4. Evals: 5/5 — four grounded questions checked against expected source ids, one off-topic question required to return exactly "I don't know".
+5. Remaining for v2: RAGAS evals, real Autodesk doc chunks, model cost decision (opus → sonnet/haiku).
+
+## 📊 Portfolio scoreboard (2 of 4 shipped)
+- ✅ Project 1: Streaming CLI chatbot (memory, streaming, TTFT)
+- ✅ Project 2: RAG API v1 (FastAPI + ChromaDB + evals)
+- ⬜ Project 3: LangGraph Autodesk agent
+- ⬜ Project 4: Production AI backend (FastAPI + RAG + LangGraph + LangSmith)
 
 ---
 

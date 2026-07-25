@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from rag_service import answer_question
 
 app = FastAPI()
 
@@ -16,5 +17,5 @@ def heartbeat() -> dict[str, str]:
 
 @app.post("/ask")
 def ask(req: AskRequest) -> AskResponse:
-    # req.question is guaranteed to exist and be a str here
-    return AskResponse(answer="stub", sources=[])
+    answer, sources = answer_question(req.question)
+    return AskResponse(answer=answer, sources=sources)

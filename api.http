@@ -16,4 +16,13 @@ POST {{baseUrl}}/ask
 Content-Type: application/json
 
 {
+  "question": "How to add door on Revite?"
+}
+
+### Ask - missing required field (expect 422)
+POST {{baseUrl}}/ask
+Content-Type: application/json
+
+{
+  "question": "How to add floor on Revite?"
 }
