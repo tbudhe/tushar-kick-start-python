@@ -51,15 +51,6 @@ Staff Software Engineer → AI Backend Engineer (Autodesk) → target: Staff/Pri
 3. Pizza query returned distances >2.0 — why, and whose job is filtering? ChromaDB always returns the N nearest documents in the collection, no matter how far away they actually are — it has no concept of "good enough," only "closest available." Filtering by a distance threshold is application code's job, not the database's.
 
 
-## 🚢 Project 1 — Streaming CLI Chatbot (SHIPPED — built across Days 4–16)
-**What it is:** Multi-turn Revit CLI chatbot in `chatbots/revit-chatbot/` — chatbot.py (memory + streaming + TTFT measurement), tool_use.py (function calling), chain_of_thought.py.
-
-1. Multi-turn memory: the `conversation` list — append user message, call Claude with FULL history, append assistant reply. The API is stateless; memory is my job (like session state in a stateless REST service).
-2. Streaming: `client.messages.stream(...)` + `stream.text_stream`, print chunks with `flush=True` — decode tokens shown as they arrive instead of waiting for the full response.
-3. System prompt: sets role + behavior rules once, outside the message history (middleware, not request body).
-4. TTFT instrumentation: timestamp before the stream, log elapsed time at first chunk — measured prefill cost directly, and saw a fat system prompt raise TTFT (Day 16 lesson in code).
-5. Roadmap check: Project 1 of 4 done. Next: Project 2 (RAG API), then LangGraph agent, then production AI backend.
-
 ## Day 6 — Chunking
 **One-liner:** Chunking splits documents into small pieces so each embedding stays sharp; overlap ensures a sentence cut at a boundary still appears whole in at least one chunk.
 
@@ -168,6 +159,15 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 2. Which metric is the UX metric for a streaming chatbot, and what drives it? TTFT. Driven by prompt size: more chunks, longer system prompt, bigger context = more prefill work = longer pause before the first word appears.
 3. Mechanically, why do output tokens cost ~5x input tokens? Prefill processes input tokens in a single parallel GPU pass — cheap per token. Decode can't do that; it runs sequentially, running the entire model per output token, because each token depends on the one before it.
 
+## 🚢 Project 1 — Streaming CLI Chatbot (SHIPPED — built across Days 4–16)
+**What it is:** Multi-turn Revit CLI chatbot in `chatbots/revit-chatbot/` — chatbot.py (memory + streaming + TTFT measurement), tool_use.py (function calling), chain_of_thought.py.
+
+1. Multi-turn memory: the `conversation` list — append user message, call Claude with FULL history, append assistant reply. The API is stateless; memory is my job (like session state in a stateless REST service).
+2. Streaming: `client.messages.stream(...)` + `stream.text_stream`, print chunks with `flush=True` — decode tokens shown as they arrive instead of waiting for the full response.
+3. System prompt: sets role + behavior rules once, outside the message history (middleware, not request body).
+4. TTFT instrumentation: timestamp before the stream, log elapsed time at first chunk — measured prefill cost directly, and saw a fat system prompt raise TTFT (Day 16 lesson in code).
+5. Roadmap check: Project 1 of 4 done. Next: Project 2 (RAG API), then LangGraph agent, then production AI backend.
+
 ## Day 17 — Phase 1 Capstone + Project 2 v1 (RAG API shipped)
 **One-liner:** Wired FastAPI + ChromaDB + Claude into a working /ask endpoint with calibrated threshold, empty-context short-circuit, refusal system prompt, and evals that test the production code path.
 
@@ -179,6 +179,18 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 6. Why did "Revite" (typo) still retrieve door docs? Embeddings are semantic, not lexical — cosine/L2 distance tolerates typos that string matching would not.
 7. Why must evals import the same function the API uses? Duplicated pipeline logic means evals test a copy — they can pass while production code is broken. Extracted rag_service.answer_question() so evals exercise the real path.
 8. Why anchor the ChromaDB path with Path(__file__).parent? A relative path resolves against the process's cwd — launching uvicorn from another directory silently creates a fresh empty DB and every answer becomes "I don't know" with no error.
+9. What's the general principle about thresholds? Thresholds are outputs of a calibration experiment, not guesses.
+
+## Day 18 — RAGAS faithfulness on Project 2 (judge LLM, grounding vs. truth, refusal distortion)
+**One-liner:** RAGAS faithfulness uses a judge LLM to check that every claim in the answer is contained in the retrieved context — it measures grounding, not truth, and refusals must be scored separately.
+
+1. What is faithfulness? Supported claims ÷ total claims — judge LLM decomposes the answer into atomic claims and checks each against the retrieved contexts. Domain-blind containment check (answer ⊆ contexts), NOT a truth check.
+2. Why did "I don't know" score 0.0? A correct refusal has no supporting context, so the judge marks it unsupported. Exclude refusals from faithfulness; track refusal_rate as its own metric.
+3. HF Dataset vs. ChromaDB? Dataset = ephemeral fixtures array (eval input packaging, rebuilt every run); ChromaDB = persistent production data. Only eval SCORES over time are worth persisting.
+4. Why separate ragas_evals.py from evals.py? Deterministic checks are fast/free/run-every-change (unit tests); LLM-judged evals are slow/costly/run-on-prompt-threshold-chunk-changes (load tests). Both import rag_service — the prod path.
+5. Judge LLM vs. pipeline LLM? Pipeline LLM writes the answer under domain policy (system prompt); judge LLM grades evidence-match with no domain knowledge at all.
+6. Debugging lesson: a traceback whose paths are all in site-packages = dependency version conflict, not your code. venv = node_modules for Python; never pip install without (.venv) in the prompt.
+7. Open refactor: ragas_evals.py retrieves twice (inside answer_question + directly for contexts) — correctness risk if calls diverge. Fix: answer_question returns (answer, sources, chunks). Exercise for Day 19.
 
 ## 🚢 Project 2 — RAG API over Revit Docs (SHIPPED v1 — Day 17)
 **What it is:** FastAPI RAG service — `POST /ask` answers Revit questions grounded in ChromaDB docs with sources. Files: ingest.py, retriever.py, rag_service.py, app.py, prompting/revit_context_qa.py, evals.py.
@@ -187,7 +199,7 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 2. Calibrated threshold: measured distances (relevant 0.18–0.75, junk 1.69+) → chose 1.2. Threshold is an output of an experiment, not a guess.
 3. Hallucination control: refusal system prompt (context-only, exact "I don't know", short answers) + empty-retrieval short-circuit that skips Claude entirely.
 4. Evals: 5/5 — four grounded questions checked against expected source ids, one off-topic question required to return exactly "I don't know".
-5. Remaining for v2: RAGAS evals, real Autodesk doc chunks, model cost decision (opus → sonnet/haiku).
+5. Remaining for v2: refusal-exclusion in RAGAS evals + double-retrieval refactor, more RAGAS metrics (answer_relevancy, context_precision), real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), proper ragas upgrade to drop the vertexai stub.
 
 ## 📊 Portfolio scoreboard (2 of 4 shipped)
 - ✅ Project 1: Streaming CLI chatbot (memory, streaming, TTFT)
