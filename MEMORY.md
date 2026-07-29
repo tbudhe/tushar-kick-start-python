@@ -11,8 +11,8 @@ Tushar is a Staff Engineer with ~16 years of backend engineering experience (pay
 - Phase 4 — Portfolio & Job Readiness (ongoing from Week 12)
 
 **Four GitHub portfolio projects:**
-1. Streaming CLI chatbot (Anthropic API, multi-turn memory) — Week 1 deliverable, still unverified
-2. RAG API over Autodesk documentation
+1. Streaming CLI chatbot (Anthropic API, multi-turn memory) — SHIPPED (chatbots/revit-chatbot/)
+2. RAG API over Autodesk documentation — v1 SHIPPED, eval hardening in progress
 3. LangGraph Autodesk agent
 4. Production AI backend with observability and evals
 
@@ -22,7 +22,7 @@ Tushar is a Staff Engineer with ~16 years of backend engineering experience (pay
 
 **Current state**
 
-Tushar has completed Day 0 through Day 16 of the curriculum — all core Phase 1 foundation topics are now covered (running roughly 2x the original day-per-topic pace; treat "18-week" boundaries as loose from here and track by topic completion instead):
+Tushar has completed Day 0 through Day 19 of the curriculum — Phase 1 complete (capstone Day 17), now in the Phase 1→2 bridge doing eval engineering on Project 2 (running roughly 2x the original day-per-topic pace; treat "18-week" boundaries as loose from here and track by topic completion instead):
 
 - Day 0: ML basics (supervised/unsupervised, neural net forward pass)
 - Day 1: Tokenization, embeddings, self-attention (Q/K/V), next-token prediction
@@ -41,18 +41,24 @@ Tushar has completed Day 0 through Day 16 of the curriculum — all core Phase 1
 - Day 14: Model comparison (Fable 5 / Opus 4.8 / Sonnet 5 / Sonnet 4.6 / Haiku 4.5 spec sheet)
 - Day 15: Fine-tuning vs. RAG vs. prompting (knowledge gap vs. behavior gap test)
 - Day 16: Inference in production (prefill vs. decode, TTFT vs. tokens/sec, why output costs ~5x input)
+- Day 17: Phase 1 capstone + Project 2 v1 SHIPPED — RAG API (FastAPI + ChromaDB + Claude), deterministic evals 5/5
+- Day 18: RAGAS faithfulness evals wired into Project 2 (judge=Claude via LangchainLLMWrapper); found refusal-scoring distortion (correct "I don't know" scores 0.0)
+- Day 19: Double-retrieval refactor — answer_question returns (answer, sources, chunks), all 3 callers updated; category-filtered eval surfaced a likely miscategorized floor-plan chunk
 
 **Active open items:**
-- **Project 1** (streaming CLI chatbot): Still unverified — no confirmed build session or code walkthrough on record. Verification step remains: run `ls project-1/` to confirm directory contents. Outstanding despite topic coverage running well ahead of schedule.
-- **ChromaDB collection hygiene** (`revit_docs`): Earlier collections contained duplicate documents, mixed sessions, and `None` metadata — unresolved, flag again before next hands-on RAG build.
+- **Floor-plan category finding:** "What is a floor plan view?" refuses under category="floors" — verify chunk category in ingest.py, fix tag or eval (Day 20).
+- **evals.py green run** after the 3-tuple refactor — syntax-checked but not yet executed.
+- **RAGAS metrics to add:** answer_relevancy, context_precision; also model cost decision and proper ragas upgrade to drop the vertexai import stub.
+- **git push** of Day 19 commit (20f9005) — commit made in sandbox, push needs Tushar's credentials.
 
 **Resolved since last update:**
-- Day 7 Q3 restate (metadata filter exclusion) — clean answer now on record.
-- Week 0 gap session (loss/gradient descent/overfitting/train-test split) — covered as Day 8–9.
+- **Project 1 VERIFIED AND SHIPPED** — streaming CLI chatbot in chatbots/revit-chatbot/ (memory, streaming, TTFT). The long-standing "content outpacing builds" risk is closed: 2 of 4 portfolio projects shipped.
+- Refusal-exclusion in RAGAS evals (Day 18 exercise, done correctly: skip refusals, refusal_rate separate metric, all-refusals guard).
+- Double-retrieval bug in ragas_evals.py (Day 19 refactor).
 
 **Recall/articulation quality:** Markedly improved since Day 7. Tushar is now producing full, precise restated sentences unprompted (e.g., Day 16 Q2 self-corrected "prompts drive it" → "prompt size drives it" in the same pass). The "precision gap" pattern flagged below is closing — keep watching, don't assume fully resolved yet.
 
-**Next content block:** No new topic should be unlocked until (1) Project 1 status is verified directly with Tushar, and (2) a hands-on build session applies Days 1–16 concepts together (tokenizer → embeddings → RAG → ChromaDB → prompt engineering, Autodesk/Revit domain) — content has outpaced build practice.
+**Next content block:** Day 20 — close the floor-plan category finding + green evals.py run, add answer_relevancy + context_precision, then start Phase 2 (streaming + async Claude API patterns). The build-vs-content gap is closed; the current mode (build → eval surfaces a finding → fix → learn) is working well and should continue.
 
 ---
 

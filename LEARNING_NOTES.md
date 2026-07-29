@@ -192,6 +192,16 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 6. Debugging lesson: a traceback whose paths are all in site-packages = dependency version conflict, not your code. venv = node_modules for Python; never pip install without (.venv) in the prompt.
 7. Open refactor: ragas_evals.py retrieves twice (inside answer_question + directly for contexts) — correctness risk if calls diverge. Fix: answer_question returns (answer, sources, chunks). Exercise for Day 19.
 
+## Day 19 — Double-retrieval refactor: pipeline returns its own evidence
+**One-liner:** answer_question now returns (answer, sources, chunks) so evals grade against the real context — re-retrieving in the eval risks scoring against evidence the answer never saw.
+
+1. Why is calling retrieve() a second time inside the eval a bug? The judge may grade against different chunks than the answer was built from (filters, re-ingest, non-determinism) — the eval lies silently. Also double ChromaDB cost.
+2. What breaks when you add a third return value in Python? Every caller unpacking 2 values crashes with ValueError (strict unpacking). Unlike JS destructuring, Python won't silently drop extras. Fix: answer, sources, _ = ...
+3. refusal_rate jumped to 0.5 after adding category filters — bug or finding? Finding. WHERE filter runs before vector search; a miscategorized chunk gets filtered out → empty retrieval → short-circuit refusal. The eval surfaced a real data problem.
+4. Do eval files ship to production? No — they're dev/CI tools. But they must IMPORT production code (rag_service), never copy it, so they always test the real code path. One pipeline, many importers; a copied pipeline drifts and evals score a ghost.
+5. Pipeline behavior vs. eval behavior are different layers: the distance threshold explains why a refusal HAPPENED; "no supported claims" explains why the judge SCORES it 0.
+6. Open finding: floor-plan chunk likely tagged with a category other than "floors" — verify in ingest.py and fix tag or eval (Day 20).
+
 ## 🚢 Project 2 — RAG API over Revit Docs (SHIPPED v1 — Day 17)
 **What it is:** FastAPI RAG service — `POST /ask` answers Revit questions grounded in ChromaDB docs with sources. Files: ingest.py, retriever.py, rag_service.py, app.py, prompting/revit_context_qa.py, evals.py.
 
@@ -199,7 +209,7 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 2. Calibrated threshold: measured distances (relevant 0.18–0.75, junk 1.69+) → chose 1.2. Threshold is an output of an experiment, not a guess.
 3. Hallucination control: refusal system prompt (context-only, exact "I don't know", short answers) + empty-retrieval short-circuit that skips Claude entirely.
 4. Evals: 5/5 — four grounded questions checked against expected source ids, one off-topic question required to return exactly "I don't know".
-5. Remaining for v2: refusal-exclusion in RAGAS evals + double-retrieval refactor, more RAGAS metrics (answer_relevancy, context_precision), real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), proper ragas upgrade to drop the vertexai stub.
+5. Remaining for v2: ~~refusal-exclusion in RAGAS evals + double-retrieval refactor~~ (done Days 18–19), floor-plan category finding, more RAGAS metrics (answer_relevancy, context_precision), real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), proper ragas upgrade to drop the vertexai stub.
 
 ## 📊 Portfolio scoreboard (2 of 4 shipped)
 - ✅ Project 1: Streaming CLI chatbot (memory, streaming, TTFT)
