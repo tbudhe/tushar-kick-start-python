@@ -3,7 +3,7 @@
 ### Health check
 GET {{baseUrl}}/heartbeat
 
-### Ask - valid request
+### Ask - no category (question only)
 POST {{baseUrl}}/ask
 Content-Type: application/json
 
@@ -11,12 +11,20 @@ Content-Type: application/json
   "question": "What is FastAPI?"
 }
 
-### Ask - missing required field (expect 422)
+### Ask - no category, door question
 POST {{baseUrl}}/ask
 Content-Type: application/json
 
 {
-  "question": "How to add door on Revite?"
+  "question": "How to add a door in Revit?"
+}
+
+### Ask - no category, floor question
+POST {{baseUrl}}/ask
+Content-Type: application/json
+
+{
+  "question": "How to add a floor in Revit?"
 }
 
 ### Ask - missing required field (expect 422)
@@ -24,5 +32,13 @@ POST {{baseUrl}}/ask
 Content-Type: application/json
 
 {
-  "question": "How to add floor on Revite?"
+}
+
+### Ask - with category
+POST {{baseUrl}}/ask
+Content-Type: application/json
+
+{
+  "question": "How to add a floor in Revit?",
+  "category": "floors"
 }

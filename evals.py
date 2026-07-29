@@ -5,13 +5,14 @@ TEST_CASES = [
     {"question": "How do I add a floor in Revit?", "expected_id": "doc5"},
     {"question": "How do I add a window in Revit?", "expected_id": "doc2"},
     {"question": "How do I create a wall in Revit?", "expected_id": "doc4"},
-    {"question": "What's the capital of France?", "expected_answer": "I don't know"},
+    {"question": "What's the capital of France?",
+        "expected_answer": "I don't know"},
 ]
 
 
 def run_case(case):
     # Same function the API uses — evals test the real pipeline
-    answer, sources = answer_question(case["question"])
+    answer, sources, _ = answer_question(case["question"])
 
     if "expected_answer" in case:
         passed = answer.strip() == case["expected_answer"]

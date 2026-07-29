@@ -8,7 +8,8 @@ import types
 # before importing ragas rather than downgrading langchain-community, which
 # would break the rest of this repo's (newer) langchain stack.
 if "langchain_community.chat_models.vertexai" not in sys.modules:
-    _vertexai_stub = types.ModuleType("langchain_community.chat_models.vertexai")
+    _vertexai_stub = types.ModuleType(
+        "langchain_community.chat_models.vertexai")
 
     class ChatVertexAI:  # placeholder; never instantiated
         pass
@@ -23,41 +24,42 @@ from langchain_anthropic import ChatAnthropic
 from datasets import Dataset
 
 from rag_service import answer_question   # same code path as production
-from retriever import retrieve
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 judge = LangchainLLMWrapper(
-    ChatAnthropic(model="claude-sonnet-4-5", api_key=os.getenv("CLAUDE_API_KEY"))
+    ChatAnthropic(model="claude-sonnet-4-5",
+                  api_key=os.getenv("CLAUDE_API_KEY"))
 )
 
 questions = [
-    "How do I create a wall in Revit?",
-    "What is a floor plan view?",
+    {"question":    "How do I create a wall in Revit?", "category": "walls"},
+    {"question": "What is a floor plan view?",  "category": "floors"}
 ]
 
-rows = {"question": [], "answer": [], "contexts": []}
+rows = {"user_input": [], "response": [], "retrieved_contexts": []}
 refusal_count = 0
 
 for q in questions:
-    answer, _ = answer_question(q)              # your pipeline's real answer
+    # your pipeline's real answer
+    answer, sources, chunks = answer_question(q["question"], q["category"])
     if answer == "I don't know":
         refusal_count += 1
         continue
-    chunks = retrieve(q)                        # the context it was given
-    rows["question"].append(q)
-    rows["answer"].append(answer)
-    rows["contexts"].append([c["text"] for c in chunks])
+    rows["user_input"].append(q["question"])
+    rows["response"].append(answer)
+    rows["retrieved_contexts"].append([c["text"] for c in chunks])
 
 refusal_rate = refusal_count / len(questions)
 
-if rows["question"]:
+if rows["user_input"]:
     data = Dataset.from_dict(rows)
     result = evaluate(data, metrics=[faithfulness], llm=judge)
     df = result.to_pandas()
     print(df[["user_input", "response", "faithfulness"]])
-    print(f"\nfaithfulness (answered only, n={len(rows['question'])}): {df['faithfulness'].mean():.4f}")
+    print(
+        f"\nfaithfulness (answered only, n={len(rows['user_input'])}): {df['faithfulness'].mean():.4f}")
 else:
     print("faithfulness: n/a (no answered questions)")
 

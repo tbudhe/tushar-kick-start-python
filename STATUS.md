@@ -1,23 +1,27 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-07-28
+Last Updated: 2026-07-29
 
 RULE FOR CLAUDE: This file's "CURRENT STATUS" section overrides ALL other documents in this project. If any other doc conflicts, this file wins.
 
 CURRENT STATUS
-Day: 18 | Week: 4
+Day: 19 | Week: 4
 Goal: Staff SWE → AI Backend Engineer (Autodesk) → Staff/Principal AI Engineer, Walmart, July 2027
-Just completed: Day 18 — RAGAS faithfulness evals wired into Project 2 (ragas_evals.py: judge=Claude via LangchainLLMWrapper, per-row scores via to_pandas; found refusal-scoring distortion — correct "I don't know" scored 0.0)
+Just completed: Day 19 — double-retrieval refactor: answer_question now returns (answer, sources, chunks); all 3 callers updated (app.py, evals.py, ragas_evals.py); ragas_evals grades the judge against the pipeline's ACTUAL chunks, second retrieve() deleted. Eval with category filters surfaced a real finding: "floor plan view" refused under category="floors" (likely miscategorized chunk — WHERE filter ran before vector search, empty retrieval → short-circuit).
 Project 1 status: SHIPPED — streaming CLI chatbot in chatbots/revit-chatbot/
-Project 2 status: v1 + RAGAS faithfulness running on prod code path. Remaining: refusal-exclusion exercise (assigned), double-retrieval refactor — answer_question should return (answer, sources, chunks) (assigned, Day 19), more RAGAS metrics (answer_relevancy, context_precision), real Autodesk doc chunks, model cost decision, proper ragas upgrade to remove vertexai stub.
-Currently strong on: faithfulness mechanics (claim decomposition, answer ⊆ contexts), judge-vs-pipeline LLM roles, deterministic vs LLM-judged eval separation, venv + dependency-conflict debugging
-Weak spots from quiz (revisit): threshold formula recall (said 1.8; it's (0.75+1.69)/2 ≈ 1.2); state BOTH halves of prompt placement (system = policy AND user message = payload)
-Next up: Day 19 — verify refusal-exclusion + (answer, sources, chunks) refactor across all 3 callers, add answer_relevancy + context_precision, then start Phase 2 (streaming + async Claude API patterns)
+Project 2 status: refusal-exclusion + (answer, sources, chunks) refactor DONE. Remaining: verify floor-plan chunk category in ingest (open finding), run evals.py to confirm green, add answer_relevancy + context_precision, real Autodesk doc chunks, model cost decision, proper ragas upgrade to remove vertexai stub (deprecation warnings now visible for ragas.metrics import and LangchainLLMWrapper).
+Currently strong on: single-source-of-truth pipeline (import, never copy), refusal exclusion + refusal_rate as separate metric, why judge must score against the chunks the answer was built from
+Weak spots from quiz (revisit): confused WHY the judge scores refusals 0 (no supported claims) with WHY the refusal happened (distance threshold) — pipeline behavior vs eval behavior are different layers; Python strict tuple unpacking (3-return crashes 2-var callers — Node array destructuring silently drops extras, Python doesn't)
+Next up: Day 20 — resolve the floor-plan category finding (check ingest tags), run evals.py green, add answer_relevancy + context_precision, then start Phase 2 (streaming + async Claude API patterns)
 KEY MENTAL MODELS (carry into every session)
+One pipeline, many importers: prod, deterministic evals, RAGAS all import rag_service — a copied pipeline drifts and evals score a ghost
+Judge must grade against the chunks the answer was actually built from — return them from the pipeline, never re-retrieve
+Python tuple unpacking is strict: change a return arity → update every caller (unlike JS destructuring)
+Eval files are dev tools that test production code — they never ship, but they must import what ships
+A surprising refusal in evals is a finding, not a bug — trace it: filter → empty retrieval → short-circuit
 Faithfulness = grounding, not truth: judge checks answer ⊆ contexts, domain-blind
 Correct refusals score 0 on faithfulness — exclude them; refusal_rate is its own metric
 Deterministic evals = unit tests (every change, free); RAGAS = load tests (on prompt/threshold/chunk changes, costs money)
-Both eval files import rag_service — never a copy of the pipeline
 Thresholds are outputs of calibration experiments, not guesses
 ingest = write path; retriever = read path; neither imports the other
 Empty retrieval → short-circuit before the LLM: no context, no call, no hallucination, no cost
@@ -27,6 +31,7 @@ Knowledge gap → RAG; behavior gap → prompting first, fine-tuning last
 Prefill = parallel, sets TTFT; decode = sequential, sets streaming speed
 site-packages-only traceback = dependency conflict, not your code; venv = node_modules
 PROGRESS LOG (most recent first — headline only)
+Day 19: Double-retrieval refactor — (answer, sources, chunks), 3 callers, judge grades real chunks; category filter surfaced miscategorized-chunk finding
 Day 18: RAGAS faithfulness on Project 2 — judge LLM, refusal distortion found, per-row analysis
 Day 17: Phase 1 capstone + Project 2 v1 shipped — RAG API end-to-end, evals 5/5
 Day 16: Inference in production — prefill/decode, TTFT

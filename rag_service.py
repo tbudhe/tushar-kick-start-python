@@ -9,7 +9,7 @@ def answer_question(question, category=None):
 
     if not chunks:
         # No relevant context -> don't call Claude at all
-        return "I don't know", []
+        return "I don't know", [], []
 
     context = "\n".join(c["text"] for c in chunks)
     answer = ask_revit_question([
@@ -17,4 +17,4 @@ def answer_question(question, category=None):
     ])
     sources = [c["id"] for c in chunks]
 
-    return answer, sources
+    return answer, sources, chunks
