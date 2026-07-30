@@ -193,7 +193,7 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 7. Open refactor: ragas_evals.py retrieves twice (inside answer_question + directly for contexts) — correctness risk if calls diverge. Fix: answer_question returns (answer, sources, chunks). Exercise for Day 19.
 
 ## Day 19 — Double-retrieval refactor: pipeline returns its own evidence
-**One-liner:** answer_question now returns (answer, sources, chunks) so evals grade against the real context — re-retrieving in the eval risks scoring against evidence the answer never saw.
+**One-liner:** answer_question now returns (answer, sources, chunks) so evals grade against the real context — re-retrieving in the eval risks scoring against evidence the answer never saw.The judge must grade against the evidence the pipeline returned, because a second retrieval is a guess about the past, not a record of it.
 
 1. Why is calling retrieve() a second time inside the eval a bug? The judge may grade against different chunks than the answer was built from (filters, re-ingest, non-determinism) — the eval lies silently. Also double ChromaDB cost.
 2. What breaks when you add a third return value in Python? Every caller unpacking 2 values crashes with ValueError (strict unpacking). Unlike JS destructuring, Python won't silently drop extras. Fix: answer, sources, _ = ...
@@ -201,6 +201,22 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 4. Do eval files ship to production? No — they're dev/CI tools. But they must IMPORT production code (rag_service), never copy it, so they always test the real code path. One pipeline, many importers; a copied pipeline drifts and evals score a ghost.
 5. Pipeline behavior vs. eval behavior are different layers: the distance threshold explains why a refusal HAPPENED; "no supported claims" explains why the judge SCORES it 0.
 6. Open finding: floor-plan chunk likely tagged with a category other than "floors" — verify in ingest.py and fix tag or eval (Day 20).
+7. Why must the RAGAS judge score against the chunks returned by answer_question instead of calling retrieve() again? A: The judge grades a past event — "was this answer supported by what the LLM actually saw?" The returned chunks are the audit log (proof); a second retrieve() is a replay (guess) that can differ due to re-ingest, different params, or code drift. Grade the evidence, never re-fetch it.
+8. Walk through the chain that refused "floor plan view" with category="floors" — before the LLM was called. A: (1) category becomes a ChromaDB WHERE filter, (2) filter runs BEFORE vector search, (3) miscategorized chunk excluded → empty retrieval, (4) short-circuit returns refusal without calling the LLM. The refusal was application code, not the model — like a Redis cache miss with no DB fallback.
+9. What happens when a 2-var caller unpacks a 3-value return? A: Python: ValueError: too many values to unpack — strict arity, fails loud. Node: [a, b] = threeThings() silently drops the third — fails quiet. Python's crash is a feature: it forces you to update every caller.
+10. My own words (say this out loud): "The judge must grade against the evidence the pipeline returned, because a second retrieval is a guess about the past, not a real record of the transaction."
+
+## Day 20 — Three-layer refusal debugging: filter → threshold → LLM
+**One-liner:** A RAG refusal can fire at three layers — metadata filter (empty retrieval), distance threshold (gate in application code), or the LLM's refusal prompt — debug them in order with evidence, never guesses; ours was layer 3: a correct refusal exposing a coverage gap, fixed with data (new doc), not code.
+
+1.  What are the three layers where a RAG refusal can originate? A: (1) WHERE filter excludes everything → empty retrieval → short-circuit; (2) chunks return but all distances fail the threshold gate in retrieve(); (3) chunks pass into the prompt but the LLM's refusal system prompt says the context doesn't answer the question. Check them in order.
+2. How did we falsify the "miscategorized chunk" hypothesis? A: Opened ingest.py — doc5 was correctly tagged "floors". Evidence killed hypothesis #1.
+3. How did we falsify the "threshold refusal" hypothesis? A: debug_floor.py printed distance 1.12 < 1.2 threshold — doc5 passed the gate, so the short-circuit never fired. Hypothesis #2 dead. One printed number beats any amount of reasoning.
+4. So why did Claude say "I don't know"? A: The retrieved chunk was about *creating a floor element*; the question was about *floor plan views*. Context genuinely didn't answer the question — the refusal system prompt worked exactly as designed. Not a bug: a correct refusal revealing a coverage gap.
+5. Knowledge gap fix — code or data? A: Data. Added doc6 (floor plan view doc, category "floors") to ingest.py. Day 15's rule applied: knowledge gap → RAG/data, behavior gap → prompting. After re-ingest: doc6 distance 0.76 (vs doc5's 1.12) — relevant doc now ranks first.
+6. Why re-run evals.py after only changing data? A: Corpus changes can break existing behavior — regression check. 5/5 still green, including the off-topic "I don't know" case.
+7. Chroma lists (documents/ids/metadatas) must stay the same length — same strict-arity spirit as Python tuple unpacking.
+8. Debug scripts (debug_floor.py) = one-off curl against your own API: import the SAME collection object production uses, probe below the abstraction, delete or keep after.
 
 ## 🚢 Project 2 — RAG API over Revit Docs (SHIPPED v1 — Day 17)
 **What it is:** FastAPI RAG service — `POST /ask` answers Revit questions grounded in ChromaDB docs with sources. Files: ingest.py, retriever.py, rag_service.py, app.py, prompting/revit_context_qa.py, evals.py.

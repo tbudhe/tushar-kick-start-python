@@ -18,11 +18,18 @@ if __name__ == "__main__":
             "To add a door in Revit, use the Door tool on an existing wall.",
             "To create a wall in Revit, use the Wall tool in the Architecture tab.",
             "To create a floor in Revit, use the Floor tool and sketch the boundary.",
+            "A floor plan view in Revit shows the model from above at a level. Open it from the Project Browser under Floor Plans.",
         ],
-        ids=["doc1", "doc2", "doc3", "doc4", "doc5"],
-        metadatas=[{"category": "walls"},  {"category": "windows"}, {
-            "category": "doors"}, {"category": "walls"}, {"category": "floors"}]
+        ids=["doc1", "doc2", "doc3", "doc4", "doc5", "doc6"],
+        metadatas=[
+            {"category": "walls"},
+            {"category": "windows"},
+            {"category": "doors"},
+            {"category": "walls"},
+            {"category": "floors"},
+            {"category": "floors"},
+        ],
     )
 
     print("Count: ", collection.count())
-    print(collection.peek())   # shows first few docs + metadata
+    print(collection.peek())  # shows first few docs + metadata
