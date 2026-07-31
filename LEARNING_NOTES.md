@@ -218,6 +218,20 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 7. Chroma lists (documents/ids/metadatas) must stay the same length — same strict-arity spirit as Python tuple unpacking.
 8. Debug scripts (debug_floor.py) = one-off curl against your own API: import the SAME collection object production uses, probe below the abstraction, delete or keep after.
 
+## Day 21 — Retrieval audit loop + RAGAS triad (answer_relevancy, context_precision) + sabotage test
+**One-liner:** Built a retrieval audit (top-k distances + coverage-risk flag per eval question), completed the RAGAS triad — precision grades retrieval, faithfulness grades grounding, relevancy grades direction — then broke retrieval on purpose and learned that refusal_rate catches what judge metrics can't see.
+
+1. Q: What does the coverage-risk flag (best distance > 1.0) actually mean? A: "Retrieval cannot ground this question" — the human interprets it: Revit question flagged = coverage gap (add docs); off-topic question flagged = system working (threshold will refuse). Same alert, two responses — like a p99 alert during a load test vs 2pm Tuesday.
+2. Q: Faithfulness vs answer_relevancy in one line each? A: Faithfulness = answer vs retrieved chunks only (grounding, not truth). Answer_relevancy = answer vs question (direction). A grounded answer to the wrong question scores 1.0 / low — the Day 20 floor-elements-vs-views bug as a metric.
+3. Q: How is answer_relevancy computed, and what does it need that faithfulness doesn't? A: Judge reverse-engineers questions from the answer, embeds them, cosine-compares to the real question — so it needs an embeddings model passed to evaluate() (LangchainEmbeddingsWrapper + all-MiniLM-L6-v2), not just the judge LLM.
+4. Q: Why does context_precision need a `reference` (ground-truth answer) per question? A: The judge can't grade a chunk as "relevant" without an answer key — like a unit test assertion needing an expected value. It scores whether useful chunks were retrieved AND ranked at the top (signal-to-noise of top-k).
+5. Q: Faithfulness 1.0 but relevancy 0.4 — where's the bug? A: Retrieval. Faithfulness 1.0 means the answer came entirely from the chunks, so off-topic answer = off-topic chunks. Confirm with the debug_floor audit.
+6. Q: Two Python indentation traps from today? A: (1) A block dedented one level too far runs once-after-the-loop on leaked loop variables — output can look right by accident (France was last). (2) for...else is legal Python that runs else once after the loop; an else aligned with for is almost always a misindented if/else. Habit: indentation = "how many times does this line run"; you are the closing brace.
+7. Q: Why did floor-plan relevancy read 0.788, 0.923, and 0.750 across three runs of the same code? A: Judge metrics are LLM calls — non-deterministic. Read trends and same-run comparisons, never single absolutes. Deterministic evals = exact unit tests; RAGAS = wobbly load tests.
+8. Q: You broke retrieval (floor question forced to category "walls") — which metric caught it? A: None of the judge metrics — the refused question never reached the judge (skipped row). refusal_rate went 0.0 → 0.5 while faithfulness/relevancy/precision stayed perfect and n silently dropped 2 → 1. Like error rate rising while the latency dashboard stays green — failed requests never reach the histogram. Watch refusal_rate and n, always.
+9. Q: Which layer refused the sabotaged floor question, and what proved it? A: Layer 2 (threshold gate). Evidence: wall-chunk distances 1.636 and 1.653, both > 1.2 — retrieve() returned [] and answer_question short-circuited before ask_revit_question. I guessed layer 3 first; the printed number flipped it. Bonus: fewer results than n_results — only 2 wall chunks exist; the query gives you what exists, not what you asked for.
+10. Q: Is collection.query() an LLM call? A: No — ChromaDB nearest-neighbor lookup with local embeddings (fast, free). The ONLY Claude call is ask_revit_question(); the empty-chunks short-circuit exists to guard that expensive line. Retriever = bouncer (per-chunk threshold), service = manager (empty → "I don't know" before the LLM). Redis-before-DB, in my own code.
+
 ## 🚢 Project 2 — RAG API over Revit Docs (SHIPPED v1 — Day 17)
 **What it is:** FastAPI RAG service — `POST /ask` answers Revit questions grounded in ChromaDB docs with sources. Files: ingest.py, retriever.py, rag_service.py, app.py, prompting/revit_context_qa.py, evals.py.
 
@@ -225,7 +239,7 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 2. Calibrated threshold: measured distances (relevant 0.18–0.75, junk 1.69+) → chose 1.2. Threshold is an output of an experiment, not a guess.
 3. Hallucination control: refusal system prompt (context-only, exact "I don't know", short answers) + empty-retrieval short-circuit that skips Claude entirely.
 4. Evals: 5/5 — four grounded questions checked against expected source ids, one off-topic question required to return exactly "I don't know".
-5. Remaining for v2: ~~refusal-exclusion in RAGAS evals + double-retrieval refactor~~ (done Days 18–19), floor-plan category finding, more RAGAS metrics (answer_relevancy, context_precision), real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), proper ragas upgrade to drop the vertexai stub.
+5. Remaining for v2: ~~refusal-exclusion in RAGAS evals + double-retrieval refactor~~ (done Days 18–19), ~~floor-plan category finding~~ (closed Day 20, doc6), ~~more RAGAS metrics (answer_relevancy, context_precision)~~ (done Day 21, sabotage-tested), real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), proper ragas upgrade to drop the vertexai stub.
 
 ## 📊 Portfolio scoreboard (2 of 4 shipped)
 - ✅ Project 1: Streaming CLI chatbot (memory, streaming, TTFT)
@@ -246,3 +260,6 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 - FastAPI = Express.js with different syntax
 - System prompt vs. user prompt = Express middleware vs. HTTP request body
 - faithfulness = answer vs chunks, relevancy = answer vs question
+- Metric triad = pipeline stages: context_precision→retrieval, faithfulness→grounding, answer_relevancy→direction
+- Refused questions never reach the judge — refusal_rate and n catch what quality metrics miss (error rate vs latency dashboard)
+- Python indentation = "how many times does this line run"; you are the closing brace
