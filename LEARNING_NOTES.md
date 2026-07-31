@@ -245,3 +245,4 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 - Async LLM calls = Promise.all / asyncio.gather
 - FastAPI = Express.js with different syntax
 - System prompt vs. user prompt = Express middleware vs. HTTP request body
+- faithfulness = answer vs chunks, relevancy = answer vs question

@@ -6,7 +6,7 @@ load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
 
-system = (
+SYSTEM_PROMPT = (
     "You are an Autodesk Revit documentation assistant. "
     "Answer ONLY using the context provided in the user's message. "
     "If the context does not contain the answer, reply exactly: I don't know. "
@@ -18,7 +18,7 @@ def ask_revit_question(messages):
     response = client.messages.create(
         model="claude-opus-4-8",
         max_tokens=1024,
-        system=system,
+        system=SYSTEM_PROMPT,
         messages=messages
     )
     return response.content[0].text

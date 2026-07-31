@@ -7,7 +7,10 @@
       "Bash(pkill -f \"uvicorn app:app --port 8123\")",
       "Bash(python3 -m py_compile ingest.py debug_floor.py)",
       "Bash(python3 -c \"import json; json.load\\(open\\('.claude/settings.json'\\)\\)\")",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(pip install *)",
+      "Bash(python3 -c \"import sys; print\\(sys.prefix\\)\")",
+      "Bash(python3 -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\), f\\) for f in ['app.py','ingest.py','retriever.py','rag_service.py','evals.py','ragas_evals.py','debug_floor.py','prompting/revit_context_qa.py']]; print\\('syntax OK'\\)\")"
     ]
   }
 }

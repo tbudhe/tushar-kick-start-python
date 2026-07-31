@@ -15,7 +15,7 @@ def retrieve(question, category=None, threshold=1.2):
     results = collection.query(
         query_texts=[question],
         where={"category": category} if category else None,
-        n_results=3,
+        n_results=2,
         include=["documents", "distances"]
     )
 

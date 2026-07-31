@@ -18,8 +18,10 @@ if "langchain_community.chat_models.vertexai" not in sys.modules:
     sys.modules["langchain_community.chat_models.vertexai"] = _vertexai_stub
 
 from ragas import evaluate
-from ragas.metrics import faithfulness
+from ragas.metrics import faithfulness, answer_relevancy, context_precision
 from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_anthropic import ChatAnthropic
 from datasets import Dataset
 
@@ -28,39 +30,48 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-judge = LangchainLLMWrapper(
+judge_llm = LangchainLLMWrapper(
     ChatAnthropic(model="claude-sonnet-4-5",
                   api_key=os.getenv("CLAUDE_API_KEY"))
 )
 
-questions = [
-    {"question":    "How do I create a wall in Revit?", "category": "walls"},
-    {"question": "What is a floor plan view?",  "category": "floors"}
+judge_embeddings = LangchainEmbeddingsWrapper(
+    HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+)
+EVAL_QUESTIONS = [
+    {"question": "How do I create a wall in Revit?", "category": "walls",
+        "reference": "Use the Wall tool on the Architecture tab, pick a wall type, then draw the wall in the view."},
+    {"question": "What is a floor plan view?", "category": "floors",
+        "reference": "A floor plan view is a horizontal view of a building level in Revit, showing walls, doors, and rooms from above."},
 ]
 
-rows = {"user_input": [], "response": [], "retrieved_contexts": []}
+eval_rows = {"user_input": [], "response": [],
+             "retrieved_contexts": [], "reference": []}
 refusal_count = 0
 
-for q in questions:
+for case in EVAL_QUESTIONS:
     # your pipeline's real answer
-    answer, sources, chunks = answer_question(q["question"], q["category"])
+    answer, sources, chunks = answer_question(case["question"], case["category"])
     if answer == "I don't know":
         refusal_count += 1
         continue
-    rows["user_input"].append(q["question"])
-    rows["response"].append(answer)
-    rows["retrieved_contexts"].append([c["text"] for c in chunks])
+    eval_rows["user_input"].append(case["question"])
+    eval_rows["response"].append(answer)
+    eval_rows["retrieved_contexts"].append([c["text"] for c in chunks])
+    eval_rows["reference"].append(case["reference"])
 
-refusal_rate = refusal_count / len(questions)
+refusal_rate = refusal_count / len(EVAL_QUESTIONS)
 
-if rows["user_input"]:
-    data = Dataset.from_dict(rows)
-    result = evaluate(data, metrics=[faithfulness], llm=judge)
-    df = result.to_pandas()
-    print(df[["user_input", "response", "faithfulness"]])
+if eval_rows["user_input"]:
+    data = Dataset.from_dict(eval_rows)
+    result = evaluate(data, metrics=[
+                      faithfulness, answer_relevancy, context_precision], llm=judge_llm, embeddings=judge_embeddings)
+    results_df = result.to_pandas()
+    print(results_df[["user_input", "response", "faithfulness",
+          "answer_relevancy", "context_precision"]])
     print(
-        f"\nfaithfulness (answered only, n={len(rows['user_input'])}): {df['faithfulness'].mean():.4f}")
+        f"\nfaithfulness (answered only, n={len(eval_rows['user_input'])}): {results_df['faithfulness'].mean():.4f}")
 else:
     print("faithfulness: n/a (no answered questions)")
 
-print(f"refusal_rate: {refusal_rate:.4f} ({refusal_count}/{len(questions)})")
+print(f"refusal_rate: {refusal_rate:.4f} ({refusal_count}/{len(EVAL_QUESTIONS)})")
