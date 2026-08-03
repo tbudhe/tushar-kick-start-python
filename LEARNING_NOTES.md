@@ -232,6 +232,18 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 9. Q: Which layer refused the sabotaged floor question, and what proved it? A: Layer 2 (threshold gate). Evidence: wall-chunk distances 1.636 and 1.653, both > 1.2 — retrieve() returned [] and answer_question short-circuited before ask_revit_question. I guessed layer 3 first; the printed number flipped it. Bonus: fewer results than n_results — only 2 wall chunks exist; the query gives you what exists, not what you asked for.
 10. Q: Is collection.query() an LLM call? A: No — ChromaDB nearest-neighbor lookup with local embeddings (fast, free). The ONLY Claude call is ask_revit_question(); the empty-chunks short-circuit exists to guard that expensive line. Retriever = bouncer (per-chunk threshold), service = manager (empty → "I don't know" before the LLM). Redis-before-DB, in my own code.
 
+## Day 22 — PHASE 2 START: Streaming + async Claude API
+**One-liner:** Streaming is SSE — text arrives as typed events with stop_reason as the stream's status code; async is Promise.all as asyncio.gather, and the client class must match the function style.
+
+1. Q: What does .stream() return and how do you consume just text? A: A context manager (`with ... as stream`); `stream.text_stream` is a generator yielding text chunks; `flush=True` or streaming *looks* broken even when it works.
+2. Q: List the SSE event sequence for a simple response. A: message_start → content_block_start → content_block_delta (many — carries the text) → content_block_stop → message_delta (carries stop_reason + output tokens) → message_stop. text_stream is a filtered consumer on this topic; raw events are the full stream.
+3. Q: Why check stop_reason? A: "max_tokens" means truncated mid-answer — would tank relevancy scores with no visible error. "end_turn" = finished naturally. It's the HTTP status code of the stream: never render it, never ignore it.
+4. Q: asyncio.gather vs Promise.all — same and different? A: Same semantics (concurrent, ordered results, fail-fast). Different: Python spreads args with `*(...)`, and you start the event loop yourself with `asyncio.run(main())` — Node's loop is always running.
+5. Q: Bug I hit: AsyncAnthropic with sync `with` — why does it break? A: The async client returns awaitables/async context managers everywhere; needs `async def` + `async with` + `async for`. Mixing = treating a Promise like its value. Client class must match function style.
+6. Q: All my answers ended in "..." — API truncation? A: No — proved with evidence: ask() returned (text, stop_reason), all three questions showed end_turn with len 1975/1005/1141 at max_tokens=1000. The "..." was the [:60] print slice — display truncation, not API truncation. Assumed max_tokens first; printed numbers flipped it (again).
+7. Q: Prefill/decode connection to streaming? A: Prefill (parallel) sets TTFT — how fast the first chunk arrives; decode (sequential) sets streaming speed — how fast subsequent chunks arrive.
+8. Q: Where does this code live? A: chatbots/revit-chatbot/async_batch_questions.py — concurrent batch of 3 Revit questions with per-question stop_reason + length. First Phase 2 code.
+
 ## 🚢 Project 2 — RAG API over Revit Docs (SHIPPED v1 — Day 17)
 **What it is:** FastAPI RAG service — `POST /ask` answers Revit questions grounded in ChromaDB docs with sources. Files: ingest.py, retriever.py, rag_service.py, app.py, prompting/revit_context_qa.py, evals.py.
 
@@ -260,6 +272,6 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 - FastAPI = Express.js with different syntax
 - System prompt vs. user prompt = Express middleware vs. HTTP request body
 - faithfulness = answer vs chunks, relevancy = answer vs question
-- Metric triad = pipeline stages: context_precision→retrieval, faithfulness→grounding, answer_relevancy→direction
+- Metric triad = pipeline stages: context_precision→retrieval(reference answer), faithfulness→grounding(retrieved chucks), answer_relevancy→direction(answer against the question)
 - Refused questions never reach the judge — refusal_rate and n catch what quality metrics miss (error rate vs latency dashboard)
 - Python indentation = "how many times does this line run"; you are the closing brace
