@@ -237,7 +237,7 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 
 1. Q: What does .stream() return and how do you consume just text? A: A context manager (`with ... as stream`); `stream.text_stream` is a generator yielding text chunks; `flush=True` or streaming *looks* broken even when it works.
 2. Q: List the SSE event sequence for a simple response. A: message_start → content_block_start → content_block_delta (many — carries the text) → content_block_stop → message_delta (carries stop_reason + output tokens) → message_stop. text_stream is a filtered consumer on this topic; raw events are the full stream.
-3. Q: Why check stop_reason? A: "max_tokens" means truncated mid-answer — would tank relevancy scores with no visible error. "end_turn" = finished naturally. It's the HTTP status code of the stream: never render it, never ignore it.
+3. Q: Why check stop_reason? A: "max_tokens" means truncated mid-answer — would tank relevancy scores with no visible error. "end_turn" = finished naturally. It's the HTTP status code of the stream: never render it, never ignore it.Text streams in content_block_delta; stop_reason arrives in message_delta at the end because the model only knows why it stopped once it stops.
 4. Q: asyncio.gather vs Promise.all — same and different? A: Same semantics (concurrent, ordered results, fail-fast). Different: Python spreads args with `*(...)`, and you start the event loop yourself with `asyncio.run(main())` — Node's loop is always running.
 5. Q: Bug I hit: AsyncAnthropic with sync `with` — why does it break? A: The async client returns awaitables/async context managers everywhere; needs `async def` + `async with` + `async for`. Mixing = treating a Promise like its value. Client class must match function style.
 6. Q: All my answers ended in "..." — API truncation? A: No — proved with evidence: ask() returned (text, stop_reason), all three questions showed end_turn with len 1975/1005/1141 at max_tokens=1000. The "..." was the [:60] print slice — display truncation, not API truncation. Assumed max_tokens first; printed numbers flipped it (again).
@@ -275,3 +275,22 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 - Metric triad = pipeline stages: context_precision→retrieval(reference answer), faithfulness→grounding(retrieved chucks), answer_relevancy→direction(answer against the question)
 - Refused questions never reach the judge — refusal_rate and n catch what quality metrics miss (error rate vs latency dashboard)
 - Python indentation = "how many times does this line run"; you are the closing brace
+## Day 23 — Multi-turn conversation state + system prompts
+One-liner: API is stateless like REST — messages list = the conversation store you own (JWT, not server session); system prompt = header not body; growing list = cache with no eviction → sliding-window trim in pairs.
+
+1. Q: Where does conversation memory live in the Claude API?
+   A: Nowhere on the server — the API is stateless. You re-send the full messages list every call. Memory = your list.
+2. Q: What two appends maintain the conversation?
+   A: Append the user message before the call, append the assistant reply after. Forget the second and follow-ups like "give me an example of one" lose their referent.
+3. Q: Is the system prompt part of the messages list?
+   A: No — separate top-level parameter, like a request header vs body. Re-sent every call but never counted in messages.
+4. Q: Why do long conversations get expensive?
+   A: You pay input tokens for the ENTIRE history every call. Turn 50 re-sends 49 turns. List grows → cost grows → context window (max request body) eventually hit.
+5. Q: What's the sliding-window trim rule?
+   A: Keep last N messages, trim in PAIRS — list must start with a user message and alternate roles or the API rejects it.
+6. Q: What bug does trimming cause?
+   A: Amnesia, not garbage — model loses facts from evicted turns ("use the approach we agreed on" → "which approach?"). Cache eviction of a key you still needed.
+7. Q: Why did messages[-20:] break at turn 11 in multi_turn_chat.py?
+   A: At send time the list always ends with user, so its length is odd (21 at turn 11). An even slice off an odd list starts with assistant → API 400. Fix: re-check the first role AFTER slicing and drop one if wrong. Re-check structural invariants after slicing, not before.
+8. Q: Send-trim vs store-trim?
+   A: Trimming what you send caps API cost; the global list still grows in RAM. In a long-running service, trim (or persist) the store itself.

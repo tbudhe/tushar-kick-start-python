@@ -1,26 +1,33 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-08-03
+Last Updated: 2026-08-04
 
 RULE FOR CLAUDE: This file's "CURRENT STATUS" section overrides ALL other documents in this project. If any other doc conflicts, this file wins.
 
 CURRENT STATUS
-Day: 22 | Week: 5 — PHASE 2 STARTED
+Day: 23 | Week: 5 — Phase 2
 Goal: Staff SWE → AI Backend Engineer (Autodesk) → Staff/Principal AI Engineer, Walmart, July 2027
-Just completed: Day 22 (full, exercise included) — streaming + async Claude API. (1) Streaming = SSE/chunked transfer: .stream() context manager, text_stream generator, flush=True; raw event sequence message_start → content_block_start → content_block_delta (text) → content_block_stop → message_delta (stop_reason, output tokens) → message_stop. stop_reason = stream's HTTP status code ("end_turn" vs "max_tokens" truncation). (2) Async: AsyncAnthropic + asyncio.gather = Promise.all (concurrent, ordered, fail-fast); asyncio.run(main()) starts the loop (Node's is always running); * spreads the iterable. Ran 3 Revit questions concurrently in chatbots/revit-chatbot/async_batch_questions.py. (3) Bug hit live: swapped in AsyncAnthropic but kept sync def/with — async client needs async def + async with + async for; client class must match function style. (4) Exercise DONE with evidence: ask() returns tuple[str, str] (text, stop_reason), caller unpacks (a, stop_reason) — arity rule applied unprompted. At max_tokens=1000 all three questions returned end_turn with len 1975/1005/1141 — the "..." was the [:60] print slice (display truncation), not API truncation. Assumed max_tokens was the cause; printed evidence proved otherwise.
-Project 1 status: SHIPPED — streaming CLI chatbot in chatbots/revit-chatbot/; async_batch_questions.py added (Day 22)
+Just completed: Day 23 (full, exercise DONE) — multi-turn conversation state + system prompts. (1) API is stateless: messages list = conversation store the client owns (JWT vs server session); full history re-sent every call. (2) Two appends per turn: user msg before call, assistant reply after — missing the second breaks referents ("give me an example of one"). (3) System prompt = separate top-level param (header, not body); re-sent every call, never in messages. Counted 3-message list correctly but initially counted system as #4 — corrected. (4) Growth problem: pay input tokens for full history every call; context window = max request body. Fix = sliding-window trim in PAIRS (list must start with user role). Trimming bug = amnesia (evicted facts), not garbage-in. (5) Exercise DONE: multi_turn_chat.py works multi-turn ("OneExample" referent resolved); latent trim bug found in review — list at send time is odd-length (always ends with user), so even slice [-20:] starts with assistant at turn 11 → API 400; fix applied = role re-check after slice. Noted send-trim vs store-trim: request cost capped, but global list still grows in RAM (eviction problem moved, not solved).
+Project 1 status: SHIPPED; multi_turn_chat.py added (Day 23) with trim fix
 Project 2 status: RAGAS triad complete + sabotage-tested. Remaining: real Autodesk doc chunks, model cost decision, proper ragas upgrade to remove vertexai stub.
-Currently strong on: gather/Promise.all mapping, dotenv env handling (added on his own), tuple-arity discipline, evidence-over-guess (applied twice in one day)
-Weak spots from quiz (revisit): Q1 metric-triad needed a retry — named concepts instead of the objects compared (answer vs chunks / answer vs question / chunks vs reference); Q3 evidence precision — said "1.6 and 1.5", actual 1.636/1.653; re-quiz exact-evidence recall. Sync/async client mixing (caught live Day 22).
+Currently strong on: message-list mechanics (traced 3-message loop correctly with role order), stateless-API ↔ JWT/REST mapping, applied trim fix on his own after review
+Weak spots from quiz (revisit): (1) Day 22 quiz — missed asyncio.run(main()) as entry point; evidence recall imprecise ([:60] is chars not words; didn't cite stop_reason+len as proof); said content_block_stop carries stop_reason — it's message_delta (retried, corrected). Re-quiz SSE event roles. (2) Trimming consequence — said "irrelevant data" instead of amnesia/lost referents. (3) Verify he actually ran the 11-turn test to see the 400 with old trim (evidence habit).
 CARRIED FORWARD (do Saturday 2026-08-08): (1) evals.py TEST_CASES still has France in position 4 — run debug_floor.py to confirm ⚠️ follows France mid-list, restore order, run evals.py for 5/5 (retriever n_results now 2, audit prints top-2). (2) Phase 1 recap — explain embeddings → RAG → prompting → evals out loud, plain English.
-Next up: Day 23 — multi-turn conversation state + system prompts via the API (messages list = the conversation store; ties to Project 1 upgrade), then structured outputs/Pydantic later in the week.
+Next up: Day 24 — verify 11-turn trim test evidence first, then structured outputs + Pydantic (typed API responses; ties to Project 2's eval pipeline).
 RECALL QUESTIONS FOR TOMORROW (answer before the session)
-1. Sync client uses def/with/for — what three keywords change with AsyncAnthropic, and what must you call once at the entry point?
-2. stop_reason "end_turn" vs "max_tokens" — what does each mean, and what evidence proved your "..." was display truncation, not API truncation?
-3. In the SSE event sequence, which event type carries the text, and which carries stop_reason?
+1. The API is stateless — where does conversation memory actually live, and what two appends per turn maintain it?
+2. Why does a long conversation get more expensive per call, and what's the simplest eviction strategy?
+3. Why did the even slice [-20:] break at turn 11, and what does the fixed trim() check after slicing?
 ONE-SENTENCE SUMMARY (say out loud)
-"Streaming is SSE — text arrives as typed events with stop_reason as the stream's status code; async is Promise.all as asyncio.gather, and the client class must match the function style."
+"The API is stateless — the messages list is the conversation store I own, re-sent in full every call, so it needs an eviction policy like any cache."
 KEY MENTAL MODELS (carry into every session)
+Messages list = conversation store you own; API = stateless REST (JWT, not server session)
+System prompt = request header, not body — re-sent every call, never in messages
+Long conversations = cache with no eviction; sliding window trims in pairs, must start with user role
+Odd-length list + even slice = starts on the wrong role — re-check structural invariants AFTER slicing
+Trimming bug = amnesia (evicted keys you still needed), not garbage-in
+Send-trim caps API cost; store-trim caps RAM — know which one you fixed
+stop_reason arrives in message_delta at the END — model only knows why it stopped once it stops (HTTP trailer)
 Streaming = SSE/chunked transfer; text_stream = filtered consumer, raw events = the full topic
 stop_reason = HTTP status code of the stream — never render it, never ignore it
 asyncio.gather = Promise.all; asyncio.run starts the loop yourself (Node's always runs)
@@ -49,6 +56,7 @@ DBs return "closest," not "relevant" — thresholds are application code's job
 Knowledge gap → RAG; behavior gap → prompting first, fine-tuning last
 site-packages-only traceback = dependency conflict, not your code; venv = node_modules
 PROGRESS LOG (most recent first — headline only)
+Day 23: Multi-turn state + system prompts — messages list = conversation store (stateless API/JWT), system = header not body, sliding-window trim in pairs; latent odd/even trim bug found + fixed in multi_turn_chat.py; amnesia-not-garbage trimming bug
 Day 22: PHASE 2 START — streaming (SSE events, stop_reason) + async (gather = Promise.all); sync/async client-mixing bug caught live; stop_reason evidence proved display truncation, not API truncation
 Day 21: Retrieval audit loop + RAGAS triad + sabotage test — refusal_rate caught what judge metrics missed; layer-2 refusal proven with 1.636 > 1.2; judge non-determinism observed. PHASE 1 COMPLETE.
 Day 20: Floor-plan finding closed — three-layer refusal debugging, two hypotheses falsified, correct LLM refusal exposed coverage gap, doc6 added, evals 5/5

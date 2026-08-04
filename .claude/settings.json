@@ -10,7 +10,9 @@
       "Bash(git commit -m ' *)",
       "Bash(pip install *)",
       "Bash(python3 -c \"import sys; print\\(sys.prefix\\)\")",
-      "Bash(python3 -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\), f\\) for f in ['app.py','ingest.py','retriever.py','rag_service.py','evals.py','ragas_evals.py','debug_floor.py','prompting/revit_context_qa.py']]; print\\('syntax OK'\\)\")"
+      "Bash(python3 -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\), f\\) for f in ['app.py','ingest.py','retriever.py','rag_service.py','evals.py','ragas_evals.py','debug_floor.py','prompting/revit_context_qa.py']]; print\\('syntax OK'\\)\")",
+      "Bash(git -C /Users/tusharbudhe/Documents/git-repos/tushar-kick-start-python status --short)",
+      "Bash(python chatbots/revit-chatbot/async_batch_questions.py)"
     ]
   }
 }
