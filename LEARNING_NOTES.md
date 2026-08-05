@@ -294,3 +294,33 @@ One-liner: API is stateless like REST — messages list = the conversation store
    A: At send time the list always ends with user, so its length is odd (21 at turn 11). An even slice off an odd list starts with assistant → API 400. Fix: re-check the first role AFTER slicing and drop one if wrong. Re-check structural invariants after slicing, not before.
 8. Q: Send-trim vs store-trim?
    A: Trimming what you send caps API cost; the global list still grows in RAM. In a long-running service, trim (or persist) the store itself.
+
+## Day 24 — Morning check-in (2026-08-05): Day 23 recall quiz
+One-liner: memory = two appends (user BEFORE the call, assistant AFTER); cost grows linearly because full history = input tokens every call; even slice off odd list starts on assistant → 400.
+
+1. Q: Where does conversation memory live, and what maintains it?
+   A: Client-side in the messages list — nowhere on the server. Maintained by two appends: append the user message BEFORE the API call, append the assistant reply AFTER. (Quiz: knew the container, missed naming the appends — re-quiz.)
+2. Q: Why does a long conversation get more expensive per call?
+   A: Cause first: you pay input tokens for the ENTIRE history every call — cost grows linearly with turns until the context window. Cure second: sliding-window trim. (Quiz: gave the cure before the cause — corrected.)
+3. Q: Why must the first message be user role after trimming?
+   A: List at send time always ends with user → odd length; an even slice like [-20:] drops a user turn and starts on assistant → API rejects with 400. Fix: re-check first role AFTER slicing. (Quiz: correct after correction.)
+4. Still owed (evidence habit): SSE re-quiz (text = content_block_delta, stop_reason = message_delta, arrives last — dodged twice); trim-bug repro with MAX_MESSAGES=4 (shrink the load threshold to make a load-dependent bug reproducible in seconds — same trick as a 2-connection pool for pool exhaustion).
+5. CORRECTION (2026-08-05, supersedes Day 23 Q7): The "400 at turn 11" claim was FALSIFIED by experiment. With the role-check disabled and MAX_MESSAGES=4, instrumentation printed "first role = assistant" and the API call SUCCEEDED — the current Messages API accepts a list starting with assistant (the old contract rejected it). The role-check fix is downgraded: defensive hygiene (start history on a user turn), not crash prevention. Both hypotheses died on printed evidence: Tushar's "always user first" AND Claude's "400 at turn 11."
+6. Live amnesia demo (window=4): asked "show me all messages in order" at turn 5 — model listed only the last window and drifted off-domain (answered about warehouse management software, not Revit) because the grounding turns were evicted. Eviction of keys you still needed, observed first-hand.
+
+## Day 24 (partial) — Structured outputs + Pydantic (2026-08-05)
+One-liner: model output = untrusted input — define a Pydantic schema, validate at the boundary (model_validate_json), and prefill "{" so the model starts inside the JSON with no room for preamble; the API enforces nothing, your code does, at runtime.
+
+1. Q: What enforces the schema — the API or your code?
+   A: Your code, at runtime, after the response arrives. The API returns text; Pydantic's model_validate_json is the boundary. It can fail on ANY call — that's why the validation line exists.
+2. Q: What are the two ValidationError failure modes (both hit live today)?
+   A: (a) Malformed JSON — model wrapped output in ```json fences despite instructions → "expected value at line 1 column 1". (b) Schema violation — wrong type for a field → error names the exact field. Fail loud at the edge, not silently downstream (validate at controller, not DAO).
+3. Q: How does prefill fix the markdown-fence problem?
+   A: End the messages list with {"role":"assistant","content":"{"} — the model CONTINUES from it, already mid-JSON, so it can't emit preamble or fences. Instructions are requests; prefill is enforcement.
+4. Q: What's the gotcha with prefill and parsing?
+   A: The response EXCLUDES your prefill — re-attach the "{" before model_validate_json ("trailing characters at line 2" = you forgot; input starts at "answer": with no opening brace).
+5. Q: Where is prefill's assistant-last legal?
+   A: Prefill is the one place an assistant message LAST is a feature — you're putting words in the model's mouth and it continues them.
+6. Q: What proof shows the value arrived typed?
+   A: parsed.confidence == 1.0 as float (not "1.0" string) — printed from the validated object.
+STILL OPEN for Day 24 continuation: delete stale un-prefixed parse line (line 28), clean run; Field constraints/validators, Optional, nested models; wire typed output into Project 2 evals.
