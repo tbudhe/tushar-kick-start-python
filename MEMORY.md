@@ -22,7 +22,7 @@ Tushar is a Staff Engineer with ~16 years of backend engineering experience (pay
 
 **Current state**
 
-Tushar has completed Day 0 through Day 21 of the curriculum — Phase 1 FULLY COMPLETE including eval engineering on Project 2; Phase 2 (streaming + async Claude API) starts Day 22 (running roughly 2x the original day-per-topic pace; treat "18-week" boundaries as loose from here and track by topic completion instead):
+Tushar has completed Day 0 through Day 24 of the curriculum — Phase 1 FULLY COMPLETE; Phase 2 in progress since Day 22 (running roughly 2x the original day-per-topic pace; treat "18-week" boundaries as loose and track by topic completion instead):
 
 - Day 0: ML basics (supervised/unsupervised, neural net forward pass)
 - Day 1: Tokenization, embeddings, self-attention (Q/K/V), next-token prediction
@@ -46,11 +46,15 @@ Tushar has completed Day 0 through Day 21 of the curriculum — Phase 1 FULLY CO
 - Day 19: Double-retrieval refactor — answer_question returns (answer, sources, chunks), all 3 callers updated; category-filtered eval surfaced a likely miscategorized floor-plan chunk
 - Day 20: Floor-plan finding closed via three-layer refusal debugging (filter → threshold → LLM); two hypotheses falsified with printed evidence; correct LLM refusal exposed a coverage gap — fixed with data (doc6), not code; evals 5/5
 - Day 21: Retrieval audit loop in debug_floor.py (top-k distances + coverage-risk flag); RAGAS triad completed (answer_relevancy + context_precision, with embeddings model and reference ground truths); sabotage test proved refusal_rate catches what judge metrics miss (broke retrieval → judge metrics stayed perfect, refusal_rate 0.5); layer-2 refusal proven with distances 1.636/1.653 > 1.2
+- Day 22: PHASE 2 START — streaming (SSE event lifecycle, stop_reason in message_delta) + async (asyncio.gather = Promise.all); sync/async client-mixing bug caught live; display-vs-API truncation settled with printed evidence (async_batch_questions.py)
+- Day 23: Multi-turn state + system prompts — messages list = conversation store (stateless API), sliding-window trim in pairs; odd/even trim bug found + fixed in multi_turn_chat.py; the "400 at turn 11" claim later FALSIFIED by experiment (API accepts assistant-first; role-check downgraded to hygiene)
+- Day 24: Structured outputs + Pydantic — boundary validation (model_validate_json), prefill "{" + re-attach gotcha, Field constraints (planted 1.7 → less_than_equal), Optional vs = None (null vs absence), nested models with tree error paths (sources.1.score); exercises: structured_output.py, nested_practice.py
 
 **Active open items:**
-- **evals.py TEST_CASES order:** committed with the France case in position 4 (sabotage experiment leftover) — Saturday warm-up: confirm the coverage-risk flag follows France mid-list in debug_floor.py, then restore original order and run evals.py 5/5. Note retriever n_results is now 2.
-- **Project 2 v2 remaining:** real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), proper ragas upgrade to drop the vertexai import stub.
-- **git push** of Day 21 work — commits made locally, Tushar pushes.
+- **evals.py TEST_CASES order:** France still in position 4 (sabotage leftover) — was due Saturday 2026-08-08, OVERDUE as of 2026-08-10. Confirm flag follows France in debug_floor.py, restore order, run evals.py 5/5 (retriever n_results now 2).
+- **Phase 1 recap owed:** explain embeddings → RAG → prompting → evals out loud, plain English (also overdue from the weekend).
+- **Project 2 v2 remaining:** real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), ragas upgrade to drop the vertexai stub, wire typed RevitAnswer into the eval pipeline (Day 25 warm-up).
+- **git push** of Day 22–24 work — commits made locally (through aeaca4c), Tushar pushes.
 
 **Resolved since last update:**
 - **Floor-plan category finding** (Day 20): not a bug — correct LLM refusal revealing a coverage gap; doc6 added, evals 5/5 green.
@@ -62,7 +66,7 @@ Tushar has completed Day 0 through Day 21 of the curriculum — Phase 1 FULLY CO
 
 **Recall/articulation quality:** Markedly improved since Day 7. Tushar is now producing full, precise restated sentences unprompted (e.g., Day 16 Q2 self-corrected "prompts drive it" → "prompt size drives it" in the same pass). The "precision gap" pattern flagged below is closing — keep watching, don't assume fully resolved yet.
 
-**Next content block:** Weekend of Aug 1–2: Saturday = light revision + owed TEST_CASES cleanup; Sunday = weekly quiz as PHASE 1 RECAP (explain embeddings → RAG → prompting → evals in plain English). Day 22 (Monday Aug 3) — START PHASE 2: streaming + async Claude API patterns. The current mode (build → eval surfaces a finding → fix → learn) is working well and should continue.
+**Next content block:** Day 25 — warm-up: wire typed RevitAnswer (nested Source list) into Project 2's eval pipeline; then tool use / function calling in production (builds on Day 12's tool_use_id). Weak spot to re-quiz cold: Optional vs = None split (failed twice 2026-08-10). The current mode (build → eval surfaces a finding → fix → learn) is working well and should continue.
 
 ---
 
@@ -87,7 +91,9 @@ Tushar has completed Day 0 through Day 21 of the curriculum — Phase 1 FULLY CO
 - **Analogy anchors that work:** Kafka pipelines, SQL queries (ORDER BY / WHERE), distributed systems, cache-aside pattern (Redis vs database), Express middleware vs HTTP request body, TCP sliding window for chunk overlap, PostGIS for embeddings, event loop with dynamic dispatch (agent tool loop), Redux store (LangGraph state, not yet covered). Walmart fraud detection system is the strongest recurring anchor.
 - **ChromaDB threshold principle (repeatedly reinforced):** The vector database always returns n results — it does not filter by relevance. Threshold filtering is the application's responsibility, not the database's. This concept is now solid across Days 5–7; treat as internalized rather than needing repeated correction.
 - **Metadata filtering mechanics:** The `where` filter runs before vector search — documents that fail the filter are excluded entirely and never reach similarity ranking. Closest allowed result is always returned regardless of actual relevance.
-- **Pacing vs. building gap:** Tushar is consuming topics faster than he is building portfolio artifacts (16 content days vs. zero verified projects). This is the top coaching risk going into Phase 2 — prioritize build sessions over new content until Project 1 is confirmed.
+- **Pacing vs. building gap:** CLOSED — Projects 1 and 2 both shipped; every Phase 2 day since has ended with working committed code.
+- **Happy-path-as-proof pattern (Day 24):** offered a topics-present run as evidence for the topics-absent case — rule: to test absence, feed absence. Watch in every exercise.
+- **Dead-code residue pattern (Day 24, caught 3x):** stale/commented lines left in file after fixes — rule: when a fix replaces a line, delete the old line in the same edit.
 
 ---
 

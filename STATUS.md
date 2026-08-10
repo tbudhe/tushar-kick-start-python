@@ -11,14 +11,14 @@ Just completed: Day 24 (finished 2026-08-07) — structured outputs + Pydantic d
 Project 1 status: SHIPPED; multi_turn_chat.py (Day 23, trim fix)
 Project 2 status: RAGAS triad complete + sabotage-tested. Remaining: real Autodesk doc chunks, model cost decision, ragas upgrade to remove vertexai stub, AND (new) wire typed Pydantic response into eval pipeline (Day 25 warm-up).
 Currently strong on: running experiments on demand with printed evidence (planted bad inputs twice, read error output correctly), predicted required-field failure before running, constraint mechanics
-Weak spots from quiz (revisit): (1) Optional[str] vs = None split — FAILED twice on 2026-08-10, never produced clean two-part sentence ("Optional allows null value; = None allows absent key") — re-quiz COLD next session. (2) stop_reason "why at the end": CLOSED 2026-08-10 on second attempt (landed "reason doesn't exist mid-stream"), but first framed it as "reason of failure" — watch: end_turn is the happy case, it's the stream's status code. (3) SSE event roles: CLOSED 2026-08-10 — full lifecycle recited in order after 3 skips. (4) Trim experiment finding + prefill re-attach: not re-tested 2026-08-10 — carry. (5) Tendency to test the happy path and declare victory — watch for this in exercises. (6) Nested error paths: framed sources.1.score as "line of code" — corrected to data-tree path (JSON path, not stack trace).
+Weak spots from quiz (revisit): (1) Optional vs = None split — failed twice 2026-08-10, re-quiz COLD. (2) Trim-experiment finding + prefill re-attach — not re-tested, carry. (3) Happy-path-as-proof habit — watch in exercises. CLOSED 2026-08-10: stop_reason ("stop creates the reason") and SSE event roles (full lifecycle).
 EXERCISE DONE (verified 2026-08-07 with pasted output): nested_practice.py — valid JSON parsed; bad JSON failed at sources.1.score (zero-based index confirmed). structured_output.py restored to minimal known-good (schema/prompt agree, parse lines live, dead experiments deleted); clean run pasted, caveat=None default observed live. NOTE the recurring pattern caught 3x this session: dead/commented code left in file after fixes — watch in future exercises.
 CARRIED FORWARD (was due Saturday 2026-08-08 — UNVERIFIED as of 2026-08-10, now overdue): (1) evals.py TEST_CASES still has France in position 4 — run debug_floor.py to confirm ⚠️ follows France mid-list, restore order, run evals.py for 5/5 (retriever n_results now 2, audit prints top-2). (2) Phase 1 recap — explain embeddings → RAG → prompting → evals out loud, plain English.
 Next up: Day 25 — (warm-up) wire typed RevitAnswer (with nested Source list) into Project 2's eval pipeline; then tool use / function calling in production (builds on Day 12's tool_use_id: model requests, your code executes).
 RECALL QUESTIONS FOR TOMORROW (answer before the session)
-1. Optional[str] vs = None — what does EACH part permit? (Two-part sentence, no hints — failed twice 2026-08-10.)
-2. What did the printed evidence show in the trim experiment — the finding, not the lesson?
-3. Prefill gotcha: what must you do to the response before parsing, and why?
+1. Optional[str] vs = None — what does each part permit?
+2. What did the printed evidence show in the trim experiment?
+3. Prefill gotcha — what must you do to the response before parsing, and why?
 ONE-SENTENCE SUMMARY (say out loud)
 "My schema is the API contract for the model's output — constraints catch bad values, Optional declares legitimate absence, and nesting validates the whole tree in one call at the boundary."
 KEY MENTAL MODELS (carry into every session)
