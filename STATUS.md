@@ -6,6 +6,15 @@ RULE FOR CLAUDE: This file's "CURRENT STATUS" section overrides ALL other docume
 
 DOC PROTOCOL (agreed 2026-08-10): ONE SESSION = ONE DAY NUMBER, sequential, no exceptions. Never reopen a day as "partial", "complete" or "check-in" — if a topic spans two sessions, the second session gets the next number and the heading says "(cont.)". LEARNING_NOTES.md headings are always `## Day N — Topic Name` (no dates, no qualifiers). At the end of EVERY session, update all three: LEARNING_NOTES.md (one new Day block), STATUS.md (this file), MEMORY.md (curriculum line + open items), then commit.
 
+REVISION PROTOCOL (agreed 2026-08-10): every session's quiz is 3 questions on the LAST day PLUS 1 cold question drawn from a RANDOM earlier day (rotate through Days 0–24; prioritise anything on the weak-spots line). Retention, not pace, is the risk — Optional/= None has failed twice and Day 22's SSE questions took three sessions to close. Log the rotation pick in the day's notes so the same days don't keep coming up.
+
+MILESTONES (set 2026-08-10, 11 months to target — recalibrate at each phase end)
+Sep 2026: Phase 2 complete — tool use/function calling, LangChain or LlamaIndex, Project 2 hardened (real Autodesk chunks, model cost decision, ragas upgrade)
+Nov 2026: Phase 3 complete — LangGraph, agent loops, memory, multi-agent, MCP, LangSmith, guardrails
+Dec 2026: Projects 3 and 4 shipped — portfolio complete (4/4)
+Feb 2027: job search opens — resume refresh, AI system design interview prep
+Jul 2027: Walmart Staff/Principal AI Engineer target — ~5 months of buffer
+
 CURRENT STATUS
 Day: 25 COMPLETE | Week: 5 — Phase 2 | Next session = Day 26
 Goal: Staff SWE → AI Backend Engineer (Autodesk) → Staff/Principal AI Engineer, Walmart, July 2027
