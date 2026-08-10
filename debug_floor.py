@@ -11,5 +11,5 @@ for case in TEST_CASES:
     for doc_id, dist in zip(results["ids"][0], results["distances"][0]):
         print(f"  {doc_id}  {dist:.3f}")
     best = results["distances"][0][0]
-    if best > 1.0:
+    if best > 1.2:
         print("  ⚠️ COVERAGE RISK")

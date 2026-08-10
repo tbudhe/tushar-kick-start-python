@@ -17,10 +17,10 @@ def run_case(case):
 
     if "expected_answer" in case:
         passed = answer.strip() == case["expected_answer"]
-        detail = f"answer={answer!r}"
     else:
         passed = case["expected_id"] in sources
-        detail = f"sources={sources} answer={answer!r}"
+
+    detail = f"sources={sources} answer={answer!r}"
 
     return passed, detail
 

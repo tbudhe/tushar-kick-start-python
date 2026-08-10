@@ -22,7 +22,7 @@ def answer_question(question, category=None):
 
     if not chunks:
         # No relevant context -> don't call Claude at all
-        return RagResponse(answer="I don't know", sources=[],category=None)
+        return RagResponse(answer="I don't know based on the available docs.", sources=[], category=category)
 
     context = "\n".join(c["text"] for c in chunks)
     answer = ask_revit_question([

@@ -55,7 +55,8 @@ Tushar has completed Day 0 through Day 25 of the curriculum — Phase 1 FULLY CO
 - **evals.py TEST_CASES order:** France still in position 4 (sabotage leftover) — was due Saturday 2026-08-08, OVERDUE as of 2026-08-10. Confirm flag follows France in debug_floor.py, restore order, run evals.py 5/5 (retriever n_results now 2).
 - **Phase 1 recap owed:** explain embeddings → RAG → prompting → evals out loud, plain English (also overdue from the weekend).
 - **Project 2 v2 remaining:** real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), ragas upgrade to drop the vertexai stub, wire typed RevitAnswer into the eval pipeline (Day 25 warm-up).
-- **Day 25 code review findings, open:** P1 bug — refusal branch omits category=category, so a refused call misreports its category. P2 tech debt — "I don't know" is a magic string produced in rag_service and string-matched in ragas_evals; reword once and refusal_rate silently reads 0.0. Fix with refused: bool. P3 — evals.py asserts membership not rank.
+- **RED TREE (2026-08-10), fix first:** refusal message reworded to "I don't know based on the available docs." while evals.py still asserts == "I don't know" — France case fails, 4/5. Committed deliberately with the finding logged. Fix = refused: bool on RagResponse; both consumers read the flag.
+- **Day 25 review, remaining:** P1 FIXED (category=category on refusal branch). P2 OPEN and now proven live. P3 open — evals.py asserts membership not rank, and the refusal case should assert sources == [] to pin which refusal layer fired. debug_floor.py: n_results 3 vs production 2, threshold retyped not imported, unguarded [0][0] index.
 - **git push** of Days 22–25 work — commits made locally (through 2ff02c4), Tushar pushes; the sandbox has no GitHub credentials.
 
 **Resolved since last update:**
@@ -96,6 +97,7 @@ Tushar has completed Day 0 through Day 25 of the curriculum — Phase 1 FULLY CO
 - **Pacing vs. building gap:** CLOSED — Projects 1 and 2 both shipped; every Phase 2 day since has ended with working committed code.
 - **Happy-path-as-proof pattern (Day 24):** offered a topics-present run as evidence for the topics-absent case — rule: to test absence, feed absence. Watch in every exercise.
 - **Dead-code residue pattern (Day 24, caught 3x; NOT observed Day 25):** stale/commented lines left in file after fixes — rule: when a fix replaces a line, delete the old line in the same edit. Broken as of Day 25; keep watching.
+- **Verification-of-own-work gap (Day 25, 3 incidents):** declared P1 fixed while the file still read category=None; predicted "all tests pass" for a refactor that would have crashed; offered a green evals.py as proof for a debug_floor.py question. His evidence habit is strong when DEBUGGING and switches off when CONFIRMING his own fixes. Coaching line that landed: "verify your fixes with the same skepticism you apply to your bugs."
 - **Pushback is developing (Day 25):** Tushar challenged a claim about which file/lines were being referenced and was right to check. Encourage this — it is the same evidence-over-assertion habit, now applied to the teacher.
 - **Overwhelm signal (Day 25):** when several findings stack up he says "I am not getting what you are trying to say — go step by step." Response that worked: Where you are / Goal right now / ONE action / explicitly parked items. Park secondary findings out loud rather than dropping them silently.
 
