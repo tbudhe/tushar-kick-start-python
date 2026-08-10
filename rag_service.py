@@ -13,6 +13,9 @@ class RagResponse(BaseModel):
     answer: str
     sources: list[Source]
     category: str | None = None
+    # The branch that DECIDES declares the refusal. Consumers read this flag —
+    # they never string-match the answer text to infer it.
+    refused: bool = False
 
 
 def answer_question(question, category=None):
@@ -22,7 +25,12 @@ def answer_question(question, category=None):
 
     if not chunks:
         # No relevant context -> don't call Claude at all
-        return RagResponse(answer="I don't know based on the available docs.", sources=[], category=category)
+        return RagResponse(
+            answer="I don't know based on the available docs.",
+            sources=[],
+            category=category,
+            refused=True,
+        )
 
     context = "\n".join(c["text"] for c in chunks)
     answer = ask_revit_question([

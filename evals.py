@@ -4,8 +4,9 @@ TEST_CASES = [
     {"question": "How do I add a door in Revit?", "expected_id": "doc3"},
     {"question": "How do I add a floor in Revit?", "expected_id": "doc5"},
     {"question": "How do I add a window in Revit?", "expected_id": "doc2"},
-    {"question": "What's the capital of France?",
-        "expected_answer": "I don't know"},
+    # Asserts the FLAG, not the wording — and sources==[] pins that this
+    # refused at layer 2 (threshold), before Claude was ever called.
+    {"question": "What's the capital of France?", "expect_refusal": True},
     {"question": "How do I create a wall in Revit?", "expected_id": "doc4"},
 ]
 
@@ -15,12 +16,14 @@ def run_case(case):
     resp = answer_question(case["question"])
     answer, sources = resp.answer, [s.id for s in resp.sources]
 
-    if "expected_answer" in case:
-        passed = answer.strip() == case["expected_answer"]
+    if case.get("expect_refusal"):
+        passed = resp.refused and sources == []
     else:
-        passed = case["expected_id"] in sources
+        # sources[0], not "in sources" — asserts RANK, so a doc slipping
+        # from 1st to 2nd fails instead of quietly passing.
+        passed = bool(sources) and sources[0] == case["expected_id"]
 
-    detail = f"sources={sources} answer={answer!r}"
+    detail = f"refused={resp.refused} sources={sources} answer={answer!r}"
 
     return passed, detail
 

@@ -53,7 +53,7 @@ for case in EVAL_QUESTIONS:
     # your pipeline's real answer
     resp = answer_question(case["question"], case["category"])
     answer = resp.answer
-    if "i don't know" in answer.lower():  # case-insensitive
+    if resp.refused:   # read the flag; never string-match the prose
         refusal_count += 1
         continue
     eval_rows["user_input"].append(case["question"])

@@ -11,11 +11,17 @@ client = chromadb.PersistentClient(DB_PATH)
 collection = client.get_or_create_collection(name="revit_docs_project_2")
 
 
-def retrieve(question, category=None, threshold=1.2):
+# Single source of truth for retrieval params — debug_floor.py imports these
+# instead of retyping them, so the audit always mirrors production.
+THRESHOLD = 1.2
+N_RESULTS = 2
+
+
+def retrieve(question, category=None, threshold=THRESHOLD):
     results = collection.query(
         query_texts=[question],
         where={"category": category} if category else None,
-        n_results=2,
+        n_results=N_RESULTS,
         include=["documents", "distances"]
     )
 

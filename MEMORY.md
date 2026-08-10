@@ -55,8 +55,8 @@ Tushar has completed Day 0 through Day 25 of the curriculum — Phase 1 FULLY CO
 - **evals.py TEST_CASES order:** France still in position 4 (sabotage leftover) — was due Saturday 2026-08-08, OVERDUE as of 2026-08-10. Confirm flag follows France in debug_floor.py, restore order, run evals.py 5/5 (retriever n_results now 2).
 - **Phase 1 recap owed:** explain embeddings → RAG → prompting → evals out loud, plain English (also overdue from the weekend).
 - **Project 2 v2 remaining:** real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), ragas upgrade to drop the vertexai stub, wire typed RevitAnswer into the eval pipeline (Day 25 warm-up).
-- **RED TREE (2026-08-10), fix first:** refusal message reworded to "I don't know based on the available docs." while evals.py still asserts == "I don't know" — France case fails, 4/5. Committed deliberately with the finding logged. Fix = refused: bool on RagResponse; both consumers read the flag.
-- **Day 25 review, remaining:** P1 FIXED (category=category on refusal branch). P2 OPEN and now proven live. P3 open — evals.py asserts membership not rank, and the refusal case should assert sources == [] to pin which refusal layer fired. debug_floor.py: n_results 3 vs production 2, threshold retyped not imported, unguarded [0][0] index.
+- **Day 25 findings all FIXED (2026-08-10), verification run owed:** refused: bool on RagResponse; evals.py + ragas_evals.py read the flag; evals.py asserts rank and sources==[] on refusal; retriever.py exports THRESHOLD/N_RESULTS, debug_floor.py imports them. Tushar must run evals.py (expect 5/5) and debug_floor.py to confirm.
+- **Doc protocol (agreed 2026-08-10):** ONE SESSION = ONE DAY NUMBER, sequential. Never reopen a day as partial/complete/check-in — that is what made Days 24–25 feel stalled (7 headings for 2 "days"). LEARNING_NOTES headings are `## Day N — Topic Name`, no dates or qualifiers. Update all three docs + commit at the end of every session.
 - **git push** of Days 22–25 work — commits made locally (through 2ff02c4), Tushar pushes; the sandbox has no GitHub credentials.
 
 **Resolved since last update:**
