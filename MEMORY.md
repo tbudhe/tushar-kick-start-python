@@ -22,7 +22,7 @@ Tushar is a Staff Engineer with ~16 years of backend engineering experience (pay
 
 **Current state**
 
-Tushar has completed Day 0 through Day 24 of the curriculum — Phase 1 FULLY COMPLETE; Phase 2 in progress since Day 22 (running roughly 2x the original day-per-topic pace; treat "18-week" boundaries as loose and track by topic completion instead):
+Tushar has completed Day 0 through Day 25 of the curriculum — Phase 1 FULLY COMPLETE; Phase 2 in progress since Day 22 (running roughly 2x the original day-per-topic pace; treat "18-week" boundaries as loose and track by topic completion instead):
 
 - Day 0: ML basics (supervised/unsupervised, neural net forward pass)
 - Day 1: Tokenization, embeddings, self-attention (Q/K/V), next-token prediction
@@ -48,13 +48,15 @@ Tushar has completed Day 0 through Day 24 of the curriculum — Phase 1 FULLY CO
 - Day 21: Retrieval audit loop in debug_floor.py (top-k distances + coverage-risk flag); RAGAS triad completed (answer_relevancy + context_precision, with embeddings model and reference ground truths); sabotage test proved refusal_rate catches what judge metrics miss (broke retrieval → judge metrics stayed perfect, refusal_rate 0.5); layer-2 refusal proven with distances 1.636/1.653 > 1.2
 - Day 22: PHASE 2 START — streaming (SSE event lifecycle, stop_reason in message_delta) + async (asyncio.gather = Promise.all); sync/async client-mixing bug caught live; display-vs-API truncation settled with printed evidence (async_batch_questions.py)
 - Day 23: Multi-turn state + system prompts — messages list = conversation store (stateless API), sliding-window trim in pairs; odd/even trim bug found + fixed in multi_turn_chat.py; the "400 at turn 11" claim later FALSIFIED by experiment (API accepts assistant-first; role-check downgraded to hygiene)
+- Day 25: Typed pipeline responses — answer_question returns one RagResponse (answer + nested list[Source] with id/text/distance + category) instead of a 3-tuple; both branches return the same contract; all 3 callers (app.py, evals.py, ragas_evals.py) read fields by name. Exercise proved the payoff: adding a field broke zero callers, where Day 19's tuple change broke all three. Also closed both overdue weekend items — debug_floor.py audit loop restored, retrieval verified healthy, Day 21 indentation bug confirmed gone
 - Day 24: Structured outputs + Pydantic — boundary validation (model_validate_json), prefill "{" + re-attach gotcha, Field constraints (planted 1.7 → less_than_equal), Optional vs = None (null vs absence), nested models with tree error paths (sources.1.score); exercises: structured_output.py, nested_practice.py
 
 **Active open items:**
 - **evals.py TEST_CASES order:** France still in position 4 (sabotage leftover) — was due Saturday 2026-08-08, OVERDUE as of 2026-08-10. Confirm flag follows France in debug_floor.py, restore order, run evals.py 5/5 (retriever n_results now 2).
 - **Phase 1 recap owed:** explain embeddings → RAG → prompting → evals out loud, plain English (also overdue from the weekend).
 - **Project 2 v2 remaining:** real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), ragas upgrade to drop the vertexai stub, wire typed RevitAnswer into the eval pipeline (Day 25 warm-up).
-- **git push** of Day 22–24 work — commits made locally (through aeaca4c), Tushar pushes.
+- **Day 25 code review findings, open:** P1 bug — refusal branch omits category=category, so a refused call misreports its category. P2 tech debt — "I don't know" is a magic string produced in rag_service and string-matched in ragas_evals; reword once and refusal_rate silently reads 0.0. Fix with refused: bool. P3 — evals.py asserts membership not rank.
+- **git push** of Days 22–25 work — commits made locally (through 2ff02c4), Tushar pushes; the sandbox has no GitHub credentials.
 
 **Resolved since last update:**
 - **Floor-plan category finding** (Day 20): not a bug — correct LLM refusal revealing a coverage gap; doc6 added, evals 5/5 green.
@@ -66,7 +68,7 @@ Tushar has completed Day 0 through Day 24 of the curriculum — Phase 1 FULLY CO
 
 **Recall/articulation quality:** Markedly improved since Day 7. Tushar is now producing full, precise restated sentences unprompted (e.g., Day 16 Q2 self-corrected "prompts drive it" → "prompt size drives it" in the same pass). The "precision gap" pattern flagged below is closing — keep watching, don't assume fully resolved yet.
 
-**Next content block:** Day 25 — warm-up: wire typed RevitAnswer (nested Source list) into Project 2's eval pipeline; then tool use / function calling in production (builds on Day 12's tool_use_id). Weak spot to re-quiz cold: Optional vs = None split (failed twice 2026-08-10). The current mode (build → eval surfaces a finding → fix → learn) is working well and should continue.
+**Next content block:** Day 26 — warm-up: fix P1/P2 from the Day 25 review; then tool use / function calling in production (builds on Day 12's tool_use_id). Weak spot to re-quiz cold: Optional vs = None split (failed twice 2026-08-10). The current mode (build → eval surfaces a finding → fix → learn) is working well and should continue.
 
 ---
 
@@ -93,7 +95,9 @@ Tushar has completed Day 0 through Day 24 of the curriculum — Phase 1 FULLY CO
 - **Metadata filtering mechanics:** The `where` filter runs before vector search — documents that fail the filter are excluded entirely and never reach similarity ranking. Closest allowed result is always returned regardless of actual relevance.
 - **Pacing vs. building gap:** CLOSED — Projects 1 and 2 both shipped; every Phase 2 day since has ended with working committed code.
 - **Happy-path-as-proof pattern (Day 24):** offered a topics-present run as evidence for the topics-absent case — rule: to test absence, feed absence. Watch in every exercise.
-- **Dead-code residue pattern (Day 24, caught 3x):** stale/commented lines left in file after fixes — rule: when a fix replaces a line, delete the old line in the same edit.
+- **Dead-code residue pattern (Day 24, caught 3x; NOT observed Day 25):** stale/commented lines left in file after fixes — rule: when a fix replaces a line, delete the old line in the same edit. Broken as of Day 25; keep watching.
+- **Pushback is developing (Day 25):** Tushar challenged a claim about which file/lines were being referenced and was right to check. Encourage this — it is the same evidence-over-assertion habit, now applied to the teacher.
+- **Overwhelm signal (Day 25):** when several findings stack up he says "I am not getting what you are trying to say — go step by step." Response that worked: Where you are / Goal right now / ONE action / explicitly parked items. Park secondary findings out loud rather than dropping them silently.
 
 ---
 

@@ -12,6 +12,7 @@ class Source(BaseModel):
 class RagResponse(BaseModel):
     answer: str
     sources: list[Source]
+    category: str | None = None
 
 
 def answer_question(question, category=None):
@@ -21,7 +22,7 @@ def answer_question(question, category=None):
 
     if not chunks:
         # No relevant context -> don't call Claude at all
-        return RagResponse(answer="I don't know", sources=[])
+        return RagResponse(answer="I don't know", sources=[],category=None)
 
     context = "\n".join(c["text"] for c in chunks)
     answer = ask_revit_question([
@@ -29,5 +30,7 @@ def answer_question(question, category=None):
     ])
     return RagResponse(
         answer=answer,
-        sources=[Source(id=c["id"], text=c["text"], distance=c["distance"]) for c in chunks]
+        sources=[Source(id=c["id"], text=c["text"],
+                        distance=c["distance"]) for c in chunks],
+        category=category
     )

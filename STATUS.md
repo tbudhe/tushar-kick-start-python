@@ -13,9 +13,10 @@ Project 1 status: SHIPPED; multi_turn_chat.py (Day 23, trim fix)
 Project 2 status: RAGAS triad complete + sabotage-tested; pipeline now returns typed RagResponse end-to-end. Remaining: real Autodesk doc chunks, model cost decision, ragas upgrade to remove vertexai stub, run ragas_evals.py once against the typed pipeline (costs money — not yet re-run).
 Currently strong on: reading printed evidence before verdicts, pushing back on claims and checking files, deleting dead code in the same edit as the fix
 Weak spots from quiz (revisit): (1) Optional vs = None split — failed twice 2026-08-10, re-quiz COLD. (2) Trim-experiment finding + prefill re-attach — not re-tested, carry. (3) Happy-path-as-proof habit — improving; identical-output-proves-nothing point landed 2026-08-10. CLOSED 2026-08-10: stop_reason, SSE event roles.
-EXERCISE ASSIGNED (2026-08-10, not yet done): add category: str | None = None to RagResponse, set it in answer_question, run all 3 callers WITHOUT editing them — nothing should break. Contrast with Day 19, where adding a tuple slot broke all three. Paste output.
+EXERCISE DONE (verified 2026-08-10 with pasted output): added category: str | None = None to RagResponse, set it in answer_question, ran all 3 callers UNEDITED — 5/5 green. DTO payoff proven against Day 19, where the equivalent tuple change broke all three callers.
+CODE REVIEW FINDINGS (2026-08-10, open — fix before Day 26 teaching): P1 BUG — refusal branch returns RagResponse(answer="I don't know", sources=[]) without category=category, so a refused call lies about its category; both branches must populate the same fields, not just return the same type. P2 TECH DEBT — "I don't know" is a magic string produced in rag_service and string-matched in ragas_evals; reword it once and refusal_rate silently reads 0.0 forever. Fix with a refused: bool field set at the branch that knows. P3 NICE-TO-HAVE — evals.py asserts expected_id in sources (membership, not rank); sources[0] == expected_id would catch a rank regression, and debug_floor.py confirms every expected doc currently ranks #1.
 CARRIED FORWARD: (1) Phase 1 recap — explain embeddings → RAG → prompting → evals out loud, plain English (still owed from weekend of 2026-08-08). (2) structured_output.py lines 33–34 still hold a commented-out no_topics experiment — delete.
-Next up: Day 26 — tool use / function calling in production (builds on Day 12's tool_use_id: model requests, your code executes). Warm-up: the DTO exercise above.
+Next up: Day 26 — warm-up: fix P1 (category on refusal branch) and P2 (refused: bool replacing the magic string), then tool use / function calling in production (builds on Day 12's tool_use_id: model requests, your code executes).
 RECALL QUESTIONS FOR TOMORROW (answer before the session)
 1. Two return statements in one function — why must both return the same type, and what's the failure mode if they don't?
 2. Adding a field to RagResponse breaks no callers, but adding a tuple slot broke all three. Why?
@@ -26,6 +27,8 @@ ONE-SENTENCE SUMMARY (say out loud)
 KEY MENTAL MODELS (carry into every session)
 Pipeline returns a DTO, not a tuple — callers read names, new fields break nobody (tuple arity breaks everyone)
 A function's return type is a promise made by EVERY branch — refusal path and happy path must return the same contract
+Same type is not the same contract — branches must populate the same FIELDS too, or the object lies about itself
+Sentinel strings across module boundaries are silent-failure bugs — the producer declares state in a field; consumers never parse prose to infer it
 Design the response object against every consumer, not the loudest one — a dropped field starves a downstream caller (RAGAS needs chunk text)
 Identical output after a refactor proves nothing; what proves it is that the callers RAN without TypeError
 Schema = API contract for model output — constraints (value rules) + Optional (legitimate absence) + nesting (whole tree, one call)
