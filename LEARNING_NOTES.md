@@ -276,51 +276,55 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 - Refused questions never reach the judge — refusal_rate and n catch what quality metrics miss (error rate vs latency dashboard)
 - Python indentation = "how many times does this line run"; you are the closing brace
 ## Day 23 — Multi-turn conversation state + system prompts
-One-liner: API is stateless like REST — messages list = the conversation store you own (JWT, not server session); system prompt = header not body; growing list = cache with no eviction → sliding-window trim in pairs.
+**One-liner:** API is stateless like REST — messages list = the conversation store you own (JWT, not server session); system prompt = header not body; growing list = cache with no eviction → sliding-window trim in pairs.
 
-1. Q: Where does conversation memory live in the Claude API?
-   A: Nowhere on the server — the API is stateless. You re-send the full messages list every call. Memory = your list.
-2. Q: What two appends maintain the conversation?
-   A: Append the user message before the call, append the assistant reply after. Forget the second and follow-ups like "give me an example of one" lose their referent.
-3. Q: Is the system prompt part of the messages list?
-   A: No — separate top-level parameter, like a request header vs body. Re-sent every call but never counted in messages.
-4. Q: Why do long conversations get expensive?
-   A: You pay input tokens for the ENTIRE history every call. Turn 50 re-sends 49 turns. List grows → cost grows → context window (max request body) eventually hit.
-5. Q: What's the sliding-window trim rule?
-   A: Keep last N messages, trim in PAIRS — list must start with a user message and alternate roles or the API rejects it.
-6. Q: What bug does trimming cause?
-   A: Amnesia, not garbage — model loses facts from evicted turns ("use the approach we agreed on" → "which approach?"). Cache eviction of a key you still needed.
-7. Q: Why did messages[-20:] break at turn 11 in multi_turn_chat.py?
-   A: At send time the list always ends with user, so its length is odd (21 at turn 11). An even slice off an odd list starts with assistant → API 400. Fix: re-check the first role AFTER slicing and drop one if wrong. Re-check structural invariants after slicing, not before.
-8. Q: Send-trim vs store-trim?
-   A: Trimming what you send caps API cost; the global list still grows in RAM. In a long-running service, trim (or persist) the store itself.
+1. Where does conversation memory live in the Claude API? Nowhere on the server — the API is stateless. You re-send the full messages list every call. Memory = your list.
+2. What two appends maintain the conversation? Append the user message before the call, append the assistant reply after. Forget the second and follow-ups like "give me an example of one" lose their referent.
+3. Is the system prompt part of the messages list? No — separate top-level parameter, like a request header vs body. Re-sent every call but never counted in messages.
+4. Why do long conversations get expensive? You pay input tokens for the ENTIRE history every call. Turn 50 re-sends 49 turns. List grows → cost grows → context window (max request body) eventually hit.
+5. What's the sliding-window trim rule? Keep last N messages, trim in PAIRS — list must start with a user message and alternate roles or the API rejects it.
+6. What bug does trimming cause? Amnesia, not garbage — model loses facts from evicted turns ("use the approach we agreed on" → "which approach?"). Cache eviction of a key you still needed.
+7. Why did messages[-20:] break at turn 11 in multi_turn_chat.py? At send time the list always ends with user, so its length is odd (21 at turn 11). An even slice off an odd list starts with assistant → API 400. Fix: re-check the first role AFTER slicing and drop one if wrong. Re-check structural invariants after slicing, not before.
+8. Send-trim vs store-trim? Trimming what you send caps API cost; the global list still grows in RAM. In a long-running service, trim (or persist) the store itself.
 
 ## Day 24 — Morning check-in (2026-08-05): Day 23 recall quiz
-One-liner: memory = two appends (user BEFORE the call, assistant AFTER); cost grows linearly because full history = input tokens every call; even slice off odd list starts on assistant → 400.
+**One-liner:** memory = two appends (user BEFORE the call, assistant AFTER); cost grows linearly because full history = input tokens every call; even slice off odd list starts on assistant → 400.
 
-1. Q: Where does conversation memory live, and what maintains it?
-   A: Client-side in the messages list — nowhere on the server. Maintained by two appends: append the user message BEFORE the API call, append the assistant reply AFTER. (Quiz: knew the container, missed naming the appends — re-quiz.)
-2. Q: Why does a long conversation get more expensive per call?
-   A: Cause first: you pay input tokens for the ENTIRE history every call — cost grows linearly with turns until the context window. Cure second: sliding-window trim. (Quiz: gave the cure before the cause — corrected.)
-3. Q: Why must the first message be user role after trimming?
-   A: List at send time always ends with user → odd length; an even slice like [-20:] drops a user turn and starts on assistant → API rejects with 400. Fix: re-check first role AFTER slicing. (Quiz: correct after correction.)
+1. Where does conversation memory live, and what maintains it? Client-side in the messages list — nowhere on the server. Maintained by two appends: append the user message BEFORE the API call, append the assistant reply AFTER. (Quiz: knew the container, missed naming the appends — re-quiz.)
+2. Why does a long conversation get more expensive per call? Cause first: you pay input tokens for the ENTIRE history every call — cost grows linearly with turns until the context window. Cure second: sliding-window trim. (Quiz: gave the cure before the cause — corrected.)
+3. Why must the first message be user role after trimming? List at send time always ends with user → odd length; an even slice like [-20:] drops a user turn and starts on assistant → API rejects with 400. Fix: re-check first role AFTER slicing. (Quiz: correct after correction.)
 4. Still owed (evidence habit): SSE re-quiz (text = content_block_delta, stop_reason = message_delta, arrives last — dodged twice); trim-bug repro with MAX_MESSAGES=4 (shrink the load threshold to make a load-dependent bug reproducible in seconds — same trick as a 2-connection pool for pool exhaustion).
 5. CORRECTION (2026-08-05, supersedes Day 23 Q7): The "400 at turn 11" claim was FALSIFIED by experiment. With the role-check disabled and MAX_MESSAGES=4, instrumentation printed "first role = assistant" and the API call SUCCEEDED — the current Messages API accepts a list starting with assistant (the old contract rejected it). The role-check fix is downgraded: defensive hygiene (start history on a user turn), not crash prevention. Both hypotheses died on printed evidence: Tushar's "always user first" AND Claude's "400 at turn 11."
 6. Live amnesia demo (window=4): asked "show me all messages in order" at turn 5 — model listed only the last window and drifted off-domain (answered about warehouse management software, not Revit) because the grounding turns were evicted. Eviction of keys you still needed, observed first-hand.
 
 ## Day 24 (partial) — Structured outputs + Pydantic (2026-08-05)
-One-liner: model output = untrusted input — define a Pydantic schema, validate at the boundary (model_validate_json), and prefill "{" so the model starts inside the JSON with no room for preamble; the API enforces nothing, your code does, at runtime.
+**One-liner:** model output = untrusted input — define a Pydantic schema, validate at the boundary (model_validate_json), and prefill "{" so the model starts inside the JSON with no room for preamble; the API enforces nothing, your code does, at runtime.
 
-1. Q: What enforces the schema — the API or your code?
-   A: Your code, at runtime, after the response arrives. The API returns text; Pydantic's model_validate_json is the boundary. It can fail on ANY call — that's why the validation line exists.
-2. Q: What are the two ValidationError failure modes (both hit live today)?
-   A: (a) Malformed JSON — model wrapped output in ```json fences despite instructions → "expected value at line 1 column 1". (b) Schema violation — wrong type for a field → error names the exact field. Fail loud at the edge, not silently downstream (validate at controller, not DAO).
-3. Q: How does prefill fix the markdown-fence problem?
-   A: End the messages list with {"role":"assistant","content":"{"} — the model CONTINUES from it, already mid-JSON, so it can't emit preamble or fences. Instructions are requests; prefill is enforcement.
-4. Q: What's the gotcha with prefill and parsing?
-   A: The response EXCLUDES your prefill — re-attach the "{" before model_validate_json ("trailing characters at line 2" = you forgot; input starts at "answer": with no opening brace).
-5. Q: Where is prefill's assistant-last legal?
-   A: Prefill is the one place an assistant message LAST is a feature — you're putting words in the model's mouth and it continues them.
-6. Q: What proof shows the value arrived typed?
-   A: parsed.confidence == 1.0 as float (not "1.0" string) — printed from the validated object.
+1. What enforces the schema — the API or your code? Your code, at runtime, after the response arrives. The API returns text; Pydantic's model_validate_json is the boundary. It can fail on ANY call — that's why the validation line exists.
+2. What are the two ValidationError failure modes (both hit live today)? (a) Malformed JSON — model wrapped output in ```json fences despite instructions → "expected value at line 1 column 1". (b) Schema violation — wrong type for a field → error names the exact field. Fail loud at the edge, not silently downstream (validate at controller, not DAO).
+3. How does prefill fix the markdown-fence problem? End the messages list with {"role":"assistant","content":"{"} — the model CONTINUES from it, already mid-JSON, so it can't emit preamble or fences. Instructions are requests; prefill is enforcement.
+4. What's the gotcha with prefill and parsing? The response EXCLUDES your prefill — re-attach the "{" before model_validate_json ("trailing characters at line 2" = you forgot; input starts at "answer": with no opening brace).
+5. Where is prefill's assistant-last legal? Prefill is the one place an assistant message LAST is a feature — you're putting words in the model's mouth and it continues them.
+6. What proof shows the value arrived typed? parsed.confidence == 1.0 as float (not "1.0" string) — printed from the validated object.
 STILL OPEN for Day 24 continuation: delete stale un-prefixed parse line (line 28), clean run; Field constraints/validators, Optional, nested models; wire typed output into Project 2 evals.
+
+## Day 24 (complete) — Pydantic deep dive: constraints, Optional, nested models (2026-08-07)
+**One-liner:** schema = API contract for model output — Field constraints add value rules on top of type rules, Optional allows null but only = None allows absence, nested models validate the whole tree in one call with full error paths (sources.1.score).
+
+1. confidence: float vs confidence: float = Field(ge=0.0, le=1.0)? Bare float catches type errors only (1.7 passes). Field adds value rules — planted 1.7 failed with less_than_equal naming field, rule, and value. Joi.number() vs Joi.number().min(0).max(1).
+2. Optional[str] without = None — can the key be missing? NO. Two separate permissions: Optional allows the VALUE to be null; = None allows the KEY to be absent. Optional alone still throws type=missing on an absent key. Joi: .allow(null) vs .optional() with default.
+3. Design rule for optional fields? Required-by-default (NOT NULL). Optional only for legitimate absence — otherwise you just move the failure downstream to whoever reads None.
+4. How do you test the missing-field case? Feed absence — a happy-path run proves nothing. (Caught offering a topics-present run as proof for the topics-absent case; corrected, then predicted the required-field failure and ran it: error type=missing.)
+5. How does nested validation report failures? Full path into the DATA tree, not a code line: sources.1.score = index 1 (zero-based) of the sources list, field score. One model_validate_json call recurses the whole tree. This shape IS Project 2's answer+chunks response.
+6. What did the stale-line cleanup teach? When a fix replaces a line, delete the old line in the same edit — last write silently wins. (Dead/commented code left behind caught 3x this session.)
+7. EXERCISE (verified with pasted output): nested_practice.py — valid JSON parsed; planted bad JSON failed at sources.1.score. structured_output.py restored to minimal known-good; caveat=None default observed live.
+
+## Day 25 — Morning check-in (2026-08-10): Day 24 recall quiz + cold re-quizzes
+**One-liner:** expected traceback = passing test; stop_reason doesn't exist until the model stops — the stop CREATES the reason (HTTP trailer, in message_delta).
+
+1. Q1 constraints: PASS — type check vs value rules, Joi analogy held.
+2. Q2 Optional/= None: FAILED twice, never produced the clean two-part sentence unprompted (said "optional means it can be missing" — backwards). STILL WEAK — re-quiz cold next session.
+3. Q3 nested paths: half — knew sources.1.score, framed it as "line of code"; corrected to data-tree path (JSON path, not stack trace).
+4. Cold A (stop_reason why): closed with cleanup — event right (message_delta), but called it "reason of failure" (end_turn is the happy case — it's the stream's status code, 200 is also a status) and first said "can't stop without knowing why" (backwards: the stop creates the reason). Second attempt landed: mid-stream the stop hasn't happened, so the reason doesn't exist yet.
+5. Cold B (SSE event roles): PASS after 3 prior skips — full lifecycle recited in order; text = content_block_delta, stop_reason = message_delta. CLOSED.
+6. Carried-forward (Saturday 2026-08-08) still unverified: evals.py France-position fix + Phase 1 recap out loud.

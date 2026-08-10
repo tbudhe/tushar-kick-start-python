@@ -1,29 +1,34 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-08-05
+Last Updated: 2026-08-10
 
 RULE FOR CLAUDE: This file's "CURRENT STATUS" section overrides ALL other documents in this project. If any other doc conflicts, this file wins.
 
 CURRENT STATUS
-Day: 24 | Week: 5 — Phase 2
+Day: 25 IN PROGRESS (quiz done 2026-08-10) | Week: 5 — Phase 2
 Goal: Staff SWE → AI Backend Engineer (Autodesk) → Staff/Principal AI Engineer, Walmart, July 2027
-Just completed: Day 24 (2026-08-05, PARTIAL — resume here) — structured outputs + Pydantic, plus the trim experiment. (1) TRIM EXPERIMENT (see weak-spots item 3): Claude's 400-at-turn-11 claim FALSIFIED with printed evidence — current API accepts assistant-first; role-check downgraded to hygiene. Live amnesia demo observed (window=4 → model lost early turns, drifted off-domain). (2) STRUCTURED OUTPUTS: model output = untrusted input; define schema as Pydantic BaseModel, validate at the boundary with model_validate_json — fails loud at the edge (controller, not DAO). API does NOT enforce schema; your code does, at runtime, per call. (3) Hit failure mode #1 live: model wrapped JSON in markdown fences despite instructions → ValidationError line 1 col 1. Fix = assistant PREFILL: end messages list with {"role":"assistant","content":"{"} — model continues mid-JSON, can't emit preamble; response EXCLUDES prefill so re-attach "{" before parsing. (4) Prefill worked (typed object printed, confidence=1.0 as float) but stale un-prefixed parse line at line 28 caused a second ValidationError ("trailing characters") — diagnosed, fix = delete stale line. (5) NOT yet done: cleanup of structured_output.py, deeper Pydantic (validators, optional fields, nested models), wiring typed output into multi_turn_chat / Project 2. Resume Day 24 here tomorrow — it is NOT complete.
-Day 23 recap (previous): multi-turn conversation state + system prompts. (1) API is stateless: messages list = conversation store the client owns (JWT vs server session); full history re-sent every call. (2) Two appends per turn: user msg before call, assistant reply after — missing the second breaks referents ("give me an example of one"). (3) System prompt = separate top-level param (header, not body); re-sent every call, never in messages. Counted 3-message list correctly but initially counted system as #4 — corrected. (4) Growth problem: pay input tokens for full history every call; context window = max request body. Fix = sliding-window trim in PAIRS (list must start with user role). Trimming bug = amnesia (evicted facts), not garbage-in. (5) Exercise DONE: multi_turn_chat.py works multi-turn ("OneExample" referent resolved); latent trim bug found in review — list at send time is odd-length (always ends with user), so even slice [-20:] starts with assistant at turn 11 → API 400; fix applied = role re-check after slice. Noted send-trim vs store-trim: request cost capped, but global list still grows in RAM (eviction problem moved, not solved).
-Project 1 status: SHIPPED; multi_turn_chat.py added (Day 23) with trim fix
-Project 2 status: RAGAS triad complete + sabotage-tested. Remaining: real Autodesk doc chunks, model cost decision, proper ragas upgrade to remove vertexai stub.
-Currently strong on: message-list mechanics (traced 3-message loop correctly with role order), stateless-API ↔ JWT/REST mapping, applied trim fix on his own after review
-Weak spots from quiz (revisit): (1) Day 24 morning quiz (2026-08-05): Q1 half credit — knew memory lives in messages list but couldn't name the two appends ("append user BEFORE the call, append assistant AFTER"); corrected, re-quiz tomorrow. Q2 initially gave the fix without the cause; corrected to "input tokens for entire history every call, grows linearly until context window." Q3 corrected to full mechanism (odd-length list + even slice → starts with assistant → 400). (2) SSE event roles re-quiz SKIPPED twice (Day 22 weak spot still open) — text in content_block_delta, stop_reason in message_delta at the end; MUST re-quiz next session. (3) Trim repro RUN 2026-08-05 with instrumentation (printed len + first role) — RESULT: Claude's 400 claim FALSIFIED. Current API accepted first role = assistant, no error. Role-check fix downgraded from crash-prevention to defensive hygiene (keeps trimmed history starting on user turn). Tushar also falsified his own "always user first" hypothesis with the same print. Bonus live amnesia demo: window=4, "show me all messages" → model listed only last window, drifted off-domain (warehouse mgmt ≠ Revit) because grounding turns were evicted.
-CARRIED FORWARD (do Saturday 2026-08-08): (1) evals.py TEST_CASES still has France in position 4 — run debug_floor.py to confirm ⚠️ follows France mid-list, restore order, run evals.py for 5/5 (retriever n_results now 2, audit prints top-2). (2) Phase 1 recap — explain embeddings → RAG → prompting → evals out loud, plain English.
-Next up: Day 24 continued — (a) verify stale line 28 deleted from structured_output.py and clean run pasted; (b) Pydantic deeper: Field constraints/validators, Optional fields, nested models; (c) wire a typed response into Project 2's eval pipeline. THEN Day 25: tool use / function calling in production (builds on Day 12's tool_use_id).
-STILL OWED (say-back, dodged 4x): "stop_reason arrives in message_delta at the END because the model only knows why it stopped once it stops" — make him say it in his own words before any new material.
+Just completed: Day 24 (finished 2026-08-07) — structured outputs + Pydantic deep dive. (1) Cleanup: stale lines 27–28 in structured_output.py deleted by Tushar, clean run verified (file tail = re-attach prefix → validate → print). (2) Field constraints: Field(ge=0.0, le=1.0), min_length — value rules on top of type rules; planted bad input confidence=1.7 → ValidationError naming field/rule/value (less_than_equal). Learned: expected traceback = passing test. (3) Caught him re-running the happy path and calling it a "pass" for the missing-field case — corrected: to test absence, feed absence. He then predicted required-field failure correctly AND ran it (error type=missing). (4) Optional fields: Optional[str] = None — Optional alone still requires the key; the = None default is what permits absence. Design rule: required-by-default, optional only for legitimate absence. (5) Nested models: Source inside RevitAnswer, one validate call recurses the tree, error paths like sources.1.score — noted this shape IS Project 2's answer+chunks. (6) Quiz say-backs: Q3 trim-experiment finally closed (print showed first role = assistant + call succeeded → role-check is hygiene). Q4 stop_reason closed on attempt 6 — accepted the final sentence but see weak spots: re-quiz cold.
+Project 1 status: SHIPPED; multi_turn_chat.py (Day 23, trim fix)
+Project 2 status: RAGAS triad complete + sabotage-tested. Remaining: real Autodesk doc chunks, model cost decision, ragas upgrade to remove vertexai stub, AND (new) wire typed Pydantic response into eval pipeline (Day 25 warm-up).
+Currently strong on: running experiments on demand with printed evidence (planted bad inputs twice, read error output correctly), predicted required-field failure before running, constraint mechanics
+Weak spots from quiz (revisit): (1) Optional[str] vs = None split — FAILED twice on 2026-08-10, never produced clean two-part sentence ("Optional allows null value; = None allows absent key") — re-quiz COLD next session. (2) stop_reason "why at the end": CLOSED 2026-08-10 on second attempt (landed "reason doesn't exist mid-stream"), but first framed it as "reason of failure" — watch: end_turn is the happy case, it's the stream's status code. (3) SSE event roles: CLOSED 2026-08-10 — full lifecycle recited in order after 3 skips. (4) Trim experiment finding + prefill re-attach: not re-tested 2026-08-10 — carry. (5) Tendency to test the happy path and declare victory — watch for this in exercises. (6) Nested error paths: framed sources.1.score as "line of code" — corrected to data-tree path (JSON path, not stack trace).
+EXERCISE DONE (verified 2026-08-07 with pasted output): nested_practice.py — valid JSON parsed; bad JSON failed at sources.1.score (zero-based index confirmed). structured_output.py restored to minimal known-good (schema/prompt agree, parse lines live, dead experiments deleted); clean run pasted, caveat=None default observed live. NOTE the recurring pattern caught 3x this session: dead/commented code left in file after fixes — watch in future exercises.
+CARRIED FORWARD (was due Saturday 2026-08-08 — UNVERIFIED as of 2026-08-10, now overdue): (1) evals.py TEST_CASES still has France in position 4 — run debug_floor.py to confirm ⚠️ follows France mid-list, restore order, run evals.py for 5/5 (retriever n_results now 2, audit prints top-2). (2) Phase 1 recap — explain embeddings → RAG → prompting → evals out loud, plain English.
+Next up: Day 25 — (warm-up) wire typed RevitAnswer (with nested Source list) into Project 2's eval pipeline; then tool use / function calling in production (builds on Day 12's tool_use_id: model requests, your code executes).
 RECALL QUESTIONS FOR TOMORROW (answer before the session)
-1. In structured outputs, what enforces the schema — the API or your code — and what does that mean about when it can fail?
-2. How does assistant prefill prevent markdown-fenced JSON, and what must you do to the response text before parsing?
-3. What did the trim experiment prove, and what printed evidence proved it?
-4. (say-back, owed 4x) Why does stop_reason arrive in message_delta at the END of the stream?
+1. Optional[str] vs = None — what does EACH part permit? (Two-part sentence, no hints — failed twice 2026-08-10.)
+2. What did the printed evidence show in the trim experiment — the finding, not the lesson?
+3. Prefill gotcha: what must you do to the response before parsing, and why?
 ONE-SENTENCE SUMMARY (say out loud)
-"The model's output is untrusted input — validate it at the boundary with a Pydantic schema, and prefill '{' so it starts inside the JSON with no room for preamble."
+"My schema is the API contract for the model's output — constraints catch bad values, Optional declares legitimate absence, and nesting validates the whole tree in one call at the boundary."
 KEY MENTAL MODELS (carry into every session)
+Schema = API contract for model output — constraints (value rules) + Optional (legitimate absence) + nesting (whole tree, one call)
+Optional allows null; only = None default allows ABSENCE — both parts, or the key is still required
+Required-by-default (NOT NULL) — optional fields just move the failure downstream to whoever reads None
+Expected traceback = passing test — ask "did I expect this?" before "what broke?"
+To test absence, feed absence — a happy-path run proves nothing about the missing-field case
+Nested validation errors give the full path (sources.1.score) — RAG responses are trees, not flat dicts
+When a fix replaces a line, delete the old line in the same edit — last write silently wins
 Model output = untrusted input; validate at the boundary (controller, not DAO) — Pydantic model_validate_json fails loud with field-level errors
 Prompt instructions are requests, not guarantees — prefill "{" as last assistant message forces mid-JSON continuation; re-attach prefill before parsing
 Schema enforcement lives in YOUR code at runtime, per call — the API returns text, nothing more
@@ -34,7 +39,7 @@ Odd-length list + even slice = starts on the wrong role — re-check structural 
 Falsify hypotheses with printed numbers — INCLUDING the teacher's (400-at-turn-11 claim died on a printed "first role = assistant" + successful call)
 Trimming bug = amnesia (evicted keys you still needed), not garbage-in
 Send-trim caps API cost; store-trim caps RAM — know which one you fixed
-stop_reason arrives in message_delta at the END — model only knows why it stopped once it stops (HTTP trailer)
+stop_reason arrives in message_delta at the END — the reason doesn't exist until the model stops (HTTP trailer); sent to YOUR code so it can decide retry/warn/continue
 Streaming = SSE/chunked transfer; text_stream = filtered consumer, raw events = the full topic
 stop_reason = HTTP status code of the stream — never render it, never ignore it
 asyncio.gather = Promise.all; asyncio.run starts the loop yourself (Node's always runs)
@@ -52,7 +57,6 @@ Python indentation = "how many times does this line run"; you are the closing br
 KeyError points at the crash line, but the bug lives where the dict was built
 Refusals have three layers: empty filter → distance gate → LLM refusal prompt; check in order, with evidence
 A correct refusal that surprises you = coverage gap; fix is data, not code
-Falsify hypotheses with printed numbers — layer-3 guess died on a 1.636
 Corpus changes need regression evals, same as code changes
 One pipeline, many importers: prod, deterministic evals, RAGAS all import rag_service
 Python tuple unpacking is strict: change a return arity → update every caller
@@ -63,7 +67,9 @@ DBs return "closest," not "relevant" — thresholds are application code's job
 Knowledge gap → RAG; behavior gap → prompting first, fine-tuning last
 site-packages-only traceback = dependency conflict, not your code; venv = node_modules
 PROGRESS LOG (most recent first — headline only)
-Day 24 (partial): Structured outputs + Pydantic — untrusted-input boundary validation, both ValidationError modes hit live, prefill fix; trim experiment FALSIFIED the 400 claim with printed evidence; live amnesia demo; resume Day 24 tomorrow
+Day 25 (quiz): SSE roles CLOSED, stop_reason closed ("stop creates the reason"); Optional/= None split failed twice → top weak spot; docs synced; Saturday carry-forward still unverified
+Day 24 (complete): Pydantic deep dive — Field constraints (planted 1.7 → less_than_equal), Optional + = None (absence vs null), nested models (sources.1.score paths); stale-line cleanup done; "test absence by feeding absence" lesson; stop_reason say-back closed attempt 6 (re-quiz cold)
+Day 24 (partial): Structured outputs + Pydantic — untrusted-input boundary validation, both ValidationError modes hit live, prefill fix; trim experiment FALSIFIED the 400 claim with printed evidence; live amnesia demo
 Day 23: Multi-turn state + system prompts — messages list = conversation store (stateless API/JWT), system = header not body, sliding-window trim in pairs; latent odd/even trim bug found + fixed in multi_turn_chat.py; amnesia-not-garbage trimming bug
 Day 22: PHASE 2 START — streaming (SSE events, stop_reason) + async (gather = Promise.all); sync/async client-mixing bug caught live; stop_reason evidence proved display truncation, not API truncation
 Day 21: Retrieval audit loop + RAGAS triad + sabotage test — refusal_rate caught what judge metrics missed; layer-2 refusal proven with 1.636 > 1.2; judge non-determinism observed. PHASE 1 COMPLETE.
