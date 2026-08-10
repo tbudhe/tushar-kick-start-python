@@ -22,5 +22,5 @@ def heartbeat() -> dict[str, str]:
 
 @app.post("/ask")
 def ask(req: AskRequest) -> AskResponse:
-    answer, sources, _ = answer_question(req.question, req.category)
-    return AskResponse(answer=answer, sources=sources)
+    resp = answer_question(req.question, req.category)
+    return AskResponse(answer=resp.answer, sources=[s.id for s in resp.sources])

@@ -1,5 +1,17 @@
 from retriever import retrieve
 from prompting.revit_context_qa import ask_revit_question
+from pydantic import BaseModel
+
+
+class Source(BaseModel):
+    id: str
+    text: str
+    distance: float
+
+
+class RagResponse(BaseModel):
+    answer: str
+    sources: list[Source]
 
 
 def answer_question(question, category=None):
@@ -9,12 +21,13 @@ def answer_question(question, category=None):
 
     if not chunks:
         # No relevant context -> don't call Claude at all
-        return "I don't know", [], []
+        return RagResponse(answer="I don't know", sources=[])
 
     context = "\n".join(c["text"] for c in chunks)
     answer = ask_revit_question([
         {"role": "user", "content": f"{context}\n\nQuestion: {question}"}
     ])
-    sources = [c["id"] for c in chunks]
-
-    return answer, sources, chunks
+    return RagResponse(
+        answer=answer,
+        sources=[Source(id=c["id"], text=c["text"], distance=c["distance"]) for c in chunks]
+    )

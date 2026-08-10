@@ -51,13 +51,14 @@ refusal_count = 0
 
 for case in EVAL_QUESTIONS:
     # your pipeline's real answer
-    answer, sources, chunks = answer_question(case["question"], case["category"])
+    resp = answer_question(case["question"], case["category"])
+    answer = resp.answer
     if answer == "I don't know":
         refusal_count += 1
         continue
     eval_rows["user_input"].append(case["question"])
     eval_rows["response"].append(answer)
-    eval_rows["retrieved_contexts"].append([c["text"] for c in chunks])
+    eval_rows["retrieved_contexts"].append([s.text for s in resp.sources])
     eval_rows["reference"].append(case["reference"])
 
 refusal_rate = refusal_count / len(EVAL_QUESTIONS)

@@ -12,7 +12,8 @@ TEST_CASES = [
 
 def run_case(case):
     # Same function the API uses — evals test the real pipeline
-    answer, sources, _ = answer_question(case["question"])
+    resp = answer_question(case["question"])
+    answer, sources = resp.answer, [s.id for s in resp.sources]
 
     if "expected_answer" in case:
         passed = answer.strip() == case["expected_answer"]
