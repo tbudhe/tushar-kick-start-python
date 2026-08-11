@@ -22,7 +22,7 @@ Tushar is a Staff Engineer with ~16 years of backend engineering experience (pay
 
 **Current state**
 
-Tushar has completed Day 0 through Day 25 of the curriculum — Phase 1 FULLY COMPLETE; Phase 2 in progress since Day 22 (running roughly 2x the original day-per-topic pace; treat "18-week" boundaries as loose and track by topic completion instead):
+Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY COMPLETE; Phase 2 in progress since Day 22 (running roughly 2x the original day-per-topic pace; treat "18-week" boundaries as loose and track by topic completion instead):
 
 - Day 0: ML basics (supervised/unsupervised, neural net forward pass)
 - Day 1: Tokenization, embeddings, self-attention (Q/K/V), next-token prediction
@@ -50,18 +50,20 @@ Tushar has completed Day 0 through Day 25 of the curriculum — Phase 1 FULLY CO
 - Day 23: Multi-turn state + system prompts — messages list = conversation store (stateless API), sliding-window trim in pairs; odd/even trim bug found + fixed in multi_turn_chat.py; the "400 at turn 11" claim later FALSIFIED by experiment (API accepts assistant-first; role-check downgraded to hygiene)
 - Day 25: Typed pipeline responses — answer_question returns one RagResponse (answer + nested list[Source] with id/text/distance + category) instead of a 3-tuple; both branches return the same contract; all 3 callers (app.py, evals.py, ragas_evals.py) read fields by name. Exercise proved the payoff: adding a field broke zero callers, where Day 19's tuple change broke all three. Also closed both overdue weekend items — debug_floor.py audit loop restored, retrieval verified healthy, Day 21 indentation bug confirmed gone
 - Day 24: Structured outputs + Pydantic — boundary validation (model_validate_json), prefill "{" + re-attach gotcha, Field constraints (planted 1.7 → less_than_equal), Optional vs = None (null vs absence), nested models with tree error paths (sources.1.score); exercises: structured_output.py, nested_practice.py
+- Day 26: Tool use / function calling in production — while-True loop until stop_reason != "tool_use", tool schemas as OpenAPI specs (description = prompt engineering), dispatch dict + tool_use_id correlation, tool results as role="user", RAG=push vs tools=pull, agents = loop + catalog; exercise tool_loop.py (chatbots/stocks_chatbot/) VERIFIED with printed output (tool_use → tool_use → end_turn, sequential dependency chain); Day-25 review fixes verified (evals 5/5, debug_floor healthy); COLD quiz Optional/= None PASSED after two prior failures
 
 **Active open items:**
-- **evals.py TEST_CASES order:** France still in position 4 (sabotage leftover) — was due Saturday 2026-08-08, OVERDUE as of 2026-08-10. Confirm flag follows France in debug_floor.py, restore order, run evals.py 5/5 (retriever n_results now 2).
 - **Phase 1 recap owed:** explain embeddings → RAG → prompting → evals out loud, plain English (also overdue from the weekend).
 - **Project 2 v2 remaining:** real Autodesk doc chunks, model cost decision (opus → sonnet/haiku), ragas upgrade to drop the vertexai stub, wire typed RevitAnswer into the eval pipeline (Day 25 warm-up).
-- **Day 25 findings all FIXED (2026-08-10), verification run owed:** refused: bool on RagResponse; evals.py + ragas_evals.py read the flag; evals.py asserts rank and sources==[] on refusal; retriever.py exports THRESHOLD/N_RESULTS, debug_floor.py imports them. Tushar must run evals.py (expect 5/5) and debug_floor.py to confirm.
-- **Revision protocol (agreed 2026-08-10):** every quiz = 3 questions on the last day + 1 COLD question from a random earlier day (rotate Days 0–24, prioritise weak-spots). Retention is the identified risk, not pace. Log the rotation pick in the day's notes.
+- **tool_loop.py final-answer check:** confirm the final assistant text actually contained 189.50 (end-to-end round trip) — output not yet pasted.
+- **structured_output.py lines 33–34:** commented-out no_topics experiment — delete.
+- **Revision protocol (agreed 2026-08-10):** every quiz = 3 questions on the last day + 1 COLD question from a random earlier day (rotate Days 0–25, prioritise weak-spots). Retention is the identified risk, not pace. Log the rotation pick in the day's notes. Picks so far: Day 24 (2026-08-11, PASSED). Optional/= None needs one more cold check ~2026-08-18. New weak spot: schema/description direction (wrote inverted descriptions twice on Day 26 — rule: say the signature out loud, then transcribe).
 - **Milestones (set 2026-08-10):** Sep 2026 Phase 2 done; Nov 2026 Phase 3 done; Dec 2026 projects 3+4 shipped; Feb 2027 job search opens; Jul 2027 Walmart target with ~5 months buffer. Tushar asked "am I behind?" — he is not: Phase 1 took 21 sessions against 25 budgeted, and 2 of 4 projects are shipped. Reassure with numbers when this recurs, and redirect the worry to retention and consistency.
 - **Doc protocol (agreed 2026-08-10):** ONE SESSION = ONE DAY NUMBER, sequential. Never reopen a day as partial/complete/check-in — that is what made Days 24–25 feel stalled (7 headings for 2 "days"). LEARNING_NOTES headings are `## Day N — Topic Name`, no dates or qualifiers. Update all three docs + commit at the end of every session.
 - **git push** of Days 22–25 work — commits made locally (through 2ff02c4), Tushar pushes; the sandbox has no GitHub credentials.
 
 **Resolved since last update:**
+- **Day 25 review fixes VERIFIED (2026-08-11):** evals.py 5/5 (refused=True, sources=[] on France), debug_floor.py healthy (real queries rank #1 under 0.7, France 1.896/1.973 drop + coverage flag). evals.py TEST_CASES order item closed with it.
 - **Floor-plan category finding** (Day 20): not a bug — correct LLM refusal revealing a coverage gap; doc6 added, evals 5/5 green.
 - **RAGAS triad complete** (Day 21): answer_relevancy + context_precision wired and sabotage-tested; judge non-determinism observed (relevancy 0.75–0.92 same code) — read as trends, never absolutes.
 - **evals.py green run** after the 3-tuple refactor (Day 20).
@@ -71,7 +73,7 @@ Tushar has completed Day 0 through Day 25 of the curriculum — Phase 1 FULLY CO
 
 **Recall/articulation quality:** Markedly improved since Day 7. Tushar is now producing full, precise restated sentences unprompted (e.g., Day 16 Q2 self-corrected "prompts drive it" → "prompt size drives it" in the same pass). The "precision gap" pattern flagged below is closing — keep watching, don't assume fully resolved yet.
 
-**Next content block:** Day 26 — warm-up: fix P1/P2 from the Day 25 review; then tool use / function calling in production (builds on Day 12's tool_use_id). Weak spot to re-quiz cold: Optional vs = None split (failed twice 2026-08-10). The current mode (build → eval surfaces a finding → fix → learn) is working well and should continue.
+**Next content block:** Day 27 — quiz on Day 26 + cold pick, then multi-tool + error handling in the tool loop: tool_result with is_error when a tool raises, letting the model recover, validating tool input (schema is a request, not a guarantee). Bridges toward Phase 3 agents. The current mode (build → eval surfaces a finding → fix → learn) is working well and should continue.
 
 ---
 
