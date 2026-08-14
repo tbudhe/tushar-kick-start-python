@@ -29,6 +29,3 @@ resp = client.messages.create(
 raw = "{" + resp.content[0].text   # response CONTINUES the prefill — re-attach it
 parsed = RevitAnswer.model_validate_json(raw)
 print(parsed)
-
-# no_topics = '{"answer": "x", "confidence": 0.9, "topics": ["a"]}'
-# RevitAnswer.model_validate_json(no_topics)
