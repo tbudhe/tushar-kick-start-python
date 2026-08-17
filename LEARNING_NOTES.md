@@ -363,3 +363,20 @@ Quiz rotation pick: Day 24 cold — Optional[str] vs = None PASSED after two pri
 Quiz rotation pick: Day 20 COLD — FAILED. Named RAGAS metrics (refusal_rate, answer_relevancy, context_precision) instead of the three pipeline mechanisms. Metrics MEASURE quality; they do not CAUSE refusals. Correct: empty filter → distance gate → LLM refusal prompt, and the FIRST thing printed is the raw collection.query COUNT, because if it is zero there are no distances to look at. Re-ask ~2026-08-21.
 
 Session pattern named (new weak spot): ADJACENT VOCABULARY. Every wrong answer used real terms from the correct neighbourhood — TOOL_FUNCTIONS for "why a loop", stop_reason for "how does a result go back", RAGAS metrics for "what causes a refusal". Drill: before answering, name the MOMENT IN TIME the question is about.
+
+## Day 28 — Max-Iteration Guards: Tool Loop → Agent Skeleton
+**One-liner:** An agent is the tool loop plus a budget — `for iteration in range(MAX_ITERATIONS)` replaces `while True`, the model still exits normally via stop_reason, and when the budget dies give_up() makes a forced landing (one final call with tools DISABLED) instead of a crash.
+
+1. Why is an unbounded while True over a paid API a production incident? Every lap is a paid call, and a model receiving unhelpful results keeps trying — on Day 27 only a crash stopped the GOOGL→GOOG guessing spiral. Node anchor: a consumer with no max.poll limit and no circuit breaker — Walmart would never ship it.
+2. What turns a tool loop into an agent? Three additions: an iteration ceiling (budget), a bigger tool catalog, and a goal it works toward across multiple steps. No magic — tool_loop.py was already 90% of an agent.
+3. Two exits, two deciders: `stop_reason != "tool_use"` = the MODEL decides it is done (normal path, unchanged from Day 26); range exhausted = I decide it has spent enough. The model steers, I hold the budget.
+4. give_up() design = forced landing: one final call with tools disabled, so the model MUST answer in text from whatever it already collected. Crash / partial transcript / forced landing were the options; forced landing is the production pattern.
+5. The ceiling is a BACKSTOP, not a fix. With the sentinel bug still in place, MAX_ITERATIONS=10 stops the spiral after 10 PAID calls — error-message quality is the fix, the guard is the circuit breaker. They are layers, not alternatives.
+6. Sabotage test verified with printed output: MAX_ITERATIONS=1 + a two-tool question → BOTH tools ran in ONE iteration (get_company_name and get_stock_price both take the same ticker — independent needs = parallel calls in one turn, Day 26 rule seen live), then the guard fired and give_up() produced a useful final text including $189.50 and an honest "ran out of tool-call attempts". Closes the carried item: AAPL's price finally appeared in FINAL assistant text.
+7. Lesson re-learned live: the first agent_loop.py run proved the Day 27 error-message fix (one call, clean end_turn) — the new guard code never executed. Happy-path run ≠ guard verified. To test the ceiling, HIT the ceiling.
+
+Quiz results (Day 27 + cold Day 20 RE-ASK): Q1 protocol rule PASS (every tool_use answered or request rejected, correlation ID). Q2 try placement PARTIAL — location right (single call), but the sibling-tools failure mode not retrieved even on retry. Q3 sentinel mechanics FAILED — could paste the correct fix but not articulate WHY is_error never fired (no raise → except never runs → field stays False; a function that cannot fail cannot report failure). Q4 Day 20 RE-ASK: the three layers PASSED in order (empty WHERE filter → distance gate → LLM refusal prompt) after a cold fail on 2026-08-14 — but the FIRST print (raw collection.query COUNT) was missed again. New pattern named: answered a check question with a RUN instead of a SENTENCE three times — the recall gap wearing a new coat.
+
+Quiz rotation pick: Day 20 RE-ASK — layers PASSED, first-print still owed (~2026-08-20 with Q2/Q3 misses).
+
+PLAN CHANGE (agreed 2026-08-17): after Phase 2 completes, ONE FULL WEEK of Phase 1 + Phase 2 revision before Phase 3 starts.

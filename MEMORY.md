@@ -132,3 +132,13 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - **Environment:** `.env` file with `ANTHROPIC_API_KEY`
 - **Planned tools (later phases):** LangChain (`RecursiveCharacterTextSplitter` already referenced), LlamaIndex, FastAPI, LangGraph, LangSmith, CrewAI, AutoGen, MCP, Ollama (post-plan)
 - **Reference resources:** Anthropic Academy (Claude 101 recommended now); 3Blue1Brown neural network video and StatQuest used in early sessions
+---
+
+**Session addendum — 2026-08-17 (Day 28)**
+
+- Day 28: Max-iteration guards — agent = tool loop + budget + catalog + goal. agent_loop.py created (run_agent), sabotage-verified both ways: MAX_ITERATIONS=1 forced give_up()'s forced landing (final call with tools disabled → useful text with $189.50); restored to 10 → clean normal exit. Both tools ran in ONE iteration (independent args → parallel calls, Day 26 rule observed live). Ceiling = backstop, error-message quality = fix.
+- PLAN CHANGE: after Phase 2 completes, ONE FULL WEEK of Phase 1+2 revision before Phase 3 (Tushar's request, targets the recall gap). Milestones updated in STATUS.md.
+- Quiz: Day 20 re-ask — three refusal layers PASSED in order (big improvement from the 08-14 cold fail); first-print (raw query COUNT) still missed. Day 27 Q3 sentinel mechanics FAILED (can fix, can't explain); Q2 sibling-tools not retrieved.
+- New pattern named: answers check questions with pasted RUNS instead of SENTENCES (3x this session). A run is evidence, not an explanation.
+- Open: Day 27 ValidationError sabotage = Day 29 take-home; line-22 description inversion now in BOTH tool_loop.py and agent_loop.py; per-tool Pydantic models; Optional/= None cold check due 2026-08-18 (Day 29's cold pick). CLOSED: AAPL final text contains 189.50.
+- Next: Day 29 — multi-step planning (dependency chains the agent discovers itself, how it decides it's done); last bridge before LangChain/LangGraph.
