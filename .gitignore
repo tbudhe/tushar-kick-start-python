@@ -27,3 +27,4 @@ chroma.sqlite3
 deepfashion-multimodal-rag/
 .venv/
 revit_db_07_25/
+_to_delete/

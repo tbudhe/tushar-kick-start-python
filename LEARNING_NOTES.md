@@ -380,3 +380,151 @@ Quiz results (Day 27 + cold Day 20 RE-ASK): Q1 protocol rule PASS (every tool_us
 Quiz rotation pick: Day 20 RE-ASK — layers PASSED, first-print still owed (~2026-08-20 with Q2/Q3 misses).
 
 PLAN CHANGE (agreed 2026-08-17): after Phase 2 completes, ONE FULL WEEK of Phase 1 + Phase 2 revision before Phase 3 starts.
+
+## Day 29 — Multi-Step Planning: Dependency Chains (cont. next session)
+**One-liner:** A dependency chain only exists if the model CANNOT produce tool B's argument without tool A's output — world knowledge is a bypass (the model knows Apple→AAPL from pretraining, so no lookup tool gets called), and a chain of N dependent tools costs N sequential iterations because all arguments in one turn must be written before any tool runs.
+
+1. ValidationError take-home VERIFIED: forced block.input = {"ticker": ["AAPL"]} → the ValidationError branch fired with "Invalid arguments: 1 validation error for StockPriceInput / ticker / Input should be a valid string [type=string_type, input_value=['AAPL'], input_type=list]". Loop continued — raising is not crashing; the boundary turns exceptions into error contracts.
+2. How to tell Pydantic's branch from a TypeError: SPECIFICITY. Pydantic errors talk about the CONTRACT — schema name (StockPriceInput), field name (ticker), machine-readable type tag (string_type). A TypeError talks about Python INTERNALS ("'list' object has no attribute 'upper'") with no idea a ticker was involved. 400-with-field-message vs 500-with-stack-trace.
+3. The sabotage payload {"ticker": ["AAPL"]} is NOT "passing an array instead of a map" — the outer dict is fine; the FIELD VALUE is a list where the schema promises str. "Body malformed" and "body fine, one field fails validation" are different conversations.
+4. Why can't the model call get_ticker_symbol and get_stock_price in one turn when the user says "Apple"? Because all tool arguments in a single response are written BEFORE any tool executes — there is no "pipe A's output into B" within a turn. B's argument = A's output ⇒ sequential turns, one iteration per link. (Mental model 72, first half, now understood.)
+5. Why did the live Apple run still batch both calls in one turn? The model filled ticker='AAPL' from PRETRAINING — world knowledge bypassed the dependency. Production warning: the model will "helpfully" guess internal IDs (Autodesk hub IDs) instead of calling the lookup tool, and sometimes guess wrong.
+6. Kafka anchor: request chaining / orchestration — correlation-ID request-reply where B's request is built from A's response, so B must run after A completes. Sequential by construction.
+7. Why get_ticker_symbol when get_company_name exists? DIRECTION. get_company_name is ticker→name; the user gave a name and get_stock_price needs a ticker: name→ticker, the opposite arrow. An index on ticker→name can't serve a name→ticker query — same data, wrong direction. (Direction-inversion weak spot, now appearing in system design, not just descriptions.)
+8. A tool needs THREE registrations: the schema entry in TOOLS, the function, and the TOOL_FUNCTIONS dispatch entry. Exercise run failed because only the DATA was added (and into the wrong dict — name→ticker mapping stuffed into NAMES, which is ticker→name: two contracts in one map). Model had no lookup tool, guessed "YUNextGenAI" as a ticker, got the good Day 27 error message, bailed gracefully — accidentally proving error-message quality, not the chain.
+9. Found in file: get_company_minimum_stock_price — self-added, broken 3 ways (description promises a price filter the schema doesn't take; returns a name, not a price; NAMES[ticker] > 150 compares str to int → TypeError → except Exception branch). Decision: DELETE all three registrations; design tools on paper first — a bad description misleads the model on EVERY call.
+10. agent_loop.py line-22 description inversion: FIXED (verified by reading the file). tool_loop.py still owed.
+11. EXERCISE NOT COMPLETED — session ended early. Day 30 finishes it: add get_ticker_symbol (3 registrations, param company_name NOT ticker), TICKERS dict for the new direction, print iteration numbers, ask "What's the current stock price of YUNextGenAI?" — expect iteration 0 = lookup, iteration 1 = price, iteration 2 = final text $42.00. Landmine left in deliberately: StockPriceInput validates ALL tools but requires ticker; the lookup tool sends company_name → per-tool Pydantic models (carried item 4) will fire on iteration 0.
+
+Quiz results (Day 28 + cold Day 24): Q1 sentinel-spiral-with-guard PARTIAL (shape right, never walked the timeline: 10 paid calls, guard fires, give_up lands, user sees an okay answer and nobody notices the 10x cost). Q2 parallel-calls PARTIAL (gave the code half — handle_tools loops over blocks — missed the model half: independent args → model batches both in ONE response). Q3 why-tools-disabled FAILED (said where give_up lives, not why: tools attached ⇒ model can answer with another tool_use ⇒ either budget violated or unanswered tool_use_id ⇒ stripping tools forces end_turn). Re-ask ~2026-08-21.
+
+Quiz rotation pick: Day 24 cold — Optional vs = None PASSED clean, unassisted, in a SENTENCE ("Optional allows the VALUE to be null; = None allows the KEY to be absent; Optional alone still throws type=missing"). Weak spot CLOSED after two prior failures. Notably: the one pure-sentence answer was the one PASS; the code-reaching answers were the misses.
+
+Sentences-vs-runs pattern: recurred twice (pasted run when asked for the one-sentence proof; second attempt attributed Pydantic's own artifacts to the TypeError side). The evidence-vs-explanation drill continues.
+
+COACHING RULE (agreed 2026-08-18, from end-of-session feedback): before EVERY exercise, state the GOAL first — what the final output/printout should look like — then give a NUMBERED step list, one step at a time, confirming each before the next. No destination-in-prose.
+
+## Day 30 — Multi-Step Planning: The Chain Runs (cont.)
+**One-liner:** The chain ran end-to-end once the catalog described both directions AND each tool had its own validation contract — two links cost two iterations plus a landing (MAX_ITERATIONS ≥ N+1 verified live), and the landmine proved that error text is prompt engineering even when the error is your own bug.
+
+**The goal printout (achieved, verbatim):**
+```
+iteration: 0
+tool call: get_ticker_symbol {'company_name': 'YUNextGenAI'}
+tool result: YNXT
+iteration: 1
+tool call: get_stock_price {'ticker': 'YNXT'}
+tool result: 42.0
+iteration: 2
+The current stock price of **YUNextGenAI** (ticker: **YNXT**) is **$42.00**.
+```
+
+1. THE LANDMINE FIRED as planted on Day 27: `StockPriceInput.model_validate(block.input)` ran for EVERY tool, so `get_ticker_symbol`'s perfectly valid `{'company_name': 'YUNextGenAI'}` was rejected — "ticker / Field required [type=missing]". One validator, two contracts.
+2. THE SUBTLE HORROR: after receiving "ticker Field required" twice, the model OBEYED the error text — abandoned the lookup tool and called `get_stock_price(ticker='YUNextGenAI')`, stuffing a company name into a ticker field. A well-formed, actionable, WRONG error message steered the model into a wall for 3 paid calls. Error text is prompt engineering even when the error is your bug.
+3. DIAGNOSIS CHAIN (run in order, cheapest evidence first): model RETRYING the same call ⇒ its tool_result was an error → add `print("tool result:", result)` → read the error's vocabulary (Pydantic contract words = boundary rejection, validation never reached the function) → fix the boundary.
+4. THE FIX — per-tool validators, dispatched like functions (the FOURTH registry, same key as the other three):
+```python
+class TickerSymbolInput(BaseModel):
+    company_name: str
+
+INPUT_MODELS = {
+    "get_stock_price": StockPriceInput,
+    "get_company_name": StockPriceInput,   # legitimately shared — same contract (ticker in)
+    "get_ticker_symbol": TickerSymbolInput,
+}
+
+# in handle_tools — dispatched, not hardcoded:
+args = INPUT_MODELS[block.name].model_validate(block.input)
+```
+Sharing a model across tools is legal ONLY when the contracts truly match (Tushar spotted get_company_name qualifies); the crime is forcing one contract on a tool with a different one.
+5. BONUS SELF-FOUND BUG: `get_stock_price` contained a hardcoded `if ticker != "AAPL":` — an allowlist masquerading as a lookup; the PRICES dict may as well not exist. Fix makes data the authority, and the error message teaches the model what IS valid:
+```python
+def get_stock_price(ticker):
+    if ticker not in PRICES:
+        raise ValueError(f"unknown ticker '{ticker}'. Known tickers: {list(PRICES)}")
+    return PRICES[ticker]
+```
+Verdict on the YNXT failure: BOTH a code bug (hardcode) and a data gap (YNXT missing from PRICES).
+6. Chain math verified live: 2 dependent links + 1 landing turn = 3 iterations; the model planned the chain UNPROMPTED once the catalog described both directions.
+7. Registrations, final form: a tool needs THREE — schema (TOOLS, the only part the model sees), function, dispatch (TOOL_FUNCTIONS) — plus a FOURTH in a hardened loop: its validator (INPUT_MODELS). All keyed by the same name. (Failed cold at quiz, relearned by hands, end-of-day re-ask still swapped function for validator — re-ask cold next session.)
+
+Quiz results (Day 29 + cold Day 20): Q1 chain-vs-parallel PASSED (after one push for the timing half). Q2 three-registrations FAILED. Q3 Pydantic-vs-TypeError PARTIAL (code instead of the "specificity" sentence). Q4 COLD Day 20 PARTIAL — layer right (WHERE filter), count-print missed a THIRD time (answered the inputs N_RESULTS/THRESHOLD, not the output COUNT). Drill: "layer = filter, print = count."
+
+Sentences-vs-code pattern: worst day yet — ≥4 code-instead-of-sentence answers. Rule stands: a run/code block is evidence; a "why" question wants a sentence.
+
+NEW RULE (Tushar's request, 2026-08-20): quiz capped at MAX 5 QUESTIONS PER SESSION, total — default 2 on the last day + 1 cold pick + up to 2 follow-ups.
+
+CLOSED: Day 29 exercise; per-tool Pydantic models (carried since Day 27); get_company_minimum_stock_price deleted (all 3 registrations); AAPL allowlist bug.
+CARRIED: Phase 1 out-loud recap; tool_loop.py line-22 description inversion; trim-experiment + prefill re-attach re-test.
+Next: Day 31 — LangChain intro (map TOOLS/TOOL_FUNCTIONS/INPUT_MODELS/budget onto framework abstractions) or Project 2 hardening.
+
+## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
+- World knowledge is a bypass — models guess internal IDs they think they know
+- A half-designed tool is not neutral — its description misleads the model on EVERY call
+- Raising is not crashing — the boundary turns the raise into an error contract
+- The ceiling is a backstop, not a fix — guard + error quality are layers (circuit breaker + error contract)
+- for iteration in range(MAX_ITERATIONS) replaces while True — two exits, two deciders
+- To test the ceiling, hit the ceiling — happy-path runs prove the OLD fix
+- Agent = tool loop + iteration budget + bigger catalog + multi-step goal — no magic
+- An unanswered tool_use_id is a rejected request, not a silent no-op — WHY errors are data
+- except ValidationError BEFORE except Exception — the subclass gets swallowed otherwise
+- A function that CANNOT fail (.get with default) cannot report failure — no raise → is_error stays False
+- Model output = untrusted input; YOUR internals = untrusted output — no raw tracebacks into context
+- block.input is a request body — `**` splat of a dict you didn't build TypeErrors before the body runs
+- When you see `**x`, say "x must be a dict"
+- An unbounded while True over a paid API is a production incident
+- Answer the MOMENT IN TIME the question asks about — adjacent vocabulary is still wrong
+- Tool loop = while stop_reason == "tool_use" — stop_reason steers control flow
+- Tool schema = OpenAPI spec for internal functions; description field is prompt engineering
+- input_schema and Pydantic = the same JSON Schema idea in opposite directions
+- Schema is a request, not a guarantee — tool functions still validate
+- tool_use_id = correlation ID (Kafka reply-key)
+- Dispatch dict = event loop with dynamic dispatch, made literal
+- Tool results return as role="user" — the transcript is GROWN by the loop
+- Dependency chain = sequential turns; independent needs = parallel calls in one turn
+- RAG = PUSH, tool use = PULL, agents = the tool loop + a bigger catalog
+- Say the function signature out loud, then transcribe to schema
+- Pipeline returns a DTO, not a tuple — callers read names
+- A return type is a promise made by EVERY branch — violations crash in the CALLER
+- Same type is not the same contract — branches must populate the same FIELDS
+- Sentinel strings across module boundaries are silent-failure bugs
+- A loud assertion is a gift; a silently tolerant one reaches production
+- Verify your own fixes with the skepticism you apply to your bugs — grep, don't trust memory
+- Design the response object against every consumer, not the loudest one
+- Identical output after a refactor proves nothing; callers running without TypeError proves it
+- Schema = API contract for model output — constraints + Optional + nesting
+- Optional allows null; only = None allows ABSENCE — both parts or the key is required
+- Required-by-default (NOT NULL) — optional fields move the failure downstream
+- Expected traceback = passing test — "did I expect this?" before "what broke?"
+- To test absence, feed absence
+- Nested validation errors give the full path (sources.1.score)
+- When a fix replaces a line, delete the old line in the same edit
+- Prompt instructions are requests — prefill "{" forces mid-JSON continuation; re-attach before parsing
+- Schema enforcement lives in YOUR code at runtime
+- Messages list = conversation store you own; API = stateless REST (JWT, not session)
+- System prompt = request header, re-sent every call, never in messages
+- Sliding window trims in pairs, must start with user role; re-check invariants AFTER slicing
+- Falsify hypotheses with printed numbers — INCLUDING the teacher's
+- Trimming bug = amnesia, not garbage-in; send-trim caps API cost, store-trim caps RAM
+- stop_reason arrives in message_delta at the END when streaming — control-flow signal, never render it
+- Streaming = SSE; text_stream = filtered consumer, raw events = the full topic
+- asyncio.gather = Promise.all; client class must match function style
+- Display truncation vs API truncation — printed evidence decides
+- Prefill = parallel (TTFT); decode = sequential (streaming speed)
+- Metric triad: context_precision→retrieval, faithfulness→grounding, answer_relevancy→direction
+- Refused questions never reach the judge — refusal_rate and n catch what quality metrics miss
+- Judge metrics are non-deterministic — trends, never single absolutes; reference = expected value of a unit test
+- collection.query = free local call; the LLM call is the guarded one
+- Retriever = bouncer (per-chunk threshold), service = manager (empty → refuse)
+- KeyError points at the crash line; the bug lives where the dict was built
+- Refusals: empty filter → distance gate → LLM refusal; check in order, cheapest first — COUNT before distances
+- A surprising correct refusal = coverage gap; fix is data, not code
+- Corpus changes need regression evals, same as code changes
+- One pipeline, many importers (prod, deterministic evals, RAGAS)
+- Tuple unpacking is strict — change arity, update every caller
+- Faithfulness = grounding, not truth; correct refusals score 0 — exclude them
+- Deterministic evals = unit tests (free); RAGAS = load tests (costs money)
+- Thresholds are outputs of calibration experiments; DBs return "closest", not "relevant"
+- Knowledge gap → RAG; behavior gap → prompting first, fine-tuning last
+- site-packages-only traceback = dependency conflict; venv = node_modules
+- Python indentation = "how many times does this line run"
