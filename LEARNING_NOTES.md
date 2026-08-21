@@ -458,6 +458,43 @@ CLOSED: Day 29 exercise; per-tool Pydantic models (carried since Day 27); get_co
 CARRIED: Phase 1 out-loud recap; tool_loop.py line-22 description inversion; trim-experiment + prefill re-attach re-test.
 Next: Day 31 — LangChain intro (map TOOLS/TOOL_FUNCTIONS/INPUT_MODELS/budget onto framework abstractions) or Project 2 hardening.
 
+## Day 31 — LangChain Intro: @tool Collapses the Four Registries
+**One-liner:** `@tool` generates all four registries — schema, function, dispatch, validator — from the one function signature, so the Day 30 wrong-validator bug is structurally impossible: no separate copies left to disagree.
+
+**The goal printout (achieved — `exercises/day31_langchain_tool.py`, no API call, no cost):**
+```
+=== WHAT @tool GENERATED ===
+TOOL: get_ticker_symbol
+  description: Look up the ticker symbol for a company name.
+  args schema: {'company_name': {'title': 'Company Name', 'type': 'string'}}
+TOOL: get_stock_price
+  description: Get the current stock price for a ticker symbol.
+  args schema: {'ticker': {'title': 'Ticker', 'type': 'string'}}
+
+=== THE DAY 30 CHAIN, VIA LANGCHAIN ===
+step 1: YUNextGenAI -> YNXT
+step 2: YNXT -> 42.0
+
+=== THE FREE VALIDATOR ===
+bad input rejected: 1 validation error ... company_name Field required
+```
+
+1. SPRING ANALOGY: the hand-built loop was raw servlets; `@tool` is `@RestController` — nothing was removed, it was automated. Validation still runs on every invoke; you just never write or import Pydantic (like `@Valid` vs hand-rolled request checks).
+2. ONE SOURCE OF TRUTH: schema AND validator are both generated from the type hints; description comes from the docstring or `@tool(description=...)` (Javadoc vs `@Operation` — same output, prefer the one living with the code). Day 30's bug — two hand-maintained copies of "what does this tool accept" drifting apart — cannot happen when there are no copies.
+3. DIRECTION INVERSION FIRED LIVE (weak spot #7 stays open): wrote `get_stock_price` description as "Look up the ticker symbol to get prices" — both tools then OPENED with the same words, exactly the ambiguous catalog that misleads a model. Fix: say the arrow out loud, then write it — "Get the current stock price for a ticker symbol."
+4. `.invoke({"company_name": ...})` on the tool object = the dispatch dict absorbed; the input is a DICT because that is the same shape a model's `tool_use` arguments arrive in. The Day 30 chain re-ran by hand in 4 lines: B's argument IS A's output.
+5. THE FREE VALIDATOR: feeding `{"wrong_field": ...}` produced "company_name Field required" — specific, actionable, AND correct, because the validator is generated from the tool's own signature and structurally cannot belong to a different tool. Contrast with Day 30, where the same-shaped error was wrong and steered the model into the ditch.
+
+Quiz results (Day 30 topic + cold Day 28): Day 30 Q1 error-text-is-prompt-engineering LANDED after 3 nudges (initially described the bug cause, not the model's obedient behavior). Q2 four-registries: named 3 of 4 in code — missed the function itself; final check ("why does the model only need TOOLS?") missed — answer: the model never runs code, it only WRITES a JSON tool_use request, and TOOLS is the menu of requests it may write. Re-ask both cold. Day 28 cold give_up()-WHY: PASSED cleanly, exact mechanism sentence — weak spot CLOSED. Sentences-vs-code recurred (skipped the Step 5 prediction sentence).
+
+NEW RULES (Tushar, 2026-08-21): quiz cap is 5 questions PER DAY-TOPIC (not per session); LEARNING_NOTES day blocks capped at 5 points.
+
+Session note: deliberately short — low-energy day, stopped after one concept + exercise rather than pushing. An honest short day beats a blurry long one.
+
+CLOSED: give_up()-tools-disabled WHY (Day 28).
+CARRIED: Phase 1 out-loud recap; tool_loop.py line-22 description inversion; trim-experiment + prefill re-attach re-test.
+Next: Day 32 — LangChain continued (bind tools to a model / the loop side: what replaces while stop_reason == "tool_use") or Project 2 hardening.
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

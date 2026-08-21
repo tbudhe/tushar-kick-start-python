@@ -159,3 +159,12 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Quiz: Q1 chain-vs-parallel PASSED; Q2 three-registrations FAILED (re-ask cold); Q3 Pydantic-vs-TypeError PARTIAL; cold Day 20 count-print missed a THIRD time ("layer = filter, print = count").
 - Open: give_up-WHY, sentinel mechanics, sibling-tools re-asks all DUE next session; tool_loop.py line-22; Phase 1 out-loud recap; trim/prefill re-test.
 - Next: Day 31 — LangChain intro (map hand-built loop onto framework abstractions) or Project 2 hardening; decide at session start.
+
+**Session addendum — 2026-08-21 (Day 31)**
+
+- Day 31: LangChain intro — `@tool` collapses all FOUR hand-built registries (TOOLS schema, function, TOOL_FUNCTIONS dispatch, INPUT_MODELS validator) into one decorator generated from the function signature; one source of truth means the Day 30 wrong-validator bug is structurally impossible. Spring analogy anchored it: hand-built loop = raw servlets, @tool = @RestController — nothing removed, everything automated (validation still runs, never written). Exercise `exercises/day31_langchain_tool.py` COMPLETED AND VERIFIED (goal-first format, no API call): printed generated registries, re-ran the Day 30 chain via `.invoke()` (YUNextGenAI→YNXT→42.0), fired the free validator on bad input — "company_name Field required", correct this time because the validator is generated from the tool's own signature.
+- Direction-inversion weak spot fired LIVE: wrote get_stock_price description as "Look up the ticker symbol to get prices" (both tools opened with identical words); caught via the printed catalog and fixed. Rule reinforced: say the arrow out loud BEFORE writing the description.
+- NEW RULES (Tushar): quiz cap = MAX 5 QUESTIONS PER DAY-TOPIC (not per session); LEARNING_NOTES.md day blocks = MAX 5 POINTS each.
+- Quiz: Day 30 error-text-is-prompt-engineering LANDED after 3 nudges; four-registries still shaky (3 of 4, missed the function itself; "model only sees TOOLS because it only WRITES a JSON request" missed — both re-ask cold). Day 28 give_up()-WHY PASSED cleanly — CLOSED. Sentences-vs-code recurred (Step-5 prediction skipped).
+- Session deliberately short (low-energy day): one concept + exercise, clean stop. Model for future heavy days.
+- Next: Day 32 — LangChain cont. (bind tools to a model; what replaces `while stop_reason == "tool_use"`) or Project 2 hardening; decide at session start.
