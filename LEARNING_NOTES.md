@@ -495,6 +495,28 @@ CLOSED: give_up()-tools-disabled WHY (Day 28).
 CARRIED: Phase 1 out-loud recap; tool_loop.py line-22 description inversion; trim-experiment + prefill re-attach re-test.
 Next: Day 32 — LangChain continued (bind tools to a model / the loop side: what replaces while stop_reason == "tool_use") or Project 2 hardening.
 
+## Day 32 — LangChain cont.: bind_tools Kills the Plumbing, the Loop Survives
+**One-liner:** `.bind_tools()` staples the TOOLS menu onto the model and parses replies into `response.tool_calls`, but the orchestration loop — invoke, run tools, append, invoke again until `tool_calls` is empty — is still yours to write.
+
+**The goal printout (achieved — `exercises/day32_bind_tools.py`, ChatAnthropic + haiku):**
+```
+=== ROUND 0 === get_ticker{'company_name': 'YUNextGenAI'} -> YNXT
+=== ROUND 1 === get_price{'ticker': 'YNXT'} -> 42.0
+=== ROUND 2 === tool_calls=[] , stop_reason='end_turn' -> "$42.00"
+```
+
+1. PLUMBING vs ORCHESTRATION: the Day 26 loop had two jobs. `bind_tools` + `tool.invoke(tc)` kill job 1 — digging through content blocks, matching `tool_use_id`, hand-building `tool_result`. Job 2 — "loop again or done" — survives, because it's a RUNTIME decision per fresh reply while `bind_tools` runs once at CONFIG time. Agent frameworks take the loop later; today it's still yours.
+2. `tool.invoke(tc)` = three registries in one call: validates args (the free validator), runs the function, returns a `ToolMessage` with the id pre-threaded. New stop check: `if not response.tool_calls:` replaces `stop_reason == "tool_use"`.
+3. MENU vs TRIPS TO THE KITCHEN: bind_tools size has NOTHING to do with MAX_ITERATIONS. Rounds are driven by the question's dependency chain (N links → N tool rounds + 1 final ⇒ MAX_ITERATIONS ≥ N+1) and ended by the empty-`tool_calls` exit; the menu size never enters the loop. 10 bound tools + ticker-already-given = 2 rounds. (Confusion fired live; restaurant analogy landed.)
+4. AGENT-BROKEN CODE RESCUE: an outside agent rewrote the exercise and deleted three things — `return response` (so `final` was `None`), the `for _ in range(MAX_ITERATIONS)` wrapper (so no round 2: only the MODEL, seeing `messages` on the NEXT invoke, can request `get_price`), and `messages.append(response)` (round 2 would send a tool_result answering a request not in the transcript). Diagnosed and rebuilt live — the best possible proof that the loop is orchestration and it's yours.
+5. TRANSCRIPT ORDER RULE: the AIMessage goes into `messages` BEFORE its ToolMessages — the request must appear before its results or the API rejects the turn.
+
+Quiz results (Day 31 + colds): Q1 one-source-of-truth PASSED after 1 nudge (exact sentence). Q2 model-writes-JSON / TOOLS-is-the-menu PASSED cleanly unprompted — weak spot CLOSED. Day 27 sentinel mechanics PASSED cold (no raise → except never runs → is_error stays False) — CLOSED. Day 20 count drill PASSED with the why, after 3 prior misses — CLOSED. 4/4.
+
+NEW OPEN: fallthrough guard vs give_up() — the loop's bare `return response` after MAX_ITERATIONS exhausts hands back an AIMessage still FULL of tool_calls (a request for more work dressed as an answer); give_up() re-calls with NO tools bound → end_turn text is the only exit. Answered half, in code — re-ask cold.
+
+Session note: end-of-session discouragement ("why can't I learn quickly") — countered with same-session evidence: 4/4 quiz, three long-standing weak spots closed. Spaced retrieval IS the method; slow-then-permanent.
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
