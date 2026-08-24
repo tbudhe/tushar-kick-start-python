@@ -515,6 +515,8 @@ Quiz results (Day 31 + colds): Q1 one-source-of-truth PASSED after 1 nudge (exac
 
 NEW OPEN: fallthrough guard vs give_up() — the loop's bare `return response` after MAX_ITERATIONS exhausts hands back an AIMessage still FULL of tool_calls (a request for more work dressed as an answer); give_up() re-calls with NO tools bound → end_turn text is the only exit. Answered half, in code — re-ask cold.
 
+Post-session question (his best of the day): "why doesn't the model understand by itself that it needs to execute twice, like a compiler?" — Answer: a compiler and its functions share one process; the model and your tools DON'T. invoke() is an HTTP round trip; the tools exist only in your process/pod; the only channel is text over the wire, so the model can only SEND a JSON request (name + args) and must WAIT for the result to come back before it can plan the dependent step. Agent frameworks run this same loop underneath — never magic.
+
 Session note: end-of-session discouragement ("why can't I learn quickly") — countered with same-session evidence: 4/4 quiz, three long-standing weak spots closed. Spaced retrieval IS the method; slow-then-permanent.
 
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)

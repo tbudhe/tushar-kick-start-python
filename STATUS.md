@@ -50,6 +50,7 @@ ACTIVE MENTAL MODELS (top of mind — full running list archived in LEARNING_NOT
 - tool.invoke(tc) = validator + function + dispatch in one call; ToolMessage arrives with the id pre-threaded
 - Transcript order: AIMessage BEFORE its ToolMessages — the request must precede its results or the API rejects the turn
 - The model is the only planner and invoke() is its only pair of eyes — a ToolMessage nobody sends back is a round 2 that never happens
+- NETWORK BOUNDARY (Tushar's own question, 08-24): invoke() is an HTTP round trip — the model runs in Anthropic's data center, the tools run in YOUR process/pod; the ONLY channel is text over the wire (JSON tool request out, tool result back), so execution over there is physically impossible and each chain link costs one round trip
 - @tool = @RestController: four registries generated from one signature; one source of truth cannot drift
 - The model never runs code — it WRITES a JSON tool_use request; TOOLS is the menu of requests it may write
 - give_up() = forced landing: no tools param → tool_use structurally impossible → end_turn text is the only exit; a fallthrough `return response` is an unfinished flight handed to the caller
