@@ -519,6 +519,29 @@ Post-session question (his best of the day): "why doesn't the model understand b
 
 Session note: end-of-session discouragement ("why can't I learn quickly") — countered with same-session evidence: 4/4 quiz, three long-standing weak spots closed. Spaced retrieval IS the method; slow-then-permanent.
 
+## Day 33 — create_agent: The Framework Takes the Loop
+**One-liner:** `create_agent` (né `create_react_agent`) is the Day 32 loop shipped as a library function — ReAct means reason→act→observe→repeat, the framework now runs it inside `agent.invoke()`, and the returned `result["messages"]` transcript proves the same rounds still happen.
+
+**The goal printout (achieved — `exercises/day33_react_agent.py`, ChatAnthropic + haiku):**
+```
+HumanMessage: Price of Yieldnext?
+AIMessage: tool_calls=[('get_ticker', {'company_name': 'Yieldnext'})]
+ToolMessage: YNXT
+AIMessage: tool_calls=[('get_price', {'ticker': 'YNXT'})]
+ToolMessage: 42.0
+AIMessage: The current stock price of **Yieldnext (YNXT)** is **$42.00**.
+```
+
+1. ReAct = REASON + ACT (2022 paper), nothing to do with React JS — it's the academic name for the loop hand-written since Day 26: model reasons, requests a tool (act), sees the result (observe), repeats until `tool_calls` is empty.
+2. NO bind_tools, NO loop: `create_agent(model, [get_ticker, get_price])` takes the RAW model and binds internally; one `agent.invoke({"messages": [...]})` runs the whole chain. The Day 32 `if not response.tool_calls:` decision still fires every round — inside the framework now, not in the file.
+3. NAME CHURN, LIVE: `langgraph.prebuilt.create_react_agent` deprecated mid-exercise → `from langchain.agents import create_agent`. API names have a half-life of months; the loop concepts drilled for seven days don't — that's why hand-written came first (a dev who started with create_agent can't debug "agent hung" = iteration budget exhausted, or "API rejected" = orphaned tool_use).
+4. TWO BUGS CAUGHT BY TRACING BEFORE RUNNING: dict key "YUNextGenAI" vs question "Yieldnext" — Python `dict[key]` THROWS KeyError (unlike Java `map.get()` → null), so `TICKERS[x] or None` can't rescue it (the `or` never runs); `.get()` is the null-returning form. And `getattr(m, "tool_calls", None)` = null-safe field check, because HumanMessage/ToolMessage don't have the attribute at all.
+5. WHY HAND-WRITTEN FIRST (his answer, landed): the seven days taught stop_reason, tool_use pairing, iteration guards, @tool — so the black box is debuggable from the inside, like a Spring engineer who once wrote raw servlets.
+
+Quiz results (Day 32 + colds): Q1 config-vs-runtime PASSED, 1 nudge — his sentence: "binding is static, dispatch is dynamic; the input to the lookup doesn't exist before execution." Q2 menu-vs-trips NOT CLEAN — said 1 round (missed the N+1 final trip), then answered with range() mechanics instead of the concept; hit the 5-Q topic cap, answer given — weak spot STAYS OPEN, re-ask cold. Q3 fallthrough-vs-give_up() PASSED clean in sentences (was half-in-code on 08-24) — CLOSED. Q4 sibling-tools try/except PASSED cold with both halves (skip mechanism + every-tool_use-needs-its-tool_result rejection) — CLOSED (open since Day 27). 3/4.
+
+Next: Day 34 — agent abstractions cont. (system prompt / state / streaming on create_agent) or Project 2 hardening; decide at session start.
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
