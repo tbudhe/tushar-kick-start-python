@@ -542,6 +542,26 @@ Quiz results (Day 32 + colds): Q1 config-vs-runtime PASSED, 1 nudge — his sent
 
 Next: Day 34 — agent abstractions cont. (system prompt / state / streaming on create_agent) or Project 2 hardening; decide at session start.
 
+## Day 34 — create_agent cont.: System Prompt Moves to Config, State Stays Mine
+**One-liner:** The system prompt is Day 32's `messages[0]` relocated to a config-time argument that the framework prepends on every model call; conversation state did NOT move — the agent is stateless between invokes, and memory is something I pass in, not something it has.
+
+**The goal printout (achieved — `exercises/day34_react_agent.py`):**
+```
+=== B: fresh invoke ===        Je n'ai pas de contexte precedent... (amnesia)
+=== C: transcript carried ===  Le prix actuel de Yieldnext (YNXT) est de **quarante-deux dollars**.
+```
+Identical question in B and C. The only difference is what was passed in.
+
+1. SYSTEM PROMPT = CONFIG-TIME NOW: `create_agent(model, tools, system_prompt=...)` — keyword-only (positional args stop at 2). Source proof, `.venv/.../langchain/agents/factory.py:972` builds a SystemMessage and line 1417 does `messages = [request.system_message, *messages]` — literally my Day 32 `messages[0]`, prepended on EVERY model call. It never appears in `result["messages"]`: injected at call time, not stored in state, so its absence from the transcript proves nothing.
+2. STATE DID NOT MOVE: same `agent` object, two invokes seconds apart — B (one message in) had total amnesia, C (`result["messages"] + [follow_up]`) answered correctly. The agent is a stateless `@RestController` bean: reusable, retains nothing. THE SENTENCE: "the agent is stateless between invokes; conversation memory isn't something it has, it's something I pass in on every call." Backend consequence: stateless = horizontally scalable; `checkpointer=` in the signature is the session-store decision made explicit.
+3. PROOF-MARKER LESSON (the day's real find): "always begin your reply with [YNXT-BOT]" was silently dropped by the model on the turn that concludes a tool loop → produced a false "the framework is broken" verdict that survived three tests. "Always reply in French" proved delivery on the first run. Probe config with BEHAVIOR the model cannot half-comply with, never with formatting.
+4. DEBUG DISCIPLINE THAT SETTLED IT: (a) layer split — raw-model probe vs agent; (b) shrink to the minimal failing case — strip the 8-instruction prompt to the marker alone; (c) READ THE INSTALLED LIBRARY, it is sitting in `.venv/lib/python3.13/site-packages/`. Source beat both of our hypotheses. Also learned the hard way: when a result does not move after an edit, first verify the file on disk IS the code that ran (the French edit lived only in chat for one round).
+5. TWO BUGS + ONE SIDE LESSON: self-found duplicated `model`/`agent` definitions in one file — Python silently takes the last assignment where Java's compiler would refuse; `system_prompt` passed positionally → `TypeError: takes from 1 to 2 positional arguments`. And the probe (RAW, unbound model, no menu) confidently hallucinated "Yieldnext isn't recognized" — no tools bound means `tool_use` is structurally impossible, so text is the only exit: the same mechanic that makes `give_up()` an honest landing makes an unguarded model invent an answer.
+
+Quiz results (Day 33 + cold): 4/4. Q1 ReAct halves PASSED after 2 nudges (inverted Act at first — "request a tool" is still the model talking; Act is MY code running the function). Q2 raw-vs-bound model PASSED clean, unprompted, and he added the drift point himself (advertised menu vs dispatch registry can disagree). Q3 AIMessage-still-full-of-tool_calls PASSED clean (iteration budget exhausted before the request was fulfilled). Q4 menu-vs-trips PASSED COLD with the dependency-chain sentence — WEAK SPOT CLOSED (open since Day 32). Step-5 sentence slots got swapped (stateless/pass-in inverted) — direction-inversion weak spot fired again.
+
+Next: Day 35 — `checkpointer` + `thread_id` (the framework's session store) or streaming on create_agent, or Project 2 hardening; decide at session start.
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
