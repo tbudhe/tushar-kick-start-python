@@ -562,6 +562,27 @@ Quiz results (Day 33 + cold): 4/4. Q1 ReAct halves PASSED after 2 nudges (invert
 
 Next: Day 35 — `checkpointer` + `thread_id` (the framework's session store) or streaming on create_agent, or Project 2 hardening; decide at session start.
 
+## Day 35 — checkpointer + thread_id: The Framework's Session Store (IN PROGRESS — Part D pending)
+**One-liner:** Day 34 proved memory is something I pass in; `checkpointer=` moves it into a store and `thread_id` becomes the key — the agent itself is still stateless, I just send a session ID instead of the whole transcript.
+
+**The goal printout (A/B/C achieved — `exercises/day35_react_agent.py`; D not yet written):**
+```
+=== A: NO checkpointer, one message in ===   amnesia
+=== B: WITH checkpointer, thread_id=... ===  B2 answered "YNXT" from stored state, ONE message sent
+=== C: SAME agent, thread_id=someone-else === amnesia again — the key isolates
+=== D: what's actually in the store ===       (pending: get_state counts + SystemMessage check)
+```
+
+1. THE SHIFT: `create_agent(..., checkpointer=InMemorySaver())` + `config={"configurable": {"thread_id": "..."}}`. Spring mapping: agent = stateless `@RestController` (UNCHANGED), checkpointer = Spring Session + Redis, thread_id = JSESSIONID, graph loads state before the run and appends after. Nothing about the agent became stateful — a store remembers, and I pass a KEY instead of a TRANSCRIPT. Library docstring: `InMemorySaver` is debug/test only (a dict in one process — dies on restart, invisible to the next pod).
+2. thread_id DIRECTION (inverted first, self-corrected after one nudge): `thread_id -> checkpointer lookup key`, consumed by the graph BEFORE the model call. The model never sees the string — exactly as `@RestController` business logic never reads the JSESSIONID cookie; the filter does.
+3. COLLISION = CROSS-TENANT LEAK (his own answer, unprompted depth): two users on one thread_id share one mutable list — B's reply is conditioned on A's history, B's turn appends to A's thread, and overlapping calls race on the same list object. "A real cross-user data leak, not a UX quirk."
+4. ACCIDENTAL PROOF OF DAY 34'S FINDING, WITH A CONTROL GROUP: `[YNXT-BOT]` appeared on A, B-turn-2 and C (no tool loop concluded) and was DROPPED on B-turn-1 (concluded a tool loop). One run of this file would have settled the whole Day 34 dispute — keep it as the evidence artifact.
+5. MEMORY SKIPPED A TOOL CALL: B turn 2 answered "YNXT" straight from the stored transcript without invoking `get_ticker` — session state is a latency and cost argument, not just a UX one.
+
+Quiz results (Day 34 topic + cold): 4/4. Q1 system-prompt location PASSED after 2 nudges (said it DOES appear in `result["messages"]`; recovered with his own framing — "it stopped being conversation data and became request-building configuration"). Q2 stateless B/C contrast PASSED clean, first try. Q3 proof markers PASSED after 1 nudge, landing on the general rule: A GOOD INSTRUMENT HAS EXACTLY ONE EXPLANATION FOR ITS FAILURE. Q4 direction-inversion drill PASSED COLD, no nudge — read the SIGNATURE over the description's word order ("ticker symbol for a company name" bait avoided). Weak spot 1 downgraded PRIORITY → watch; one more clean cold pass closes it.
+
+Next: Day 35 Step 5 — Part D only. `agent.get_state(cfg).values["messages"]`: count for each thread, then check whether ANY stored message is a `SystemMessage` (predict before running). Then clean `SYSTEM_PROMPT` (still carries the `[YNXT-BOT]` probe line) in day34 + day35 files.
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
