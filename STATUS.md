@@ -1,91 +1,92 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-08-27
+Last Updated: 2026-08-31
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
 PROTOCOLS (condensed — full history in LEARNING_NOTES.md)
-- DOC (2026-08-10): one session = one day number, sequential. Session end: update LEARNING_NOTES.md (one Day block, MAX 5 POINTS — Tushar's rule 2026-08-21), STATUS.md, MEMORY.md, then commit.
-- QUIZ (revised 2026-08-21 — Tushar's correction): MAX 5 QUESTIONS PER DAY-TOPIC (not per session). Default: 2–3 on the last day + 1 cold rotation pick (Days 0–current, prioritise weak spots); follow-up nudges count toward that topic's 5. Log the rotation pick. Answers in SENTENCES first; a run or code block is evidence, not an answer.
-- COACHING (2026-08-18, verified working): before EVERY exercise — (1) GOAL first: show the exact final printout; (2) numbered step list; (3) ONE step at a time, confirm before the next. If Tushar says "I didn't understand the question": don't repeat it — rebuild with one sentence of concrete context, then a simpler version.
-- DEBUG PROTOCOL (2026-08-26): when a result doesn't change after an edit, READ THE FILE ON DISK before theorising. When behavior and docs disagree, read the installed library source in .venv. Probe config with BEHAVIOR, never formatting. GENERALISED 2026-08-27: a good instrument has exactly ONE explanation for its failure.
-- MORALE (2026-08-24): he undercounts his own wins. Open sessions by naming one concrete previous win before the quiz; when discouragement surfaces, answer with same-session evidence, not reassurance. (Steady 08-25 → 08-27, no dip.)
-- EXERCISE OWNERSHIP (2026-08-24): Tushar writes the exercise code himself — outside AI agents don't. (Honored 08-25, 08-26, 08-27 — he built A/B/C of Day 35 unaided and ahead of the step gate.)
-- REVISION WEEK (2026-08-17): when Phase 2 completes, one full week of Phase 1+2 revision before Phase 3. No new content; weak-spots list is the syllabus.
+- DOC (2026-08-10): one session = one day number, sequential. Session end: update LEARNING_NOTES.md (one Day block, MAX 5 POINTS), STATUS.md, MEMORY.md, then commit.
+- QUIZ (2026-08-28, HONORED 08-31): **MAX 3 QUESTIONS PER SESSION, ONE PART EACH.** A question with sub-parts counts as that many questions — don't write them. If an answer is incomplete, Claude COMPLETES IT in one line and moves on; a gap never becomes a follow-up question. Nudges count.
+- COACHING (2026-08-18, verified working): before EVERY exercise — (1) GOAL first: show the exact final printout; (2) numbered step list; (3) ONE step at a time, confirm before the next. Fill-in-the-blank frames outperform open questions (verified again 08-31: the four-blank thread_id frame got all four slots clean, no nudge).
+- **CODE DELIVERY (NEW 2026-08-31, Tushar's explicit pushback):** when he is mid-exercise, paste **COMPLETE blocks** with every variable's origin named — never fragments. On 08-31 a snippet referencing `msg`/`node` when his file had `m`/`label` cost two round-trips; he said "I don't see msg... be specific and correct" and was right. A fragment assumes a file state Claude cannot see.
+- **EXAMPLE FIDELITY (NEW 2026-08-31):** examples must use HIS tools with HIS semantics. Claude traced `get_ticker` returning a price, contradicting his own Day 30 two-tool chain, and he reported confusion. Check the repo's actual signatures before inventing a trace.
+- DEBUG PROTOCOL (2026-08-26/27, EXTENDED 08-31): when a result doesn't change after an edit, READ THE FILE ON DISK before theorising. When behavior and docs disagree, read the installed library source in .venv. Probe config with BEHAVIOR, never formatting. A good instrument has exactly ONE explanation for its failure. NEW: an instrument that FILTERS its input reports the filter as much as the signal.
+- MORALE (2026-08-24, EXTENDED 08-28): he undercounts his wins — open with one concrete previous win before the quiz, answer discouragement with same-session evidence. When frustration surfaces, FIRST check whether Claude caused it. A process complaint gets a protocol fix, not encouragement.
+- EXERCISE OWNERSHIP (2026-08-24): Tushar writes the exercise code himself — outside AI agents don't. (Honored 08-25 → 08-31.)
+- REVISION WEEK (2026-08-17): when Phase 2 completes, one full week of Phase 1+2 revision before Phase 3. Weak-spots list is the syllabus.
 - ENV NOTE (2026-08-27): the .venv python symlink does not resolve from Claude's mounted shell — Claude cannot run his code. Claude reads source in .venv and reasons; Tushar runs everything.
+
+MCP TIMING DECISION (2026-08-28, Tushar's call): KEEP THE SEQUENCE. MCP stays in Phase 3 (~Nov 2026); no spike day, no reorder. Reassess only at Phase 2 close.
 
 MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
-Day: 35 IN PROGRESS — Parts A/B/C done and verified, Part D (Step 5) pending | Week: 7 — Phase 2 | Next session = FINISH Day 35 Part D first (15 min), then Day 36 (decide at start: streaming on create_agent, or Project 2 hardening)
+Day: 36 COMPLETE (2026-08-31) | Week: 7 — Phase 2 | Next session = Day 37 (async agent).
 Goal: Staff SWE → AI Backend Engineer (Autodesk) → Staff/Principal AI Engineer, Walmart, July 2027
-Topic in flight: Day 35 (2026-08-27) — checkpointer + thread_id, the framework's session store. Day 34 proved memory is something he passes in; `checkpointer=InMemorySaver()` moves it into a store and `thread_id` becomes the key. THE AGENT DID NOT BECOME STATEFUL — a store remembers, and he now sends a session ID instead of a transcript. Spring mapping he accepted: agent = stateless @RestController (unchanged), checkpointer = Spring Session + Redis, thread_id = JSESSIONID, graph loads before / appends after. `thread_id → checkpointer lookup key`, consumed by the graph BEFORE the model call — the model never sees it. Collision on one thread_id = shared mutable list = real cross-tenant leak plus a race (his own answer, unprompted). InMemorySaver is debug-only per its own docstring — a dict in one process.
-Exercise status: `exercises/day35_react_agent.py` — A (no checkpointer → amnesia), B (checkpointer + thread_id → remembered from ONE message), C (different thread_id → amnesia, key isolates) ALL WORKING. Part D not written: `agent.get_state(cfg).values["messages"]` → count per thread + check whether ANY stored message is a SystemMessage (predict before running; expected False).
-THE DAY'S UNPLANNED FIND: his own output reproduced Day 34's proof-marker lesson WITH A CONTROL GROUP — `[YNXT-BOT]` present on A, B-turn-2 and C (no tool loop concluded), dropped on B-turn-1 (concluded a tool loop). One run of this file would have settled the entire Day 34 dispute. Second find: B turn 2 answered "YNXT" without calling get_ticker — session state is a latency/cost argument, not only a UX one.
-Quiz results (Day 34 topic + cold): 4/4. Q1 system-prompt location PASSED (2 nudges; first said it DOES appear in result["messages"], then recovered with his own better framing: "it stopped being conversation data and became request-building configuration"). Q2 stateless B/C contrast PASSED clean, first try. Q3 proof markers PASSED (1 nudge) landing on the general rule about single-explanation instruments. Q4 direction-inversion drill PASSED COLD, no nudge — read the SIGNATURE over the description's word order.
+Topic completed: Day 36 — streaming on `create_agent`. `.invoke()` and `.stream()` run the SAME graph; streaming changes WHEN you look, not what happens. Three modes measured side by side in one file: `updates` (node-keyed delta, N yields, flat size), `values` (whole growing list, N+1 yields, no node key), `messages` (`(token, metadata)` TUPLE, sub-message granularity). Ship verdict: `stream_mode=["updates","messages"]` together — tokens drive the typewriter, updates give the node boundary and the "calling get_price…" badge; `values` is a state inspector, not a transport.
+Exercise: `exercises/day36_streaming_agent.py` COMPLETE — A (updates, 5 yields, ReAct loop visible: model→tools→model→tools→model), B (values, 6 yields, 1→6 messages, NO SystemMessage anywhere), C (messages, token-by-token with timed silent gaps).
+NEW FINDINGS THIS SESSION: (1) **5 vs 6** — `values` emits the initial state before any node runs; `updates` never does. N+1 snapshots vs N events. (2) His own numbers: `input_tokens 755→858→950` and `stop_reason tool_use→tool_use→end_turn` — the transcript is re-sent in full every round and the loop's exit condition is visible in the stream. (3) **Claude's prediction failed, the data won**: the 0.6s gaps were time-to-first-token before model bursts, NOT tool execution — his dict-lookup tools are instant. Adding `time.sleep(2)` to `get_price` put a 2.0s gap exactly before `42.0|`, isolating the tool gap deliberately. (4) `stream_mode="messages"` carries TOOL output interleaved with model prose, indistinguishable without `metadata["langgraph_node"]`.
+Quiz results: 3 asked, 3 passed. Q1 `thread_id` four-blank frame — all four slots correct, NO nudge. Q2 shared thread_id in production — answered with the leak framing unprompted ("cross-user data leakage in both directions"). Q3 cold Day 27 orphaned `tool_use` — he didn't just answer, he RAN A FOUR-CASE CONTROL SET including the inverted error (`tool_result` with a bogus id → "unexpected tool_use_id"). CARRIED-FORWARD ITEM 5 CLOSED.
 Project 1: SHIPPED. Project 2: RAGAS triad + typed RagResponse done; remaining: real Autodesk chunks, model cost decision, ragas upgrade, one paid ragas_evals.py run.
-Currently strong on: cold recall of the previous day's weak spot; reading a signature/source instead of guessing; self-correcting an inverted arrow after ONE nudge; adding design-review depth to quiz answers unprompted (the cross-tenant leak answer).
+Currently strong on: turning a quiz question into a run experiment with a control group; reading cost and control-flow signals out of raw stream metadata; pushing back when Claude's example or snippet is wrong — twice this session, correct both times.
 
 WEAK SPOTS (revisit)
-1. DIRECTION INVERSIONS / SLOT SWAPS — DOWNGRADED 2026-08-27 from PRIORITY to WATCH. Passed the cold drill clean (get_ticker_symbol arrow, resisting the "ticker symbol for a company name" word-order bait) but inverted thread_id in the check question and needed one nudge. ONE MORE CLEAN COLD PASS CLOSES IT. Drill: say the arrow out loud BEFORE describing; trust the signature over the prose.
-2. SENTENCES vs CODE — good three sessions running. Keep light pressure, don't grind.
+1. SENTENCES vs CODE — good five sessions running. Keep light pressure, don't grind.
+2. `getattr` vs `.get()` — NEW 2026-08-31. Wrote `getattr(TICKERS, "tool_calls", None)` on a dict: attribute access where key access was needed, returning None for EVERY input with no exception. Later used `getattr(msg, "tool_calls", None)` correctly on a message object — both cases now live in day36 file. Watch once more, don't drill.
+3. Tendency to answer only the first part of a multi-part prompt — NO LONGER TESTED FOR (multi-part prompts banned by the quiz rule). Watch only.
+CLOSED 2026-08-28: DIRECTION INVERSIONS / SLOT SWAPS (open since Day 26).
 CLOSED 2026-08-26: MENU-vs-TRIPS (open since Day 32).
 
 CARRIED FORWARD
-(1) Phase 1 recap out loud (owed since 08-08; folds into REVISION WEEK). (2) tool_loop.py line-22 description inversion — FILE NOT FOUND in repo on 08-27; either locate it or drop this item. (3) Trim-experiment + prefill re-attach re-test. (4) SYSTEM_PROMPT still carries the `[YNXT-BOT]` probe line in BOTH day34 and day35 files — but do NOT delete it from day35 until the control-group table is captured; it is now evidence. Clean day34, keep day35's until Part D is done.
+(1) Phase 1 recap out loud (owed since 08-08; folds into REVISION WEEK). (2) Trim-experiment + prefill re-attach re-test. (3) **NEW — Day 36 deferred check (~60 seconds):** in day36 Part C, add `print(metadata.get("langgraph_node"), repr(token.content))` inside the loop to settle whether the 3–10s silent gaps in run 2 were API latency or dropped `input_json_delta` chunks (streamed tool ARGUMENTS carry `partial_json`, not `text`, so the isinstance filter discards them while they still reset the timer). Good Day 37 opener. (4) Delete `time.sleep(2)` from `get_price` before reusing day36 as a reference.
+DROPPED 2026-08-31: `[YNXT-BOT]` probe removal (done), Day 27 orphaned-tool_use re-ask (closed, answered by him with a control set), tool_loop.py line-22 item (file not found, never resurfaced).
 
-NEXT SESSION (Day 35 finish → Day 36) — QUIZ PLAN (max 5 per topic)
-Day 35 topic: Q1. `thread_id` — say the ARROW first, then who consumes it and at what moment relative to the model call. Q2. The agent has a checkpointer now. Is it stateful? One sentence, and say what actually changed. Q3. Why is InMemorySaver debug-only — answer in Walmart-deployment terms, not library terms.
-Cold picks: Q4 (weak spot 1, one clean pass from CLOSED) — any tool docstring in the repo, arrow before description. Q5 (if time, Day 27) — an orphaned tool_use with no tool_result: what does the API do, and why is is_error data rather than a crash?
-Morale opener: he built Parts A, B and C of Day 35 unaided, ahead of the step gate, and they ran correctly the first time — including the isolation test that most people don't think to write.
+PHASE 2 CLOSE PLAN (5 sessions to the end of Phase 2, then REVISION WEEK)
+- Day 37 — Async agent. `ainvoke`/`astream`, concurrent tool execution, and where async does NOT help. Artifact: day37_async_agent.py timing two tools serial vs concurrent. (Short day — his Node.js background carries it. Day 36's `time.sleep(2)` tool is already a ready-made slow tool to parallelize.)
+- Day 38 — LlamaIndex vs LangChain. Only untouched Phase 2 item. Rebuild EXISTING retrieval in LlamaIndex over the same chunks; write the 5-line "when I'd pick which" verdict. Artifact: llamaindex/ + verdict in notes.
+- Day 39 — Project 2 hardening I: real Autodesk chunks through ingest.py; re-run retrieval audit; note what broke vs the toy corpus. (Also: `PRICES[ticker]` KeyError vs `.get()` → None is a hardening pattern to carry over.)
+- Day 40 — Project 2 hardening II: model cost decision (haiku vs sonnet, measured not guessed), ragas upgrade, ONE paid ragas_evals.py run with the numbers recorded.
+- Day 41 — PHASE 2 CLOSE: no new content. Capstone review of Days 22-40, weak-spots list becomes the REVISION WEEK syllabus, Phase 1 recap out loud (owed since 08-08).
+Then: REVISION WEEK (Phase 1+2, no new content) → Phase 3 opens ~late September.
+
+NEXT SESSION (Day 37) — QUIZ PLAN (MAX 3, ONE PART EACH)
+Q1. `updates` vs `values` — which one yields more, and why the extra one? One line.
+Q2. You're building a chat UI on this agent. Which stream_mode(s) do you ship, and what does each one drive?
+Q3. Cold pick, Day 32: menu size vs number of rounds — what determines how many trips the model makes?
+Morale opener: on Q3 he didn't answer the question, he ran a four-case control set and surfaced the inverted `tool_result` error nobody predicts — and he caught two of Claude's own mistakes mid-session and was right both times.
 
 ONE-SENTENCE SUMMARY (say out loud)
-"The checkpointer didn't make the agent stateful — it gave the memory a home outside the agent, so I send a thread_id key instead of the whole transcript, exactly like a session cookie instead of resending my history."
+"Streaming didn't change what the agent does — it changed when I'm allowed to look; `updates` tells me what changed, `values` tells me what is, and `messages` tells me what's being typed right now, and a real UI needs the first and the last."
 
 ACTIVE MENTAL MODELS (top of mind — full running list archived in LEARNING_NOTES.md)
+- updates = what changed / values = what is / messages = what's being typed right now
+- `values` yields N+1 (it includes the initial state), `updates` yields N — and `values` re-sends the whole list every time
+- `stream_mode="messages"` carries TOOL output too, interleaved and indistinguishable — split on `metadata["langgraph_node"]`
+- A timer measures gaps between chunks you chose to PRINT, not gaps in the stream — a filtered instrument reports the filter
+- `create_agent()` is build-time, `.stream()`/`.invoke()` is request-time — never chain them
+- `getattr(obj,"x")` asks for an ATTRIBUTE; `dict.get("x")` asks for a KEY — the swap fails silently, None for every input
 - checkpointer = Spring Session + Redis; thread_id = JSESSIONID; the agent is still the stateless @RestController
-- thread_id → checkpointer lookup key, consumed by the graph BEFORE the model call — the model never sees the key
-- Two users on one thread_id = one shared mutable list = cross-tenant leak + a race, not a UX quirk
-- Session state can skip a tool call entirely — memory is a latency and cost argument
-- A good instrument has exactly ONE explanation for its failure — that's why French beat [YNXT-BOT]
+- thread_id → lookup key into the saver's store; the GRAPH loads before the model call and appends after — the model never sees the key
+- result["messages"] is the WHOLE thread, never the delta
+- InMemorySaver in 12 pods = 12 disconnected dicts; amnesia is a CORRECTNESS failure, not a latency one
+- A tool's model obeys the DESCRIPTION while the function obeys the SIGNATURE — the silent-wrong-answer case is worse than the KeyError
+- is_error is data, not a crash — the model must SEE the failure to recover from it
 - Config is re-applied every call; state is accumulated — system_prompt is config, messages are state
-- system_prompt = Day 32's messages[0] relocated to config time; factory.py prepends it every call and it never lands in result["messages"]
-- The agent is stateless between invokes — memory is something I pass in, not something it has
-- Stateless = horizontally scalable; checkpointer= is the session-store decision made explicit
-- The library is in my .venv — when docs and behavior disagree, read the source; it outranks both hypotheses
-- When the output doesn't move, verify the code that ran is the code on disk
-- No tools bound → tool_use structurally impossible → text is the only exit: give_up()'s honest landing and an unguarded model's hallucination are the same mechanic
-- create_agent = Spring Boot for the loop: raw servlets → @RestController was Day 31's @tool; the hand loop → agent.invoke() is Day 33
-- ReAct = reason→act→observe→repeat; Reason is the model's turn (including asking for a tool), Act is MY code running it and appending the result
-- The debugging dividend: "agent hung" = iteration budget exhausted (Day 28); "API rejected" = orphaned tool_use missing its tool_result (Day 27)
-- create_agent binds internally — raw model in; the tools you pass separately are what actually dispatch
-- result["messages"] = the grown transcript, returned: Human → AI(tool_calls) → Tool → AI(tool_calls) → Tool → AI(text, end_turn)
-- Python dict[key] THROWS on miss (KeyError); .get() is Java's null-returning map.get()
-- Python takes the LAST assignment silently — duplicated definitions shadow, where Java's compiler would refuse
-- bind_tools = printing the menu (config-time); rounds = trips to the kitchen (runtime, N links → N+1 invokes) — MENU SIZE NEVER ENTERS THE MATH
-- Binding is static, dispatch is dynamic — the input to the lookup doesn't exist before execution (his sentence, Day 33)
+- A good instrument has exactly ONE explanation for its failure
+- The library is in my .venv — when docs and behavior disagree, read the source
+- create_agent = Spring Boot for the loop; ReAct = reason→act→observe→repeat
+- bind_tools = printing the menu (config-time); rounds = trips to the kitchen (runtime) — MENU SIZE NEVER ENTERS THE MATH
 - Transcript order: AIMessage BEFORE its ToolMessages; every tool_use needs its tool_result or the API rejects the turn
-- try around the whole dispatch loop kills innocent siblings
 - A run is evidence, not an explanation — the check question wants a sentence
 
 PROGRESS LOG (most recent first — headline only)
-Day 35 (IN PROGRESS): checkpointer + thread_id — memory gets a home outside the agent; A/B/C prove amnesia, recall-from-one-message and thread isolation; his output accidentally reproduced Day 34's proof-marker finding with a control group; quiz 4/4, direction-inversion downgraded to watch; Part D pending
+Day 36: streaming on the agent — updates/values/messages measured side by side, 5-vs-6 yields explained, ship verdict is both modes at once; token growth 755→858→950 read out of his own metadata; Claude's tool-gap prediction falsified by his timer, then the gap manufactured on purpose with sleep(2); 3/3 quiz with a four-case control set on the cold question, carried-forward item 5 CLOSED
+Day 35: checkpointer + thread_id — memory gets a home outside the agent; A/B/C/D all green with Part D predicted 4/4 before running; the [YNXT-BOT] control group closed Day 34's open question; 3/3 + clean cold pass, DIRECTION INVERSIONS CLOSED; quiz volume broke him mid-session → quiz rule rewritten to 3 single-part questions
 Day 34: system prompt moves to config, state stays mine — stateless agent proven by the B/C contrast; false "framework broken" verdict overturned by reading factory.py in .venv; proof markers must be behavioral; quiz 4/4, menu-vs-trips CLOSED
-Day 33: create_agent takes the loop — ReAct named, deprecation churn handled live, transcript proved the framework runs my Day 32 rounds; Yieldnext dict bug caught by tracing; quiz 3/4, TWO weak spots closed (give_up, sibling-tools)
-Day 32: bind_tools kills the plumbing, the loop survives — round-traced chain via response.tool_calls; agent-broken code diagnosed live (no return, no loop, no append); menu-vs-trips resolved; quiz 4/4, THREE weak spots closed
-Day 31: LangChain intro — @tool collapsed the four registries into one decorator; chain re-ran via .invoke(); free validator fired correctly; direction inversion caught live; give_up() WHY closed; new rules: 5 Qs per day-topic, 5-point day blocks
-Day 30: Multi-step planning FINISHED — chain ran (YNXT→42.0→"$42.00"); INPUT_MODELS fourth registry closed the landmine; wrong-validator error steered the model wrong; self-found AAPL allowlist bug
-Day 29: Multi-step planning STARTED — chain concept, world-knowledge bypass, two directions = two tools, three registrations; coaching rule created
+Day 33: create_agent takes the loop — ReAct named, deprecation churn handled live, transcript proved the framework runs my Day 32 rounds; quiz 3/4, TWO weak spots closed
+Day 32: bind_tools kills the plumbing, the loop survives — round-traced chain via response.tool_calls; menu-vs-trips resolved; quiz 4/4, THREE weak spots closed
+Day 31: LangChain intro — @tool collapsed the four registries into one decorator; direction inversion caught live; give_up() WHY closed
+Day 30: Multi-step planning FINISHED — chain ran (YNXT→42.0→"$42.00"); INPUT_MODELS fourth registry closed the landmine; self-found AAPL allowlist bug
+Day 29: Multi-step planning STARTED — chain concept, world-knowledge bypass, two directions = two tools, three registrations
 Day 28: Max-iteration guards — for range(MAX_ITERATIONS), give_up() forced landing, sabotage verified
-Day 27: Tool errors + input validation — is_error as data, Pydantic at the boundary, sentinel-string bug found live
-Day 26: Tool use in production — while-True loop, schemas as OpenAPI, dispatch + tool_use_id
-Day 25: Typed pipeline responses — RagResponse DTO
-Day 24: Pydantic deep dive; structured outputs + prefill fix
-Day 23: Multi-turn state — sliding-window trim in pairs
-Day 22: PHASE 2 START — streaming + async
-Day 21: RAGAS triad + sabotage test. PHASE 1 COMPLETE.
-Days 0–20: ML basics → tokenization → embeddings → RAG → ChromaDB → chunking → metadata filtering → training → transformers → RLHF → function calling → hallucinations → model selection → FT-vs-RAG → inference → Project 2 v1 → RAGAS → refactor → three-layer refusal debugging (full detail in LEARNING_NOTES.md)
-
-ARCHIVE NOTE
-Full per-day Q&A, one-liners, and the complete mental-model list live in LEARNING_NOTES.md. Content review only — NEVER for determining current progress.

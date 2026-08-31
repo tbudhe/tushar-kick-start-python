@@ -562,15 +562,15 @@ Quiz results (Day 33 + cold): 4/4. Q1 ReAct halves PASSED after 2 nudges (invert
 
 Next: Day 35 — `checkpointer` + `thread_id` (the framework's session store) or streaming on create_agent, or Project 2 hardening; decide at session start.
 
-## Day 35 — checkpointer + thread_id: The Framework's Session Store (IN PROGRESS — Part D pending)
+## Day 35 — checkpointer + thread_id: The Framework's Session Store
 **One-liner:** Day 34 proved memory is something I pass in; `checkpointer=` moves it into a store and `thread_id` becomes the key — the agent itself is still stateless, I just send a session ID instead of the whole transcript.
 
-**The goal printout (A/B/C achieved — `exercises/day35_react_agent.py`; D not yet written):**
+**The goal printout (COMPLETE — `exercises/day35_react_agent.py`):**
 ```
 === A: NO checkpointer, one message in ===   amnesia
 === B: WITH checkpointer, thread_id=... ===  B2 answered "YNXT" from stored state, ONE message sent
 === C: SAME agent, thread_id=someone-else === amnesia again — the key isolates
-=== D: what's actually in the store ===       (pending: get_state counts + SystemMessage check)
+=== D: what's actually in the store ===       tushar-id-0203: 8 msgs | someone-else: 2 msgs | SystemMessage stored? False (both)
 ```
 
 1. THE SHIFT: `create_agent(..., checkpointer=InMemorySaver())` + `config={"configurable": {"thread_id": "..."}}`. Spring mapping: agent = stateless `@RestController` (UNCHANGED), checkpointer = Spring Session + Redis, thread_id = JSESSIONID, graph loads state before the run and appends after. Nothing about the agent became stateful — a store remembers, and I pass a KEY instead of a TRANSCRIPT. Library docstring: `InMemorySaver` is debug/test only (a dict in one process — dies on restart, invisible to the next pod).
@@ -581,7 +581,27 @@ Next: Day 35 — `checkpointer` + `thread_id` (the framework's session store) or
 
 Quiz results (Day 34 topic + cold): 4/4. Q1 system-prompt location PASSED after 2 nudges (said it DOES appear in `result["messages"]`; recovered with his own framing — "it stopped being conversation data and became request-building configuration"). Q2 stateless B/C contrast PASSED clean, first try. Q3 proof markers PASSED after 1 nudge, landing on the general rule: A GOOD INSTRUMENT HAS EXACTLY ONE EXPLANATION FOR ITS FAILURE. Q4 direction-inversion drill PASSED COLD, no nudge — read the SIGNATURE over the description's word order ("ticker symbol for a company name" bait avoided). Weak spot 1 downgraded PRIORITY → watch; one more clean cold pass closes it.
 
-Next: Day 35 Step 5 — Part D only. `agent.get_state(cfg).values["messages"]`: count for each thread, then check whether ANY stored message is a `SystemMessage` (predict before running). Then clean `SYSTEM_PROMPT` (still carries the `[YNXT-BOT]` probe line) in day34 + day35 files.
+FINISHED 2026-08-28 (Part D). All four values PREDICTED CORRECTLY before running: 8 / 2 / False / False. Why False — the system prompt is prepended to the outbound request at call time by `create_agent`'s internals (`messages = [request.system_message, *messages]` in factory.py); it is injected fresh into every model call and never appended to the state `messages`, so the checkpointer never sees it to persist.
+BONUS FIND: 14 message lines printed under B vs 8 actually stored — `result["messages"]` returns the WHOLE thread, never the delta, so printing it after each invoke re-prints history. Same trap as a GET that returns the full resource: log it per call and you triple-count.
+Quiz (Day 35 topic, 2026-08-28): 3 asked / 3 passed, one nudge each — thread_id arrow + consumer/timing; "is it stateful" sharpened via a 4-blank frame; InMemorySaver debug-only answered as a production incident (12 pods = 12 disconnected dicts, amnesia on whichever request the LB routes elsewhere, WRONG OUTPUT NOT SLOW OUTPUT, fix must be shared AND durable). Cold pick (warehouse_id/SKU direction drill) PASSED CLEAN, no nudge — the model obeys the DESCRIPTION while the function obeys the SIGNATURE, and the silent-wrong-answer case is worse than the KeyError. **WEAK SPOT 1 (direction inversions), open since Day 26, CLOSED.**
+PROCESS FIX (2026-08-28): quiz volume broke him mid-session — 4 multi-part questions + a nudge each = 9 prompts. Rule rewritten: MAX 3 QUESTIONS PER SESSION, ONE PART EACH; an incomplete answer gets completed by the coach, never converted into a follow-up. My pacing failure, not his learning.
+Next: Day 36 — streaming on create_agent, or Project 2 hardening; decide at session start. Still owed: delete the `[YNXT-BOT]` probe line from `SYSTEM_PROMPT` in day34 + day35 (the control group is captured, the evidence is banked).
+
+## Day 36 — Streaming on the agent: updates vs values vs messages
+**One-liner:** `.invoke()` and `.stream()` run the SAME graph — streaming doesn't change what the agent does, it changes when I'm allowed to look; `stream_mode` picks whether I see the delta, the whole state, or the tokens.
+
+**The goal printout (COMPLETE — `exercises/day36_streaming_agent.py`):**
+```
+=== PART A: updates ===   5 yields: [model] tool_calls -> [tools] result -> [model] tool_calls -> [tools] result -> [model] text
+=== PART B: values ===    6 yields: 1..6 messages, HumanMessage -> AIMessage -> ToolMessage -> AIMessage -> ToolMessage -> AIMessage
+=== PART C: messages ===  token-by-token, tool results INTERLEAVED, timed silent gaps
+```
+
+1. THE THREE MODES. `updates` = `{node: {"messages": [delta]}}`, keyed by node, flat size — the event/changelog view. `values` = `{"messages": [WHOLE list]}`, no node key, grows every step — the snapshot/compacted-topic view. `messages` = a `(token, metadata)` TUPLE, not a dict — sub-message granularity, `metadata["langgraph_node"]` is the only thing that says who spoke. Ship `stream_mode=["updates","messages"]` together: tokens for the typewriter, updates for the "calling get_price..." badge and the node boundary. `values` is a state inspector, not a transport.
+2. 5 vs 6 — THE INTEGER THAT EXPLAINS THE DIFFERENCE. `values` emits the initial state BEFORE any node runs (step 1 = HumanMessage alone); `updates` never does, because no node produced it. **`values` = N+1 snapshots, `updates` = N events.** And `values` re-sends everything each yield — Day 35's whole-thread trap turned into a feature, quadratic on a 60-message conversation.
+3. HIS OWN TOKEN NUMBERS: `input_tokens 755 -> 858 -> 950` across three model calls for ONE question, `stop_reason 'tool_use' -> 'tool_use' -> 'end_turn'`. The transcript is re-sent in full every round (Day 32's trips-to-the-kitchen with a price tag), and the loop's exit condition is visible in the stream itself.
+4. THE PREDICTION THAT FAILED WAS CLAUDE'S, NOT HIS. Predicted: silent gaps during tool execution. Measured: 3 gaps of 0.6s all BEFORE model bursts = time-to-first-token, none before `YNXT|`/`42.0|` because dict lookups are instant. Adding `time.sleep(2)` to `get_price` put a 2.0s gap EXACTLY before `42.0|` — tool gap isolated on purpose. Dominant cost in this agent is model round-trips, not tool work.
+5. THE INSTRUMENT LESSON (extends Day 26's rule). Run 2 showed gaps of 3-10s that run 1 didn't, same code. Two candidates, undecided: API slower that afternoon, OR the `isinstance` text-filter silently drops `input_json_delta` chunks (streamed tool ARGUMENTS carry `partial_json`, not `text`) while they still reset the timer. **A timer measures gaps between chunks you chose to print, not gaps in the stream — a filtered instrument reports the filter as much as the signal.** One-line check deferred: `print(metadata.get("langgraph_node"), repr(token.content))`.
 
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
@@ -653,3 +673,10 @@ Next: Day 35 Step 5 — Part D only. `agent.get_state(cfg).values["messages"]`: 
 - Knowledge gap → RAG; behavior gap → prompting first, fine-tuning last
 - site-packages-only traceback = dependency conflict; venv = node_modules
 - Python indentation = "how many times does this line run"
+- updates = what changed / values = what is / messages = what's being typed right now
+- values yields N+1 (includes the initial state), updates yields N — and values re-sends the whole list every time
+- stream_mode="messages" carries TOOL output too, interleaved and indistinguishable — split on metadata["langgraph_node"]
+- A timer measures gaps between chunks you chose to PRINT, not gaps in the stream
+- .invoke() and .stream() run the same graph — streaming changes WHEN you look, not what happens
+- create_agent() is build-time, .stream()/.invoke() is request-time — never chain them
+- getattr(obj,"x") asks for an ATTRIBUTE; dict.get("x") asks for a KEY — the swap fails silently, returning None for every input

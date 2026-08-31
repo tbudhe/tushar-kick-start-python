@@ -87,3 +87,9 @@ for m in result_agent_check_pointer_someone_else_thread["messages"]:
         print(f"{label}: {m.content}")
 
 print("=== D: what's actually in the store ===")
+def show_store(label, cfg):
+    msgs = agent_check_pointer_thread.get_state(cfg).values["messages"]
+    has_system = any(isinstance(m, SystemMessage) for m in msgs)
+    print(f"{label:22}: {len(msgs)} messages | SystemMessage stored? {has_system}")
+show_store("tushar-id-0203", cfg_tushar)
+show_store("someone-else", cfg_someone_else)
