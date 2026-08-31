@@ -93,7 +93,10 @@ def call_model(messages):
         model="claude-sonnet-5", max_tokens=500,
         tools=TOOLS, messages=messages)
     return response
-
+# TOOLS (schemas) → sent to the API → this is the only one the model ever sees
+# the function → lives in your Python file → loop only
+# TOOL_FUNCTIONS (dispatch) → maps name → function → loop only
+# INPUT_MODELS (validators) → maps name → Pydantic model → loop only
 
 def handle_tools(response, messages):
     results = []

@@ -91,3 +91,6 @@ for token, metadata in agent_no_check_pointer.stream(
     if text:
         print(text, end="|", flush=True)
     print(f"\n[{metadata.get('langgraph_node')}] raw={token.content!r}")
+
+
+# "Streaming didn't change what the agent does — it changed when I'm allowed to look. updates tells me what changed, values tells me what is, messages tells me what's being typed right now, and a real UI needs the first and the last."
