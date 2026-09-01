@@ -603,6 +603,23 @@ Next: Day 36 — streaming on create_agent, or Project 2 hardening; decide at se
 4. THE PREDICTION THAT FAILED WAS CLAUDE'S, NOT HIS. Predicted: silent gaps during tool execution. Measured: 3 gaps of 0.6s all BEFORE model bursts = time-to-first-token, none before `YNXT|`/`42.0|` because dict lookups are instant. Adding `time.sleep(2)` to `get_price` put a 2.0s gap EXACTLY before `42.0|` — tool gap isolated on purpose. Dominant cost in this agent is model round-trips, not tool work.
 5. THE INSTRUMENT LESSON (extends Day 26's rule). Run 2 showed gaps of 3-10s that run 1 didn't, same code. Two candidates, undecided: API slower that afternoon, OR the `isinstance` text-filter silently drops `input_json_delta` chunks (streamed tool ARGUMENTS carry `partial_json`, not `text`) while they still reset the timer. **A timer measures gaps between chunks you chose to print, not gaps in the stream — a filtered instrument reports the filter as much as the signal.** One-line check deferred: `print(metadata.get("langgraph_node"), repr(token.content))`.
 
+## Day 37 — Async agent: what async overlaps, and what it can never overlap
+**One-liner:** Async doesn't make the agent faster — it makes *waiting* overlappable; the chain inside one request stays serial in any runtime, so the only lever on latency is FEWER ROUNDS, not more async.
+
+**The goal printout (COMPLETE — `exercises/day37_async_agent.py`):**
+```
+PART A  two INDEPENDENT get_price calls, ONE round -> both START t+1.57, both END t+3.57  (4s sleep in 2s)
+PART B  DEPENDENT chain name->ticker->price       -> get_ticker 0.77-2.77, get_price 3.48-5.48, NO overlap
+PART C1 two agent runs SERIAL                     -> wall clock 13.8s
+PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 2x)
+```
+
+1. THE THREE CASES, MEASURED. (a) INDEPENDENT tool calls inside one round → async helps, 4s of sleep in 2s of wall clock. (b) DEPENDENT chain across rounds → async does NOTHING; `gather` can only start calls that EXIST, and `get_price(ticker=?)` does not exist until `get_ticker` has returned. **Async overlaps WAITING; it cannot overlap CAUSALITY.** (c) SEPARATE runs (real users) → 13.8s → 6.9s, and this is the only reason to go async at all.
+2. READ OUT OF HIS OWN `.venv`, NOT THE DOCS. `ToolNode` has both paths: `_func` (sync, `.invoke`/`.stream`) does `executor.map(...)` — a THREADPOOL; `_afunc` (async, `.ainvoke`/`.astream`) does `await asyncio.gather(*coros)` — ONE thread, event loop. Both parallelize tool calls. Async's win is not parallelism, it's not burning an OS thread per blocking wait — the FastAPI argument, same as why Scan & Go isn't thread-per-request. Also confirmed: `langchain/tools/tool_node.py` is a 3-line re-export of `langgraph.prebuilt.tool_node` — **LangChain is the model/tool layer, LangGraph is the runtime that owns the loop.**
+3. HIS OWN HYPOTHESIS, TESTED AND CONFIRMED, UNPROMPTED. He noticed `part_a` and `part_b` are byte-identical except one string, predicted that pasting B's question into A would produce B's timing, ran it, and got exactly that. **Concurrency is a property of the REQUEST, not of the code** — the user's phrasing decides whether async does anything. The lever he controls: tool design (a batch `get_prices(tickers: list[str])` turns 10 round trips into one).
+4. STAMP ALIGNMENT AS EVIDENCE OF INDEPENDENCE. Part A's two STARTs were identical to the centisecond (one `gather`, one `ToolNode`); Part C-2's were 0.22s apart (two independent runs, each waiting on its own model round trip — API skew, not the scheduler). He read C-2 as "acting like an event loop" — correct. Part B's 0.75s gap between `get_ticker` END and `get_price` START is the round boundary from Day 32, visible with a stopwatch on it.
+5. INSTRUMENT DISCIPLINE, THIRD SESSION RUNNING. Wall clock swung 4.4s → 8.6s across IDENTICAL Part A runs while the tool interval stayed 2.00s every time — model latency is the noise. Wall clock has three explanations mixed together; the stamps have one. Also closed Day 36's deferred question: the "silent" gaps were full of discarded `input_json_delta` chunks carrying `partial_json` (streamed tool ARGUMENTS), and once unfiltered everything collapsed to ~0.6s except two real 5s API stalls. **The filtered instrument was reporting the filter.**
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
@@ -680,3 +697,10 @@ Next: Day 36 — streaming on create_agent, or Project 2 hardening; decide at se
 - .invoke() and .stream() run the same graph — streaming changes WHEN you look, not what happens
 - create_agent() is build-time, .stream()/.invoke() is request-time — never chain them
 - getattr(obj,"x") asks for an ATTRIBUTE; dict.get("x") asks for a KEY — the swap fails silently, returning None for every input
+- Async overlaps WAITING, never CAUSALITY — a dependent chain is serial in any runtime
+- gather can only start calls that EXIST; the model can't emit an argument it hasn't been told
+- Concurrency is a property of the REQUEST shape, not of my code — same function, different question, different timing
+- The latency lever is FEWER ROUNDS (batch tools), not more async
+- ToolNode._func = threadpool (sync), ToolNode._afunc = asyncio.gather (async) — both parallelize; async just doesn't park an OS thread
+- LangChain = model/tool layer; LangGraph = the runtime that owns the loop and the state
+- Wall clock mixes model latency + tool time + network; stamp the thing you are actually measuring
