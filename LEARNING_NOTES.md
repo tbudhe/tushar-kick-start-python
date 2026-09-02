@@ -620,6 +620,24 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. STAMP ALIGNMENT AS EVIDENCE OF INDEPENDENCE. Part A's two STARTs were identical to the centisecond (one `gather`, one `ToolNode`); Part C-2's were 0.22s apart (two independent runs, each waiting on its own model round trip — API skew, not the scheduler). He read C-2 as "acting like an event loop" — correct. Part B's 0.75s gap between `get_ticker` END and `get_price` START is the round boundary from Day 32, visible with a stopwatch on it.
 5. INSTRUMENT DISCIPLINE, THIRD SESSION RUNNING. Wall clock swung 4.4s → 8.6s across IDENTICAL Part A runs while the tool interval stayed 2.00s every time — model latency is the noise. Wall clock has three explanations mixed together; the stamps have one. Also closed Day 36's deferred question: the "silent" gaps were full of discarded `input_json_delta` chunks carrying `partial_json` (streamed tool ARGUMENTS), and once unfiltered everything collapsed to ~0.6s except two real 5s API stalls. **The filtered instrument was reporting the filter.**
 
+## Day 38 — LlamaIndex vs the hand-rolled pipeline (2026-09-02) — PART A COMPLETE, PART B PENDING
+**One-liner:** LlamaIndex gave me nothing new — it gave me my own RAG pipeline with ITS defaults substituted for the ones I had deliberately chosen.
+
+1. Same 6 chunks, same MiniLM embedder, two frameworks -> identical top chunk and identical ordering (`MATCH: True`). The framework buys code, not better retrieval.
+2. LlamaIndex reports `score = math.exp(-distance)` (`vector_stores/chroma/base.py:472`), NOT Chroma's distance. My `THRESHOLD = 1.2` translates to `score > 0.301`. Constants do not port across frameworks.
+3. LlamaIndex embeds METADATA with the text by default (`indices/utils.py:192` -> `MetadataMode.EMBED`). Two bookkeeping fields inflated doc4's distance 0.128 -> 0.365 (~185%), and NOT by a constant — so it can't be corrected for. Fix: `excluded_embed_metadata_keys=[...]`. After the fix, `-ln(score)` matched `chroma dist` to 3 decimals, confirming the diagnosis.
+4. The framework silently replaced my system prompt too: `chat_content_qa_template` ("expert Q&A system... never directly reference the given context") overrode `SYSTEM_PROMPT` in `prompting/revit_context_qa.py`, including my `refused=True` refusal contract. It also ships no similarity threshold — `similarity_top_k=2` returns 2 chunks however bad they are.
+5. `refine_template` = one LLM call PER chunk, sequentially, feeding `{existing_answer}` forward. `top_k=10` becomes 10 serial round trips. Day 37's verdict in someone else's code: refine converts WIDTH into DEPTH.
+
+**Mental models added:**
+- Chroma is Postgres+pgvector (the HNSW index); LlamaIndex is Prisma (the pipeline around it) — I never NEED it, I reach for it when the boilerplate outgrows the query
+- The word "index" is overloaded: Chroma's index is a data structure, LlamaIndex's VectorStoreIndex is an orchestration object
+- A framework's real cost is the defaults it substitutes for decisions I made on purpose
+- Metadata added for bookkeeping (source_file, page, ingested_at) silently becomes part of what I do semantic search over
+- `from_documents` = ingest job; `from_vector_store` = serving path — wiring the first into a request handler is running migrations on every request
+- A build step writing to durable storage must be idempotent, or results depend on how many times I happened to run it
+- delete-and-rebuild is fine with ONE reader and no uptime need; serving traffic means versioned collection + pointer flip (blue/green indexing)
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
