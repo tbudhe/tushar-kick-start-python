@@ -655,6 +655,24 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Width mismatch fails LOUDLY; same-width-different-model fails SILENTLY — only the second one reaches production
 - Python has no hoisting: a top-level `def` closes the indented block above it and binds its name only when reached
 
+## Day 39 — Real Autodesk docs: the threshold held, the ranking didn't (2026-09-04)
+**One-liner:** Vector search ranks ABOUTNESS, not ANSWERHOOD — my toy corpus hid that because "closest" and "correct" were the same row.
+
+1. CORPUS SWAP: 6 one-line docs (~90 words) -> 7 real Autodesk Revit help pages (1,734 words) -> 18 chunks in a NEW collection `revit_docs_v2`. `revit_docs_project_2` left untouched, so step 2 was a COMPARISON, not a memory (my own blue/green instinct from Day 38). IDs `f"{stem}_{i}"` -> `count() == total_chunks`, proving the upsert is idempotent across re-runs.
+2. A CHUNKER THAT RESPECTS PARAGRAPH BOUNDARIES HAS NO UPPER BOUND: splitting on blank lines and merging to `MAX_CHARS = 600` produced a **2,623-char chunk**, because a single paragraph longer than the max is never split. `max_chars` is a preference, not a bound. The toy corpus could never show this — every document was one sentence.
+3. HYPOTHESIS 1 FALSIFIED — `THRESHOLD = 1.2` SURVIVED the corpus swap. Real hits landed 0.573-0.838; the out-of-corpus DWG question landed 1.485-1.623. Toy distances WERE unnaturally small (doc4 at 0.128, a sentence that restates the query), but the miss moved up too, so the gate still separates. Constant left alone, on the numbers.
+4. THE REAL FAILURE IS PRECISION, NOT COVERAGE: "How do I create a wall in Revit?" returned `about_walls_2` (a footnote about AUDITING PROJECT FILES) at 0.619 and `about_doors_0` at 0.827 — both PASS — while the chunk that actually answers it ranked **7th at 1.106**. A distance gate answers "is anything close?"; nothing in my pipeline answers "is the closest thing right?" `refused=True` never fires and RAGAS faithfulness would score HIGH, because the answer is faithfully grounded in the wrong chunk.
+5. HYPOTHESIS 2 FALSIFIED — length dilution is not the cause. Rank vs chars: 233, 358, 560, 567, **2623**, 446, 533, 524 — the biggest chunk ranked 5th, above three shorter ones. What separates rank 1 from rank 7 is vocabulary: "Note: After **creating walls**..." vs "walls are instances of predefined system family types". The embedder ranked a footnote above the answer because the footnote is lexically closer to the question.
+
+**Mental models added:**
+- Vector search ranks ABOUTNESS, not ANSWERHOOD — cosine distance has no notion of "answers the question"
+- A distance threshold measures COVERAGE; it cannot measure PRECISION. Two failures, two instruments — I built the coverage one on Day 20 and have never had the precision one
+- A grounded answer built from the WRONG chunk passes every guard I own: threshold PASS, refusal silent, faithfulness high
+- A chunker that respects paragraph boundaries has no upper bound — `max_chars` is a preference, not a contract
+- Toy corpora hide precision failures: one chunk per topic makes "closest" and "correct" the same row
+- Real prose sits FURTHER away than a paraphrase of the question (0.57-0.84 vs 0.128) and that is normal, not broken
+- The precision instrument is a retrieval eval with EXPECTED CHUNK IDS; the precision fix is reranking
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

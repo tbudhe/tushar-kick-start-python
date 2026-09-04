@@ -1,0 +1,51 @@
+[
+  {
+    "file": "walls_overview.md",
+    "title": "Walls",
+    "category": "walls",
+    "revit_version": "2021",
+    "source_url": "https://help.autodesk.com/cloudhelp/2021/ENU/Revit-ArchDesign/files/GUID-9A9F7D00-A6A1-4E17-8C74-0965FDA5E007.htm"
+  },
+  {
+    "file": "about_walls.md",
+    "title": "About Walls",
+    "category": "walls",
+    "revit_version": "2018",
+    "source_url": "https://help.autodesk.com/cloudhelp/2018/ENU/Revit-Model/files/GUID-550F4B3E-7D49-4A4F-BEC7-4077D5B9FC85.htm"
+  },
+  {
+    "file": "place_a_door.md",
+    "title": "Place a Door",
+    "category": "doors",
+    "revit_version": "2018",
+    "source_url": "https://help.autodesk.com/cloudhelp/2018/ENU/Revit-Model/files/GUID-7E952007-8A5A-4693-8E0F-A847F72F7617.htm"
+  },
+  {
+    "file": "place_a_window.md",
+    "title": "Place a Window",
+    "category": "windows",
+    "revit_version": "2026",
+    "source_url": "https://help.autodesk.com/cloudhelp/2026/ENU/Revit-ArchDesign/files/GUID-3B7BAC64-6120-4372-A29E-95C4A1D853F5.htm"
+  },
+  {
+    "file": "about_doors.md",
+    "title": "About Doors",
+    "category": "doors",
+    "revit_version": "2020",
+    "source_url": "https://help.autodesk.com/cloudhelp/2020/ENU/Revit-Model/files/GUID-BCDC7124-7361-4336-9310-34D6DB175B70.htm"
+  },
+  {
+    "file": "about_levels.md",
+    "title": "About Levels",
+    "category": "levels",
+    "revit_version": "2019",
+    "source_url": "https://help.autodesk.com/cloudhelp/2019/ENU/Revit-Model/files/GUID-10A920FD-1A4C-457B-8827-D36AD7EA2D23.htm"
+  },
+  {
+    "file": "about_plan_views.md",
+    "title": "About Plan Views",
+    "category": "views",
+    "revit_version": "2018",
+    "source_url": "https://help.autodesk.com/cloudhelp/2018/ENU/Revit-DocumentPresent/files/GUID-D14C26D1-0BE6-41E4-A4CC-870459A0819B.htm"
+  }
+]

@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-09-04
+Last Updated: 2026-09-04 (Day 39)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -14,7 +14,7 @@ PROTOCOLS (condensed — full history in LEARNING_NOTES.md)
 - SHOW HIS OWN CODE (2026-09-02, HONORED 09-04): when referencing his files, PASTE THE CODE inline with exact file:line — he cannot browse installed packages.
 - CODE DELIVERY (2026-08-31, EXTENDED 09-04): paste COMPLETE blocks, name the file AND the exact position in it. 09-04 FAILURE: "add it after ask_llamaindex(), before if __name__" was not precise enough — line numbers had drifted, the block landed INSIDE the __main__ block, and it silently swallowed the whole COMPARISON tail into the function body. FIX: when giving an insertion point, read the file on disk FIRST and quote the two real anchor lines it goes between.
 - EXAMPLE FIDELITY (2026-08-31): examples must use HIS tools with HIS semantics. His Anthropic key env var is `CLAUDE_API_KEY`, not `ANTHROPIC_API_KEY`; his QA model is `claude-opus-4-8`; his RAG entry point is `rag_service.answer_question()`.
-- DEBUG PROTOCOL (2026-08-26/27, EXTENDED 08-31, APPLIED 09-01 → 09-04): when a result doesn't change after an edit, READ THE FILE ON DISK. When behavior and docs disagree, read the installed library source in .venv (subject to the CONTENT DENSITY cap). Probe config with BEHAVIOR, never formatting. A good instrument has exactly ONE explanation for its failure. An instrument that FILTERS its input reports the filter.
+- DEBUG PROTOCOL (2026-08-26/27, EXTENDED 08-31, APPLIED 09-01 → 09-04): when a result doesn't change after an edit, READ THE FILE ON DISK. When behavior and docs disagree, read the installed library source in .venv (subject to the CONTENT DENSITY cap). Probe config with BEHAVIOR, never formatting. A good instrument has exactly ONE explanation for its failure. An instrument that FILTERS its input reports the filter. DOC-EDIT NOTE (2026-09-04, Claude's near-miss): when patching this file by string index, anchor on a UNIQUE marker — "CURRENT STATUS" also appears inside the RULE FOR CLAUDE line, and slicing on the first match silently deleted the whole PROTOCOLS block. Restored with `git show HEAD:STATUS.md > STATUS.md` (plain `git checkout --` fails in the mounted shell: cannot unlink).
 - MORALE (2026-08-24, EXTENDED 08-28): he undercounts his wins — open with one concrete previous win before the quiz. When frustration surfaces, FIRST check whether Claude caused it. A process complaint gets a protocol fix, not encouragement.
 - EXERCISE OWNERSHIP (2026-08-24): Tushar writes the exercise code himself. (Honored 08-25 → 09-04.)
 - REVISION WEEK (2026-08-17): when Phase 2 completes, one full week of Phase 1+2 revision before Phase 3. Weak-spots list is the syllabus.
@@ -27,16 +27,16 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
-Day: 38 COMPLETE (Part A 2026-09-02, Part B 2026-09-04) | Week: 7 — Phase 2 | Next session = Day 39.
+Day: 39 COMPLETE (2026-09-04) | Week: 7 — Phase 2 | Next session = Day 40.
 Goal: Staff SWE → AI Backend Engineer (Autodesk) → Staff/Principal AI Engineer, Walmart, July 2027
-Topic: Day 38b — the LlamaIndex SHAPE (`Document → Node → Index → Retriever → QueryEngine`) taught in one screen and mapped line-by-line onto his own file, then Part B: the embedding-width probe.
-Exercise: `exercises/day38_llamaindex.py` — Parts A, 5b and B all GREEN. Verdict comment block written at the bottom of the file.
-FINDINGS THIS SESSION: (1) Writing a hand-made 768-wide vector into the 384-wide collection raised `InvalidArgumentError: Collection expecting embedding with dimension of 384, got 768` — **and the error came out of CHROMA, not LlamaIndex.** The framework does not abstract the store's schema, it sits on it. (2) A collection is pinned to the width of its FIRST vector: swapping embedders is a REBUILD, not a config change. (3) HIS extension, unprompted: unpinned, `Settings.embed_model` defaults to OpenAI ada-002 at 1536 wide — so the unpinned version of this very script IS that error. (4) HIS second extension: parity with his own pipeline needs `SimilarityPostprocessor(similarity_cutoff=0.301)` — the number the script already computes from his `THRESHOLD`. (5) Python has no hoisting — a top-level `def` pasted inside the `__main__` block ended it early and swallowed the COMPARISON tail into the function body; found by reading the file on disk.
-Quiz results: **3/3 CLEAN AGAIN — second session running, and nothing needed completing.** Q1 (what the framework changed) — "nothing in retrieval; it replaced my glue code, and calls distance `score`." Q2 (citation metadata) — correct AND he cited the guard in his own file at line 64. Q3 cold Day 37 (refine at top_k=10) — "10 sequential calls, ~10x latency, and async can't help because each call waits on the previous answer." That is menu-vs-trips answered cold at mechanism level.
-UNPROMPTED WINS: the ada-002/1536 forward trace, and naming `SimilarityPostprocessor` as the parity fix himself. Fifth session running where an explanation turns into his own extension.
-RECOVERY NOTE: this session was the correction for 09-02's burnout. Zero `.venv` dives, shape before footnotes, one probe, done. It worked — he was sharp start to finish and generated two extensions of his own.
-Project 1: SHIPPED. Project 2: RAGAS triad + typed RagResponse done; remaining: real Autodesk chunks, model cost decision, ragas upgrade, one paid ragas_evals.py run.
-Currently strong on: converting an explanation into a controlled experiment (five sessions running); tracing a failure FORWARD to where it would bite in production; reading a claim's confirmation out of numbers rather than prose.
+Topic: Day 39 — Project 2 hardening I. The 6 toy one-liners replaced with 7 REAL Autodesk Revit help pages (1,734 words -> 18 chunks) in a new collection `revit_docs_v2`; `revit_docs_project_2` left untouched so every comparison is data, not memory.
+Exercise: `ingest_corpus.py` and `audit_corpus.py`, both at REPO ROOT (so `from retriever import client` works with no `sys.path` bootstrap — the structural fix for Day 38's VS Code import breakage). Corpus in `corpus/revit_help/` + `manifest.json`.
+FINDINGS THIS SESSION: (1) **THE HEADLINE — a PRECISION failure with every guard silent.** "How do I create a wall in Revit?" ranked a footnote about AUDITING PROJECT FILES first (0.619) and a DOORS chunk second (0.827); the chunk that answers the question ranked 7th (1.106). Distance gate PASSES, `refused=True` never fires, RAGAS faithfulness would score HIGH — the answer is faithfully grounded in the WRONG chunk. (2) CLAUDE'S HYPOTHESIS FALSIFIED #1: `THRESHOLD = 1.2` SURVIVED the corpus swap — real hits 0.573-0.838, out-of-corpus miss 1.485-1.623. Constant left alone, on the numbers. (3) CLAUDE'S HYPOTHESIS FALSIFIED #2: length dilution is NOT the cause of the bad ranking — rank vs chars was 233, 358, 560, 567, **2623**, 446, 533, 524. What separates rank 1 from rank 7 is vocabulary ("creating walls" vs "walls are instances of predefined system family types"). (4) A chunker that respects paragraph boundaries has NO upper bound: `MAX_CHARS = 600` produced a 2,623-char chunk. (5) `count() == total_chunks` proved the `f"{stem}_{i}"` ID scheme makes the ingest idempotent.
+Quiz results: **3/3 CLEAN — FOURTH CONSECUTIVE SESSION, nothing needing completion.** Q1 named Chroma as the component that raised the error AND drew the conclusion (orchestration glue, not the owner of the contract). Q2 was the QUIET failure case answered cold before it had ever been taught: "the store accepts every write, and retrieval silently rots — still computed, still ranked, no longer meaning anything." Q3 cold Day 35 added the sticky-sessions caveat unprompted.
+UNPROMPTED WINS: the sticky-sessions caveat on Q3; and reading the "516 words -> 2 chunks" line as wrong before being told.
+DEPENDENCY NOTE: Day 39's external dependency was UNMET at session start — no real corpus existed. Claude fetched one (7 pages) rather than swapping the day. Two pages (`about_doors.md`, `about_levels.md`) came back partly paraphrased by the fetch: fine as corpus, NOT citable.
+Project 1: SHIPPED. Project 2: RAGAS triad + typed RagResponse + REAL CORPUS done; remaining: precision eval, model cost decision, ragas upgrade, one paid ragas_evals.py run.
+Currently strong on: converting an explanation into a controlled experiment (six sessions running); reading a printed table and spotting the row that contradicts the story.
 
 WEAK SPOTS (revisit)
 1. MENU-vs-TRIPS — **CLOSED 2026-09-04.** Answered cold and correctly for the second session running (Q3, refine at top_k=10, with the async caveat attached unprompted). Do not re-drill.
@@ -46,24 +46,30 @@ WEAK SPOTS (revisit)
 CLOSED 2026-08-28: DIRECTION INVERSIONS / SLOT SWAPS (open since Day 26).
 
 CARRIED FORWARD
+(0) **NEW, Day 39, the biggest one — RETRIEVAL PRECISION EVAL:** a test with EXPECTED CHUNK IDS per question. He has a coverage instrument (Day 20 threshold + refusal) and has NEVER had a precision one. Related: hard-bound the chunker (split inside an oversized paragraph); the title-prepend experiment left as his call in `ingest_corpus.py`; `category` metadata is written but unused by the audit; reranking is the real precision fix (Phase 3).
 (1) Phase 1 recap out loud (owed since 08-08; folds into REVISION WEEK). (2) Trim-experiment + prefill re-attach re-test. (3) Delete `time.sleep(2)` from `get_price` in **day36** before reusing that file as a reference (day37 uses `await asyncio.sleep(2)` deliberately — leave it). (4) Optional 2-minute Day 37 extension: add a batch `get_prices(tickers: list[str])` tool and show the 10-company question collapsing from 10 rounds to 1. (5) **THE QUIET TWIN — named 09-04, NOT tested:** two embedding models with the SAME width (384) but different vector spaces (MiniLM vs `bge-small-en-v1.5`) produce NO error and silently wrong neighbours. Part B proved only the loud failure. Costs a ~130MB model download; worth 10 minutes inside REVISION WEEK. (6) Confirm `.vscode/launch.json` with `PYTHONPATH` was created. (7) Optional 5-minute parity close: add `SimilarityPostprocessor(similarity_cutoff=0.301)` to the query engine and show the refusal case coming back.
 
-PHASE 2 CLOSE PLAN (updated 2026-09-04 — Day 38 closed)
-- Day 39 — Project 2 hardening I: real Autodesk chunks through ingest.py; re-run the retrieval audit; note what broke vs the toy corpus. EXTERNAL DEPENDENCY: needs a real Autodesk corpus staged BEFORE the session starts. If it isn't ready, swap in Day 40 and say so at the top of the session.
+PHASE 2 CLOSE PLAN (updated 2026-09-04 — Day 39 closed)
 - Day 40 — Project 2 hardening II: model cost decision (haiku vs sonnet, measured not guessed), ragas upgrade, ONE paid ragas_evals.py run with the numbers recorded. EXTERNAL DEPENDENCY: needs the paid run budgeted.
 - Day 41 — PHASE 2 CLOSE: no new content. Capstone review of Days 22-40, weak-spots list becomes the REVISION WEEK syllabus, Phase 1 recap out loud (owed since 08-08).
 Then: REVISION WEEK (Phase 1+2, no new content) → Phase 3 opens ~late September.
 
-NEXT SESSION (Day 39) — QUIZ PLAN (MAX 3, ONE PART EACH)
-Q1. Your 384-wide collection rejected a 768-wide vector. Which component raised that error, and what does that tell you about what LlamaIndex is?
-Q2. You swap MiniLM for another 384-wide model and re-ingest into the same collection. What does the store do, and what does your retrieval do?
-Q3. Cold, Day 35: your agent runs in 12 pods with `InMemorySaver` and a `thread_id` per user. What breaks, and is it a latency problem or a correctness problem?
-Morale opener: two consecutive 3/3 cold quizzes with nothing needing completion, menu-vs-trips CLOSED on a cold question, and two unprompted forward-traces in one short session (ada-002 at 1536, and `SimilarityPostprocessor` as the parity fix).
+NEXT SESSION (Day 40) — QUIZ PLAN (MAX 3, ONE PART EACH)
+Q1. Your threshold passed a chunk that didn't answer the question. Which failure is that — coverage or precision — and which of your guards would have caught it?
+Q2. What would a retrieval precision test need that your current evals don't have?
+Q3. Cold, Day 33/34: `create_agent()` is build-time and `.stream()` is request-time. Name one thing that belongs in each.
+Morale opener: FOUR consecutive 3/3 quizzes with nothing to complete, and on Day 39 he falsified two of Claude's hypotheses in one session with instruments he ran himself.
 
 ONE-SENTENCE SUMMARY (say out loud)
-"LlamaIndex is a pipeline object, not a search engine — the search is still Chroma's, and Chroma is what enforces the contract."
+"My retrieval ranks what a chunk is ABOUT, not whether it ANSWERS the question — and a distance threshold can never tell the difference."
 
 ACTIVE MENTAL MODELS (top of mind — full running list archived in LEARNING_NOTES.md)
+- Vector search ranks ABOUTNESS, not ANSWERHOOD — cosine distance has no notion of "answers the question"
+- A distance threshold measures COVERAGE; it cannot measure PRECISION — two failures, two instruments
+- A grounded answer built from the WRONG chunk passes every guard I own: threshold PASS, refusal silent, faithfulness high
+- A chunker that respects paragraph boundaries has no upper bound — max_chars is a preference, not a contract
+- Toy corpora hide precision failures: one chunk per topic makes "closest" and "correct" the same row
+- Real prose sits further away than a paraphrase of the question (0.57-0.84 vs 0.128) — normal, not broken
 - LlamaIndex is a pipeline object, not a search engine — the search is still Chroma's
 - Document → Node → Index → Retriever → QueryEngine; `from_documents` is the only stage I never wrote by hand
 - LlamaIndex = EF Core / Prisma; Chroma = the database. The ORM never made the DB faster, it stopped me writing SqlCommand
@@ -102,6 +108,7 @@ ACTIVE MENTAL MODELS (top of mind — full running list archived in LEARNING_NOT
 - A run is evidence, not an explanation — the check question wants a sentence
 
 PROGRESS LOG (most recent first — headline only)
+Day 39: real Autodesk corpus replaces the 6 toy one-liners (1,734 words -> 18 chunks, new collection, old one untouched); THRESHOLD=1.2 SURVIVED and length-dilution was falsified — but the wall question ranked an auditing footnote 1st and the answering chunk 7th, with every guard silent. Vector search ranks ABOUTNESS, not ANSWERHOOD; coverage and precision are different failures needing different instruments. 3/3 quiz, fourth running; two of Claude's hypotheses falsified in one session
 Day 38b: LlamaIndex SHAPE taught in one screen and mapped onto his own file (EF Core anchor); Part B green — a 768-wide vector into a 384-wide collection raised `InvalidArgumentError` FROM CHROMA, proving the store owns the embedding contract; he traced it forward unprompted to `Settings.embed_model` defaulting to OpenAI at 1536, and named `SimilarityPostprocessor(similarity_cutoff=0.301)` as the parity fix; 3/3 cold quiz with nothing to complete, MENU-vs-TRIPS and LLAMAINDEX SHAPE both CLOSED; zero .venv dives — the CONTENT DENSITY cap worked
 Day 38 (Part A): LlamaIndex vs hand-rolled over identical chunks — same top chunk, same order (`MATCH: True`); `score = exp(-distance)` read out of the library; metadata-in-the-embedding found, predicted, fixed, and confirmed to 3 decimals; his system prompt and threshold both silently replaced by framework defaults; 3/3 cold quiz; session ended early on burnout caused by two back-to-back .venv dives — CONTENT DENSITY protocol added
 Day 37: async agent — three cases measured (independent calls 4s→2s, dependent chain zero benefit, two runs 13.8s→6.9s); `ToolNode._func` threadpool vs `_afunc` gather read from his own .venv; his unprompted hypothesis test proved concurrency is a property of the request, not the code; Day 36 `input_json_delta` question CLOSED with data; menu-vs-trips REOPENED on the cold question
