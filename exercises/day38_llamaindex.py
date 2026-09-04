@@ -1,4 +1,9 @@
 """Day 38 — LlamaIndex vs the hand-rolled pipeline, over identical chunks."""
+from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.llms.anthropic import Anthropic
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.core import Document, Settings, StorageContext, VectorStoreIndex
+from dotenv import load_dotenv
 import math
 import os
 import sys
@@ -8,11 +13,6 @@ from pathlib import Path
 # This MUST run before the repo-root imports below, not after them.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dotenv import load_dotenv
-from llama_index.core import Document, Settings, StorageContext, VectorStoreIndex
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.anthropic import Anthropic
-from llama_index.vector_stores.chroma import ChromaVectorStore
 
 from rag_service import answer_question  # noqa: E402
 from retriever import client, collection, THRESHOLD, N_RESULTS  # noqa: E402
@@ -87,6 +87,25 @@ def ask_llamaindex(index, question):
     ]
     return str(response), sources
 
+def part_b(li_collection):
+    """CLAIM: a Chroma collection is pinned to the width of the FIRST vector
+    written into it — so an embedder swap is a schema change, not a setting."""
+    print("\n=== PART B — the width probe ===")
+    width = dim_of(li_collection)
+    print(f"collection width (from MiniLM): {width}")
+    print("writing a 768-wide vector into it...")
+    # what bge-base / mpnet would emit
+    wrong_width_vector = [0.0] * 768
+    try:
+        li_collection.add(
+            ids=["probe_768"],
+            embeddings=[wrong_width_vector],
+            documents=["a vector from a different embedder"],
+        )
+        print("RESULT: accepted 768 into a 384 collection — NO GUARD")
+    except Exception as e:
+        print(f"RESULT: rejected -> {type(e).__name__}: {e}")
+
 
 if __name__ == "__main__":
     rows = load_same_chunks()
@@ -114,6 +133,11 @@ if __name__ == "__main__":
     for s in hr.sources:
         print(f"source : {s.id} (dist {s.distance:.3f})  {s.text[:60]}")
 
+    print("\n=== PART B — hand-rolled ===")
+    part_b(li_collection)
+    print("VERDICT: a collection is pinned to the width of its FIRST vector — "
+          "swapping embedders is a rebuild, not a config change.")
+
     print("\n=== COMPARISON ===")
     li_top = li_sources[0][0] if li_sources else None
     hr_top = hr.sources[0].id if hr.sources else None
@@ -130,3 +154,49 @@ if __name__ == "__main__":
     print("\n=== what the framework swapped out ===")
     for name, tmpl in index.as_query_engine().get_prompts().items():
         print(f"  {name}:\n{tmpl.get_template()[:220]}\n")
+
+# ---------------------------------------------------------------------------
+# DAY 38 VERDICT — LlamaIndex vs my own pipeline
+#
+# 1. What it changed:
+#    Packaging, not behavior. retrieve() + context stuffing + the Claude call +
+#    source bookkeeping — retriever.py and rag_service.py end to end — collapsed
+#    into index.as_query_engine(...).query(q). Ingest collapsed the same way:
+#    from_documents did the node build, the embed, and the Chroma upsert in one
+#    line. Free extras I didn't write: the refine loop (multi-pass synthesis when
+#    context won't fit one call) and response.source_nodes carrying scores.
+#
+# 2. What it did NOT change:
+#    Any number that matters. Same 6 chunks, same MiniLM, same 384-wide Chroma,
+#    same top hit (doc4, then doc1), same ORDER. li score 0.880 == exp(-0.128)
+#    and chroma dist == 0.128 — score and distance are one number in two
+#    costumes. Zero retrieval quality gained. It also did NOT rescue me from the
+#    store: Part B still rejected 768 into 384. The framework sits ON the schema,
+#    it doesn't abstract it away. And it dropped my floor entirely — no
+#    THRESHOLD, no `if not chunks -> refused=True` branch. Getting parity means
+#    bolting on SimilarityPostprocessor(similarity_cutoff=0.301).
+#
+# 3. The defaults it silently substituted:
+#    - embed model -> OpenAI ada-002 (1536-wide) unless Settings.embed_model is
+#      pinned. Unpinned, this script IS the Part B error.
+#    - llm -> claude-2.1, and it reads ANTHROPIC_API_KEY, not my CLAUDE_API_KEY.
+#    - my SYSTEM_PROMPT -> "Given the context information and not prior
+#      knowledge...". Gone: "reply exactly: I don't know" and the 2-3 sentence
+#      cap. The answers show it — hand-rolled returned one line, LlamaIndex
+#      folded doc1 in and returned two.
+#    - metadata is embedded WITH the text by default; without
+#      excluded_embed_metadata_keys the two pipelines embed different strings.
+#    - from_documents ADDS. Re-running without a delete gives 12 nodes, then 18.
+#
+# 4. When I'd reach for it:
+#    Many source formats / loaders, prototyping a pipeline shape before I know
+#    what it should be, or when I want refine + re-ranking + a vector-store swap
+#    without writing three adapters.
+#
+# 5. When I'd stay hand-rolled:
+#    When the behavior is a contract. My refusal semantics, my threshold, my
+#    exact prompt, and a typed RagResponse.refused that app.py and evals.py both
+#    read — those are the product, not plumbing. Every one of them is a default
+#    LlamaIndex would have replaced without telling me, and evals that don't run
+#    the production path test nothing.
+# ---------------------------------------------------------------------------

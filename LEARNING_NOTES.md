@@ -620,7 +620,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. STAMP ALIGNMENT AS EVIDENCE OF INDEPENDENCE. Part A's two STARTs were identical to the centisecond (one `gather`, one `ToolNode`); Part C-2's were 0.22s apart (two independent runs, each waiting on its own model round trip — API skew, not the scheduler). He read C-2 as "acting like an event loop" — correct. Part B's 0.75s gap between `get_ticker` END and `get_price` START is the round boundary from Day 32, visible with a stopwatch on it.
 5. INSTRUMENT DISCIPLINE, THIRD SESSION RUNNING. Wall clock swung 4.4s → 8.6s across IDENTICAL Part A runs while the tool interval stayed 2.00s every time — model latency is the noise. Wall clock has three explanations mixed together; the stamps have one. Also closed Day 36's deferred question: the "silent" gaps were full of discarded `input_json_delta` chunks carrying `partial_json` (streamed tool ARGUMENTS), and once unfiltered everything collapsed to ~0.6s except two real 5s API stalls. **The filtered instrument was reporting the filter.**
 
-## Day 38 — LlamaIndex vs the hand-rolled pipeline (2026-09-02) — PART A COMPLETE, PART B PENDING
+## Day 38 — LlamaIndex vs the hand-rolled pipeline (2026-09-02) — PART A
 **One-liner:** LlamaIndex gave me nothing new — it gave me my own RAG pipeline with ITS defaults substituted for the ones I had deliberately chosen.
 
 1. Same 6 chunks, same MiniLM embedder, two frameworks -> identical top chunk and identical ordering (`MATCH: True`). The framework buys code, not better retrieval.
@@ -637,6 +637,23 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - `from_documents` = ingest job; `from_vector_store` = serving path — wiring the first into a request handler is running migrations on every request
 - A build step writing to durable storage must be idempotent, or results depend on how many times I happened to run it
 - delete-and-rebuild is fine with ONE reader and no uptime need; serving traffic means versioned collection + pointer flip (blue/green indexing)
+
+## Day 38b — The LlamaIndex shape + the width probe (2026-09-04)
+**One-liner:** LlamaIndex is a pipeline object, not a search engine — the search is still Chroma's, and Chroma is what enforces the contract.
+
+1. THE SHAPE, taught in one screen before any more internals: `Document -> Node -> Index -> Retriever -> QueryEngine`, mapped line-by-line onto my own file. The only stage I never wrote by hand is `Node` — `from_documents` does the splitting. C# anchor: LlamaIndex is EF Core, Chroma is the database underneath; EF Core never made the DB faster, it stopped me writing `SqlCommand`.
+2. PART B GREEN: wrote a hand-made 768-wide vector into the 384-wide collection -> `InvalidArgumentError: Collection expecting embedding with dimension of 384, got 768`. The error came out of CHROMA, not LlamaIndex — the framework does not abstract the store's schema, it sits on it.
+3. A collection is pinned to the width of its FIRST vector. Swapping embedders is a REBUILD, not a config change. Corollary I found myself: unpinned, `Settings.embed_model` defaults to OpenAI ada-002 at 1536 wide — so the unpinned version of this script IS that error.
+4. THE QUIET TWIN (named, deliberately NOT opened — carried forward): same width 384, different vector space (`bge-small-en-v1.5` vs MiniLM) produces NO error, no warning, just wrong neighbours forever. The loud failure is the easy half.
+5. PYTHON HAS NO HOISTING: pasting a top-level `def` inside the `if __name__` block ended that block early and swallowed the whole `=== COMPARISON ===` tail into the function body, where `li_sources`/`hr`/`index` do not exist. In Node a `function` declaration hoists; `def` binds the name only when the interpreter reaches it. Found by reading the file on disk, not by guessing.
+
+**Mental models added:**
+- LlamaIndex is a pipeline object, not a search engine — the search is still Chroma's
+- LlamaIndex = EF Core / Prisma; Chroma = the database. The ORM never made the DB faster, it made me stop writing SqlCommand
+- The vector STORE owns the embedding contract, not the framework — a dimension mismatch is a schema violation and the store is what raises it
+- A collection is pinned to the width of its first vector; changing embedder = rebuild
+- Width mismatch fails LOUDLY; same-width-different-model fails SILENTLY — only the second one reaches production
+- Python has no hoisting: a top-level `def` closes the indented block above it and binds its name only when reached
 
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
