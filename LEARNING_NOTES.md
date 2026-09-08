@@ -673,6 +673,24 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Real prose sits FURTHER away than a paraphrase of the question (0.57-0.84 vs 0.128) and that is normal, not broken
 - The precision instrument is a retrieval eval with EXPECTED CHUNK IDS; the precision fix is reranking
 
+## Day 40 — The precision harness: the label set IS the test (2026-09-08)
+**One-liner:** My retrieval isn't broken, my ranking is — and the knob that hides the answer is `N_RESULTS`, not `THRESHOLD`.
+
+1. THE LABEL SET IS THE TEST. My first `CASES` labelled by SOURCE DOCUMENT — every chunk from each file. That list contained `about_walls_2`, the auditing footnote that ranked 1st on Day 39, and omitted `walls_overview_0`, the closest thing to a real answer. Scored against those labels the Day 39 bug reads as **hit@1 = TRUE, precision 100%**. A precision eval labelled by topic is an instrument that agrees with whatever the retriever already does. The honest rule: *if a reader got ONLY this chunk, could they do the thing?*
+2. hit@10 = 1.000, hit@2 = 0.750. The answering chunk is in the store for EVERY question. Nothing is missing — no re-chunking, no new embedder, no bigger corpus fixes this. Retrieval is fine; ranking is not, and 25% of answerable questions are answered from the wrong chunk with the gate passing, `refused=False`, and faithfulness high.
+3. THE THRESHOLD WAS NEVER THE CONSTRAINT. `walls_overview_0` sits at **1.082, under `THRESHOLD = 1.2`** — the gate would accept it. It never gets the chance, because `N_RESULTS = 2` cuts the list four rows above it. THRESHOLD is a quality gate; N_RESULTS is an admission gate. I had been tuning the one that wasn't failing.
+4. WIDENING IS A CLIFF, NOT A DIAL. hit@k measured: k=1 0.500, k=2..k=5 flat at 0.750, k=6 1.000. Raising `N_RESULTS` from 2 to 5 costs 3x the context tokens per request for **zero** improvement, then works abruptly at 6. That is the measured argument for RERANKING (reorder 10 candidates) over retrieving more of them — Phase 3, now with my own numbers behind it.
+5. THE HARNESS IS FREE. `precision_eval.py` runs with no API key and no LLM: `collection.query` is a local call, and rank comparison is `ids.index(expected)`. Deterministic, $0, runnable on every corpus change — unlike the RAGAS judge. Caveat I have to respect: n=4 means each question is worth 25 points, so this is a smoke test until CASES reaches 15-20.
+
+**Mental models added:**
+- The label set IS the test — label by SOURCE DOCUMENT and the eval agrees with whatever the retriever already does
+- Answerhood test for a label: if a reader got ONLY this chunk, could they do the thing?
+- hit@k measures what the STORE can reach; hit@N_RESULTS measures what PRODUCTION sees — the gap between them is the bug
+- THRESHOLD is a quality gate, N_RESULTS is an admission gate — a chunk under threshold that is never retrieved is invisible to both
+- Widening retrieval is a cliff, not a dial — 3x context for nothing until one specific k; that is the case for reranking
+- A precision harness costs $0 and is deterministic; a judge metric costs money and is a trend — build the free one first
+- n=4 means every question is worth 25 points — a smoke test, not a metric
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
