@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-09-08 (Day 40)
+Last Updated: 2026-09-08 (Day 40, revised same day — INTERVIEW DETOUR)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -52,12 +52,28 @@ CARRIED FORWARD
 (0) **Day 39's biggest item — RETRIEVAL PRECISION EVAL — BUILT 2026-09-08** (`precision_eval.py`, $0 per run, no LLM). What it opened in turn: (a) GROW CASES to 15-20 questions — at n=4 each question is 25 points; (b) DECIDE `N_RESULTS`: 2 -> 6 makes hit@2 -> 1.000 on this corpus but triples context per request, and the sweep shows k=3,4,5 buy nothing — decide it as a cost/precision trade, measured; (c) RERANKING is the real fix and stays in Phase 3, now with his own hit@k cliff as the argument for it; (d) still open from Day 39: hard-bound the chunker (split inside an oversized paragraph), the title-prepend experiment in `ingest_corpus.py`, `category` metadata written but unused by the audit.
 (1) Phase 1 recap out loud (owed since 08-08; folds into REVISION WEEK). (2) Trim-experiment + prefill re-attach re-test. (3) Delete `time.sleep(2)` from `get_price` in **day36** before reusing that file as a reference (day37 uses `await asyncio.sleep(2)` deliberately — leave it). (4) Optional 2-minute Day 37 extension: add a batch `get_prices(tickers: list[str])` tool and show the 10-company question collapsing from 10 rounds to 1. (5) **THE QUIET TWIN — named 09-04, NOT tested:** two embedding models with the SAME width (384) but different vector spaces (MiniLM vs `bge-small-en-v1.5`) produce NO error and silently wrong neighbours. Part B proved only the loud failure. Costs a ~130MB model download; worth 10 minutes inside REVISION WEEK. (6) Confirm `.vscode/launch.json` with `PYTHONPATH` was created. (7) Optional 5-minute parity close: add `SimilarityPostprocessor(similarity_cutoff=0.301)` to the query engine and show the refusal case coming back.
 
-PHASE 2 CLOSE PLAN (updated 2026-09-08 — Day 40 closed, plan shifted one day)
+INTERVIEW DETOUR (declared 2026-09-08 — THIS OVERRIDES THE PHASE 2 CLOSE PLAN)
+TRIGGER: Tushar has a real interview (not a recruiter screen) WITHIN 2 WEEKS, for a CONTRACT AI ENGINEER role. Loop format: EXPERIENCE DEEP-DIVE + AI/ML SYSTEM DESIGN. **No live-coding screen** — so the Python-under-time-pressure risk is NOT in play for this loop and must not be prepped for.
+DECISION: compress by REORDERING, not by adding sessions. Cadence stays ~4/week — Day 38 proved that pushing volume costs more than it buys. Phase 4 (portfolio/deploy/story) is pulled FORWARD; Phase 2 close, REVISION WEEK and Phase 3 all slide right ~2 weeks. Phase 3's CrewAI/AutoGen/multi-agent depth is NOT interview-load-bearing for this role — cut it to LangGraph + agent loop + evals, which he already has from Days 31-37.
+- Day 41 (Wed Sep 9) — DEPLOY PROJECT 2: FastAPI, live URL, real endpoint. For a contract role "here it is running" closes more than any framework in the notes.
+- Day 42 (Thu Sep 10) — deploy hardening (/health, error contract, evals runnable against the deployed service) + the PAID ragas run, so he can quote judge numbers next to the free harness. EXTERNAL DEPENDENCY: budget the run first.
+- Day 43 (Fri Sep 11) — STORY PACKAGING: the 4-minute Project 2 narrative and a 90-second Autodesk-current-work narrative, both with real numbers and honest caveats.
+- Day 44 (Mon Sep 15) — SYSTEM DESIGN drill 1: "design RAG over a 2M-document corpus." Out loud, graded hard.
+- Day 45 (Tue Sep 16) — SYSTEM DESIGN drill 2: agent/tool-use design + cost, latency, guardrails, evals in CI.
+- Day 46 (Wed Sep 17) — ADVERSARIAL MOCK DEEP-DIVE: Claude interrogates the Project 2 story as a skeptical staff engineer.
+Then: Phase 2 close -> REVISION WEEK -> Phase 3 (~early October).
+
+STORY GUARDRAILS (do not let him overstate these in prep or in the loop)
+- The corpus is 7 Autodesk help pages / 18 chunks; evals are n=4. Frame as "TOY CORPUS, REAL INSTRUMENT" — the finding is about METHOD, not scale. Inflating it and being caught discounts everything else he says.
+- Two corpus pages (`about_doors.md`, `about_levels.md`) came back partly paraphrased by the fetch — fine as data, NOT quotable as Autodesk documentation.
+- The headline story, and it is a genuinely senior one: "my RAG was answering from the wrong chunk with every guard green — threshold passing, refused=False, faithfulness high. I built a precision harness with labelled expected chunk IDs, found hit@10 = 1.000 vs hit@2 = 0.750, and proved the answering chunk sat UNDER my threshold at 1.082 — N_RESULTS was the gate, not THRESHOLD. The hit@k sweep was flat k=2..5 and jumped at k=6, so widening retrieval is a cliff, not a dial. That is an argument for reranking, measured rather than read."
+
+PHASE 2 CLOSE PLAN (deferred by the INTERVIEW DETOUR above — resume after Day 46)
 - Day 41 — Project 2 hardening II (deferred from Day 40): model cost decision (haiku vs sonnet, measured not guessed), ragas upgrade, ONE paid ragas_evals.py run with the numbers recorded. EXTERNAL DEPENDENCY: the paid run must be budgeted BEFORE the session — it was unmet on Day 40 and cost the day's original plan.
 - Day 42 — PHASE 2 CLOSE: no new content. Capstone review of Days 22-41, weak-spots list becomes the REVISION WEEK syllabus, Phase 1 recap out loud (owed since 08-08).
 Then: REVISION WEEK (Phase 1+2, no new content) -> Phase 3 opens ~late September.
 
-NEXT SESSION (Day 41) — QUIZ PLAN (MAX 3, ONE PART EACH)
+NEXT SESSION (Day 41 = DEPLOY, per the INTERVIEW DETOUR — the deferred cost/ragas work moved to Day 42) — QUIZ PLAN (MAX 3, ONE PART EACH)
 Q1. Your hit@k sweep was flat from k=2 to k=5 and jumped at k=6. Why does that argue for reranking rather than for raising `N_RESULTS`?
 Q2. Your first label set would have scored Day 39's broken retrieval as a pass. In one sentence, what makes a label set honest?
 Q3. Cold, Day 30ish: deterministic evals are free and RAGAS costs money. Name one thing only the paid one can tell you.
