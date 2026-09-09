@@ -12,7 +12,7 @@ Tushar is a Staff Engineer with ~16 years of backend engineering experience (pay
 
 **Four GitHub portfolio projects:**
 1. Streaming CLI chatbot (Anthropic API, multi-turn memory) — SHIPPED (chatbots/revit-chatbot/)
-2. RAG API over Autodesk documentation — v1 SHIPPED, eval hardening in progress
+2. RAG API over Autodesk documentation — v1 SHIPPED; real corpus + precision harness + serving config done (Day 41); Render deploy in progress
 3. LangGraph Autodesk agent
 4. Production AI backend with observability and evals
 

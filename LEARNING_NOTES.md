@@ -691,6 +691,24 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - A precision harness costs $0 and is deterministic; a judge metric costs money and is a trend — build the free one first
 - n=4 means every question is worth 25 points — a smoke test, not a metric
 
+## Day 41 — Deploying the pipeline: what production actually serves (2026-09-09)
+**One-liner:** Blue/green only works if somebody flips the pointer — mine had been green for two sessions with nobody reading it.
+
+1. PRODUCTION WAS SERVING THE TOY CORPUS. `retriever.py` hard-coded `revit_docs_project_2` — the 6 one-liners. Days 39 and 40's real corpus and the entire precision harness live in `revit_docs_v2` (18 chunks) and had NEVER been on the request path. Day 39's blue/green worked exactly as designed; the pointer flip was the step nobody wrote down. Fix: `COLLECTION_NAME = os.environ.get("REVIT_COLLECTION", "revit_docs_v2")` — a pointer, not a constant, so the next corpus swap costs an env var instead of a deploy.
+2. THE VECTOR DB IS DERIVED DATA, NOT SOURCE. `revit_db_07_25/` is gitignored, so a fresh box gets nothing; `corpus/revit_help/*.md` IS tracked, so the deploy build step is `python ingest_corpus.py`. Proven rather than assumed: moved the DB aside, rebuilt from empty, and got `about_doors_0 0.720 / place_a_door_0 0.756` back to three decimals.
+3. AN UNCHANGED DB PROVES NOTHING. The first rebuild "passed" — identical distances — but reading the collection list on disk showed `revit_docs_llamaindex` still sitting there with 6 vectors, so the `mv` had never run. A test whose PASS state is indistinguishable from "the test didn't run" is not an instrument. The fix was a marker only a real run can produce: llamaindex ABSENT and `project_2` at 0 means the directory was genuinely empty.
+4. DEV DEPENDENCIES ARE NOT SERVING DEPENDENCIES. Measured site-packages: 1.8GB, of which torch 529MB and transformers 104MB. `sys.modules` after a live `retrieve()` — torch no, transformers no, sentence_transformers no, langchain no, ragas no, llama_index no; chromadb YES, onnxruntime YES, anthropic YES, fastapi YES. Chroma embeds the query with ONNX MiniLM, not sentence-transformers, which is why the torch half is dead weight on a 512MB box. `requirements-serve.txt` pins the 7 that are actually imported — including onnxruntime explicitly, because it IS the embedder and a version bump can move the vectors under a stored eval.
+5. PREDICT, THEN RUN — 4 for 4. Stated before each run: `place_a_door_0` at 0.756; the `old collection revit_docs_project_2 count: 0` line that looks like a bug and isn't (`ingest_corpus.py:75` recreates it empty); the full 14-row import table; `/heartbeat` returning `{"status":"OK"}`. All four matched.
+
+**Mental models added:**
+- Blue/green is TWO steps — build the new collection AND flip the pointer; only the first one is in the ingest script
+- A collection name is a pointer, not a constant — env var, so a corpus swap needs no code change
+- The vector DB is derived data; the corpus is source — if the build step can't rebuild it from git, the deploy is a guess
+- A test whose PASS state is indistinguishable from "the test never ran" is not an instrument
+- Dev dependencies are not serving dependencies — ask `sys.modules` after a real request, not the requirements file
+- Pin the embedder explicitly: an eval that cannot reproduce its own numbers is worthless
+- A deploy-target command is not a shell command — label WHERE it runs, or `$PORT` is empty
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
