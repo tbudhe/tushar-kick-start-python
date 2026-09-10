@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-09-09 (Day 41 — DEPLOY, session time-boxed to ~30 min)
+Last Updated: 2026-09-10 (Day 42 - deploy hardening; Render service still not created)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -27,17 +27,18 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
-Day: 41 COMPLETE (2026-09-09) | Week: 7 — Phase 2 / INTERVIEW DETOUR | Next session = Day 42.
+Day: 42 COMPLETE (2026-09-10) | Week: 7 - Phase 2 / INTERVIEW DETOUR | Next session = Day 43.
 Goal: Staff SWE -> AI Backend Engineer (Autodesk) -> Staff/Principal AI Engineer, Walmart, July 2027
-Topic: Day 41 — DEPLOY PROJECT 2, part 1. Pointer flip to the real corpus, a PROVEN build step, and a MEASURED serving dependency set. Committed 35f29df and pushed.
-FINDINGS THIS SESSION: (1) **THE HEADLINE — production was serving the 6-chunk TOY corpus.** `retriever.py` hard-coded `revit_docs_project_2`; every bit of Day 39/40 corpus and precision work lived in `revit_docs_v2` and had NEVER been on the request path. Blue/green worked exactly as designed on Day 39 — the pointer flip was the step nobody wrote down. Fixed as `COLLECTION_NAME = os.environ.get("REVIT_COLLECTION", "revit_docs_v2")`: a pointer, not a constant. (2) **THE VECTOR DB IS DERIVED DATA.** `revit_db_07_25/` is gitignored so a fresh box gets nothing; `corpus/revit_help/` IS tracked, so the deploy build step is `python ingest_corpus.py`. Proven from empty, not assumed — 0.720/0.756 reproduced to three decimals. (3) **AN UNCHANGED DB PROVES NOTHING.** The first rebuild "passed" with identical distances, but reading the collection list on disk showed `revit_docs_llamaindex` still present — the `mv` never ran. A test whose PASS state is indistinguishable from "the test didn't run" is not an instrument. (4) **THE SERVING PATH IS ~1/5 OF THE DEV VENV.** site-packages measured at 1.8GB (torch 529MB, transformers 104MB); `sys.modules` after a live `retrieve()` says torch/transformers/langchain/ragas/llama_index NO, chromadb/onnxruntime/anthropic/fastapi YES. Chroma embeds with ONNX MiniLM at query time. `requirements-serve.txt` pins the 7 that are actually imported, onnxruntime deliberately — it IS the embedder, and a bump moves the vectors. (5) `/heartbeat` green locally against the new config; `/ask` unverified (Claude call, 3-10s, interrupted for time).
-Exercise: `retriever.py` env-var pointer; `requirements-serve.txt`; `runtime.txt` (python-3.13.4); local uvicorn smoke test.
-Quiz results: **3/3 CLEAN — SIXTH CONSECUTIVE.** Q1 went past the expected answer: "k=6 only works because `walls_overview_0` happens to land at rank 6 in THIS corpus; re-ingest and the cliff moves" — i.e. the cliff cannot be shipped as config, which is the real argument for reranking. Q2 named honesty as decided-before-and-independently-of what the retriever returns. Q3 named faithfulness cold.
-PREDICTION RECORD: 4 predictions stated before running, 4 matched — `place_a_door_0` at 0.756; the `project_2 count: 0` line that looks like a bug and isn't; the full 14-row import table; heartbeat green.
-DIRECTION QUESTION RAISED (mid-session, worth carrying): "when do I become a good AI engineer?" — answered with a 9-row capability scorecard, now written to `READINESS.md`. Six of nine held, and the three missing (real traffic, cost/latency scale, operating a system he didn't build) are not curriculum-learnable. Estimate given: Jan-Feb 2027, which is when his own roadmap opens the job search. His read of himself is ~9 months behind where he actually is.
-COACHING NOTE (Claude's miss): gave the Render Start Command in a table labelled "paste these exactly" and he pasted `uvicorn --port $PORT` into his own shell, where $PORT is unset. Deploy-target commands must be labelled with WHERE they run, same class as the file/position rule for code blocks.
-Project 1: SHIPPED. Project 2: RAGAS triad + typed RagResponse + REAL CORPUS + PRECISION HARNESS + serving config all done and pushed; remaining: create the Render service, model cost decision, ragas upgrade, one paid ragas run, grow CASES.
-Currently strong on: converting an explanation into a controlled experiment (eight sessions running); challenging a claim's generality rather than just accepting the number.
+Topic: Day 42 - DEPLOY HARDENING. `/health` that reports serving IDENTITY, `refused` across the HTTP boundary, one error envelope for 422 and 502. Committed 69fe01d.
+FINDINGS THIS SESSION: (1) **LIVENESS IS NOT IDENTITY.** `/heartbeat` returned `{"status":"OK"}` on every single day production served the 6-chunk toy corpus. `/health` now reports collection, `count()`, db_path, embedder, `chromadb.__version__`, THRESHOLD and N_RESULTS - from the SAME `collection` handle `retrieve()` uses, so it certifies the request path and not a second connection. (2) **A REFUSAL IS A DECLARED FIELD, NOT A SENTENCE.** `refused` lived in `RagResponse` since Day 40 and never reached an HTTP caller; `AskResponse` shipped `answer` + `sources` only, forcing exactly the string-matching `rag_service.py:16` forbids. In-process contracts do not survive serialization for free. (3) **ONE ENVELOPE OR TWO PARSERS.** 422 BAD_REQUEST (empty question, via a `RequestValidationError` handler) and 502 UPSTREAM_ERROR (Claude raises) now share `{code, message}`; the second handler on `HTTPException` is what stops the 502 arriving wrapped in `detail`. (4) **THE CHEAPEST RESPONSE IS THE HONEST ONE.** The France question returned `refused:true`, `sources:[]`, 200, $0 - nothing under 1.2, so Claude was never called. (5) `DefaultEmbeddingFunction` is a WRAPPER ALIAS naming no model; `chromadb==1.5.9` + `onnxruntime==1.27.0` are what pin the vectors, so the version is now in `/health`.
+Exercise: full rewrite of `app.py` - `/health`, `AskRequest.question` with `Field(min_length=1)`, `refused` on `AskResponse`, two exception handlers, 502 wrapper around `answer_question()`. Verified with five curls against local uvicorn.
+Quiz results: **3/3 CLEAN - SEVENTH CONSECUTIVE.** Q1 named the property exactly (a PASS state indistinguishable from "never ran"); Q2 added the onnxruntime pin rationale unprompted; Q3 attached "shared AND durable" cold.
+PREDICTION RECORD: 6 stated before running, 5 matched. The miss (embedder class name) produced a third outcome I had not listed and became finding (5) - the useful kind.
+HIS CATCH (name it next session): after the app.py rewrite he noticed we had proven both FAILURE paths and never re-run the SUCCESS path - `refused:false` was untested code, and it was a gap in MY test plan, not his execution. Ninth session running of turning an explanation into a controlled test.
+**OPEN AT SESSION END - START HERE ON DAY 43:** (a) `git push` of 69fe01d, still local; (b) the Render web service is STILL NOT CREATED (values are in the INTERVIEW DETOUR block below); (c) step 4 never started - point `precision_eval.py` at the deployed URL and reproduce 0.750/1.000 remotely; (d) the paid ragas run is still unbudgeted, asked twice, unanswered.
+SIDE TASK (not curriculum): drafted his ~340-word "why Anthropic" application essay in chat. Advice given: swap the closing paragraph per target team and name Kafka/Kubernetes/Redis explicitly if the role is backend-heavy.
+Project 1: SHIPPED. Project 2: real corpus + precision harness + serving config + health/error contract done; remaining: PUSH, create the Render service, remote eval run, model cost decision, ragas upgrade, one paid ragas run, grow CASES.
+Currently strong on: converting an explanation into a controlled experiment (nine sessions running); auditing the TEST PLAN, not just the code.
 
 WEAK SPOTS (revisit)
 1. MENU-vs-TRIPS — **CLOSED 2026-09-04.** Answered cold and correctly for the second session running (Q3, refine at top_k=10, with the async caveat attached unprompted). Do not re-drill.
@@ -54,9 +55,9 @@ CARRIED FORWARD
 INTERVIEW DETOUR (declared 2026-09-08 — THIS OVERRIDES THE PHASE 2 CLOSE PLAN)
 TRIGGER: Tushar has a real interview (not a recruiter screen) WITHIN 2 WEEKS, for a CONTRACT AI ENGINEER role. Loop format: EXPERIENCE DEEP-DIVE + AI/ML SYSTEM DESIGN. **No live-coding screen** — so the Python-under-time-pressure risk is NOT in play for this loop and must not be prepped for.
 DECISION: compress by REORDERING, not by adding sessions. Cadence stays ~4/week — Day 38 proved that pushing volume costs more than it buys. Phase 4 (portfolio/deploy/story) is pulled FORWARD; Phase 2 close, REVISION WEEK and Phase 3 all slide right ~2 weeks. Phase 3's CrewAI/AutoGen/multi-agent depth is NOT interview-load-bearing for this role — cut it to LangGraph + agent loop + evals, which he already has from Days 31-37.
-- Day 41 (Wed Sep 9) — DEPLOY PROJECT 2: **DONE except the Render service itself.** Config committed and pushed (35f29df). OPEN: create the Render web service — Build `pip install -r requirements-serve.txt && python ingest_corpus.py`, Start `uvicorn app:app --host 0.0.0.0 --port $PORT`, env `CLAUDE_API_KEY` + `REVIT_COLLECTION=revit_docs_v2`.
-- Day 42 (Thu Sep 10) — deploy hardening (/health, error contract, evals runnable against the deployed service) + the PAID ragas run, so he can quote judge numbers next to the free harness. EXTERNAL DEPENDENCY: budget the run first.
-- Day 43 (Fri Sep 11) — STORY PACKAGING: the 4-minute Project 2 narrative and a 90-second Autodesk-current-work narrative, both with real numbers and honest caveats.
+- Day 41 (Wed Sep 9) - DEPLOY config: DONE, pushed (35f29df).
+- Day 42 (Thu Sep 10) - DEPLOY HARDENING: DONE in code (69fe01d, unpushed). **STILL OPEN: create the Render web service** - Build `pip install -r requirements-serve.txt && python ingest_corpus.py`, Start `uvicorn app:app --host 0.0.0.0 --port $PORT` (that command runs ON RENDER, not in his shell), env `CLAUDE_API_KEY` + `REVIT_COLLECTION=revit_docs_v2`, Free tier (512MB - watch for OOM against chromadb+onnx).
+- Day 43 (Fri Sep 11) - FINISH THE DEPLOY FIRST (push, Render service, `precision_eval.py` against the deployed URL - it must reproduce 0.750/1.000), then STORY PACKAGING: the 4-minute Project 2 narrative and a 90-second Autodesk-current-work narrative. The paid ragas run rides along only if budgeted.
 - Day 44 (Mon Sep 15) — SYSTEM DESIGN drill 1: "design RAG over a 2M-document corpus." Out loud, graded hard.
 - Day 45 (Tue Sep 16) — SYSTEM DESIGN drill 2: agent/tool-use design + cost, latency, guardrails, evals in CI.
 - Day 46 (Wed Sep 17) — ADVERSARIAL MOCK DEEP-DIVE: Claude interrogates the Project 2 story as a skeptical staff engineer.
@@ -72,16 +73,22 @@ PHASE 2 CLOSE PLAN (deferred by the INTERVIEW DETOUR above — resume after Day 
 - Day 42 — PHASE 2 CLOSE: no new content. Capstone review of Days 22-41, weak-spots list becomes the REVISION WEEK syllabus, Phase 1 recap out loud (owed since 08-08).
 Then: REVISION WEEK (Phase 1+2, no new content) -> Phase 3 opens ~late September.
 
-NEXT SESSION (Day 42 = FINISH THE DEPLOY, then the deferred cost/ragas work) — QUIZ PLAN (MAX 3, ONE PART EACH)
-Q1. Your first DB rebuild reported identical distances and was still a failed test. What made the ORIGINAL check unable to tell you that?
-Q2. `requirements-serve.txt` drops torch, but retrieval still embeds the query. What does the embedding on the deployed box?
-Q3. Cold, Day 35ish: `InMemorySaver` across 12 pods. Name the failure in one sentence.
-Morale opener: SIX consecutive 3/3 quizzes — and on Day 41 his Q1 answer beat the one I was fishing for: the k=6 cliff is corpus-specific, so it can't be shipped as config. Four predictions stated before running, four matched.
+NEXT SESSION (Day 43 = FINISH THE DEPLOY, then STORY PACKAGING) - QUIZ PLAN (MAX 3, ONE PART EACH)
+Q1. `/heartbeat` returned OK on every day production served the toy corpus. In one sentence: what is a liveness check actually allowed to claim?
+Q2. `refused` existed in `RagResponse` since Day 40 and HTTP clients still could not see it. Name the boundary it failed to cross.
+Q3. Cold, from Day 40: hit@10 = 1.000 and hit@2 = 0.750. Which of those two numbers describes production, and why?
+Morale opener: SEVEN consecutive 3/3 - and on Day 42 he audited MY test plan, not just his own code: we had proven both failure paths and never re-run the success path after the rewrite.
 
 ONE-SENTENCE SUMMARY (say out loud)
-"Blue/green is two steps — build the new collection AND flip the pointer — and for two sessions I had only ever done the first one."
+"My health check told me the process was alive while it was serving the wrong data - liveness was never the question, identity was."
 
-ACTIVE MENTAL MODELS (top of mind — full running list archived in LEARNING_NOTES.md)
+ACTIVE MENTAL MODELS (top of mind - full running list archived in LEARNING_NOTES.md)
+- Liveness is not identity - a health check that cannot name the data it serves certifies nothing
+- A health check must read the SAME handle the request path uses, or it certifies a connection nobody serves from
+- An in-process contract does not survive serialization for free - a flag must be in the response model
+- Two error shapes mean two parsers - one envelope per failure class
+- A wrapper class name is not a model identity - versions pin the vectors
+- Refusal is a retrieval decision, made before any token is bought
 - Blue/green is TWO steps: build the new collection AND flip the pointer — only the first one is in the ingest script
 - A collection name is a pointer, not a constant — env var, so a corpus swap needs no code change
 - The vector DB is derived data; the corpus is source — if the build step can't rebuild it from git, the deploy is a guess
@@ -138,7 +145,8 @@ ACTIVE MENTAL MODELS (top of mind — full running list archived in LEARNING_NOT
 - Transcript order: AIMessage BEFORE its ToolMessages; every tool_use needs its tool_result
 - A run is evidence, not an explanation — the check question wants a sentence
 
-PROGRESS LOG (most recent first — headline only)
+PROGRESS LOG (most recent first - headline only)
+Day 42: DEPLOY HARDENING - `/heartbeat` had been certifying nothing; `/health` now reports serving IDENTITY (collection, 18 chunks, embedder, chromadb 1.5.9, threshold, n_results) off the same handle production queries. `refused` finally crosses the HTTP boundary, so clients branch on a flag instead of string-matching "I don't know". One `{code, message}` envelope for 422 BAD_REQUEST and 502 UPSTREAM_ERROR. The France question proved the cheapest response is the honest one - $0, Claude never called. 3/3 quiz, seventh running; 6 predictions, 5 matched, and the miss found the wrapper-alias embedder name. Committed 69fe01d, NOT pushed; Render service still not created
 Day 41: DEPLOY, part 1 — production had been serving the 6-chunk TOY corpus the whole time; two sessions of corpus and precision work were never on the request path. Blue/green built the new collection and nobody flipped the pointer. Collection name is now an env var. Vector DB proven rebuildable from tracked source (build step = `ingest_corpus.py`), and the first "passing" rebuild was caught as a test that never ran. Serving deps measured by `sys.modules`, not guessed: 1.8GB dev venv, 7 packages actually imported. 3/3 quiz, sixth running; 4 predictions, 4 matches
 Day 40: THE PRECISION HARNESS — `precision_eval.py`, labelled expected chunk IDs, depth 10, $0 per run. His own first label set (by source document) would have scored Day 39's bug as a PASS — the label set IS the test. hit@10 = 1.000 vs hit@2 = 0.750: retrieval isn't broken, ranking is. The answering chunk sits at 1.082, UNDER the 1.2 threshold — `N_RESULTS = 2` is what excludes it, not the gate. hit@k flat 0.750 through k=5, 1.000 at k=6: widening is a cliff, not a dial, and that is the measured case for reranking. 3/3 quiz, fifth running; Q2 was the exercise spec written cold
 Day 39: real Autodesk corpus replaces the 6 toy one-liners (1,734 words -> 18 chunks, new collection, old one untouched); THRESHOLD=1.2 SURVIVED and length-dilution was falsified — but the wall question ranked an auditing footnote 1st and the answering chunk 7th, with every guard silent. Vector search ranks ABOUTNESS, not ANSWERHOOD; coverage and precision are different failures needing different instruments. 3/3 quiz, fourth running; two of Claude's hypotheses falsified in one session

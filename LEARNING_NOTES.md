@@ -709,6 +709,23 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Pin the embedder explicitly: an eval that cannot reproduce its own numbers is worthless
 - A deploy-target command is not a shell command — label WHERE it runs, or `$PORT` is empty
 
+## Day 42 - The API tells the truth about itself (2026-09-10)
+**One-liner:** `/heartbeat` said OK on every day production served the wrong corpus - liveness was never the question, identity was.
+
+1. HEALTH REPORTS IDENTITY, NOT LIVENESS. New `/health` in `app.py` returns collection name, `collection.count()`, DB path, embedder class, `chromadb.__version__`, THRESHOLD and N_RESULTS - all read from the SAME `collection` handle `retrieve()` queries, never a second connection (a health check that opens its own connection can report green while the request path is broken). Local: `revit_docs_v2`, 18 chunks, chromadb 1.5.9. Day 41's two-session bug is now a one-curl question.
+2. A REFUSAL IS A DECLARED FIELD, NOT A SENTENCE. `RagResponse.refused` has existed since Day 40 but never crossed the HTTP boundary - `AskResponse` shipped only `answer` and `sources`, so any HTTP client had to string-match "I don't know based on the available docs.", the exact thing the comment at `rag_service.py:16` forbids. An in-process contract does not survive serialization for free.
+3. ONE ENVELOPE FOR EVERY FAILURE CLASS. Empty question -> 422 `{"code":"BAD_REQUEST","field":"question","message":...}` from a `RequestValidationError` handler; a raising Claude call -> 502 `{"code":"UPSTREAM_ERROR","message":<exception class name>}`. A second handler on `HTTPException` normalizes the envelope - without it the 502 arrives wrapped in `detail` and the client needs two parsers for one class of problem.
+4. THE CHEAPEST RESPONSE IS THE HONEST ONE. "What is the capital of France?" -> 200, `refused:true`, `sources:[]`, $0 spent: nothing landed under distance 1.2, so `retrieve()` returned empty and Claude was never called. Refusal is a RETRIEVAL decision, made before any token is bought.
+5. PREDICT, THEN RUN - 5 of 6, and the miss was the useful one. Matched: the two-key response shape, the 422 body and code, the refusal path, chunks=18, chromadb 1.5.9. MISSED: predicted the embedder would read `ONNXMiniLM_L6_V2` or a schema default; it read `DefaultEmbeddingFunction` - a WRAPPER ALIAS that names no model and no runtime. What actually pins the vectors is `chromadb==1.5.9` + `onnxruntime==1.27.0`, so the version went into `/health`.
+
+**Mental models added:**
+- Liveness is not identity - a health check that cannot name the data it serves certifies nothing
+- A health check must read the SAME handle the request path uses, or it certifies a connection nobody serves from
+- An in-process contract does not survive serialization for free - a flag must be in the response model or the client string-matches prose
+- Two error shapes mean two parsers - one envelope per failure class, or the contract is a suggestion
+- A wrapper class name is not a model identity - versions pin the vectors, class names do not
+- Refusal is a retrieval decision, made before any token is bought
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
