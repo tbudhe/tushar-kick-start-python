@@ -46,6 +46,7 @@ WEAK SPOTS (revisit)
 4. LLAMAINDEX SHAPE (opened 2026-09-02) — **CLOSED 2026-09-04.** He can now state what the framework IS in one sentence ("it replaced my glue code, not my retrieval") and reasoned forward from the shape unprompted.
 5. LABEL SETS / ANSWERHOOD (opened 2026-09-08) — labelled a precision test by SOURCE DOCUMENT, twice, including the known false-positive chunk. The rule to re-test: "if a reader got ONLY this chunk, could they do the thing?" Retest by asking him to label 3 new questions cold at the start of REVISION WEEK.
 6. PHASE 1 MODEL LAYER (opened 2026-09-17) - training vs inference collapsed into RAG vocabulary. Re-test the five sentences across REVISION WEEK, max 3 per session: Day 44 = tokens, attention, generation.
+7. IO-BOUND vs CPU-BOUND IN PYTHON (opened 2026-09-17, from a REAL AI-engineer interview): asked about Celery (said "I don't know", no bridge) and IO operations (answered spawn/exec/fork child processes - that is the CPU-bound answer). Fix: IO-bound -> asyncio or threads (GIL released while waiting); CPU-bound -> processes. Celery pools: prefork for CPU, gevent/threads for IO (LLM calls are IO). Fold into Day 44 agents block (Day 37 async). Also practise the BRIDGE answer for unknown tools.
 CLOSED 2026-08-28: DIRECTION INVERSIONS / SLOT SWAPS (open since Day 26).
 
 CARRIED FORWARD
@@ -75,7 +76,7 @@ Then: REVISION WEEK (Phase 1+2, no new content) -> Phase 3 opens ~late September
 
 REVISION WEEK PLAN (declared 2026-09-17; OPTION A chosen same day - CONCEPTS ONLY, 3 sessions, must finish THIS WEEK. Weekday slot only Fri left; weekend mornings belong to system design + YUNextGenAI, so Sat 6:00-7:30 is the one borrowed slot)
 - Day 43 (Thu 9/17) - Phase 1 Weeks 0-1: training, overfitting, tokens, attention, generation. DONE.
-- Day 44 (Fri 9/18) - TWO concept blocks, out loud, no experiments: Phase 1 Weeks 2-4 (embeddings, prompting, RAG vs fine-tune vs prompt) + Phase 2 agents (tool use, LangGraph loop, checkpointers, Days 31-37). Keep the one-dive cap at ZERO - two blocks is already the density ceiling.
+- Day 44 (Fri 9/18) - [+ weak spot 7: IO vs CPU in Python, 10 min, inside the agents block] TWO concept blocks, out loud, no experiments: Phase 1 Weeks 2-4 (embeddings, prompting, RAG vs fine-tune vs prompt) + Phase 2 agents (tool use, LangGraph loop, checkpointers, Days 31-37). Keep the one-dive cap at ZERO - two blocks is already the density ceiling.
 - Day 45 (Sat 9/19, 6:00-7:30) - Phase 2 RAG + evals (Days 38-42) + LABEL 3 NEW QUESTIONS COLD (weak spot 5, concept-level, ~10 min).
 Then: PHASE 3 OPENS Mon 9/21 as Day 46. Nov milestone holds; guardrails module still follows Phase 3.
 
