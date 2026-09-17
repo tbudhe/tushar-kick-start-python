@@ -19,7 +19,6 @@ def get_ticker(company_name: str):
 
 @tool(description="Get the current stock price for a ticker symbol.")
 def get_price(ticker: str):
-    time.sleep(2)                 # simulate a slow downstream call
     return PRICES.get(ticker)
 
 
