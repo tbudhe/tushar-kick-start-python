@@ -726,6 +726,23 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - A wrapper class name is not a model identity - versions pin the vectors, class names do not
 - Refusal is a retrieval decision, made before any token is bought
 
+## Day 43 - Revision week opens: the weights are the model (2026-09-17)
+**One-liner:** every Phase 1 answer came back as a RAG answer - training changes the weights, and nothing I have built since Day 3 ever touches them.
+
+1. REVISION WEEK DECLARED (Tushar's call). Interview detour paused; five sessions, each one concept block said out loud plus its backlog. Quiz 2/3 - streak ends at seven. Miss: `refused` failed to cross the HTTP RESPONSE MODEL (`AskResponse` lacked the field), not "the LLM call" - refusal happens before any LLM call. Q1 nuance: "ready to take traffic" is readiness; liveness is only "process up"; neither is identity.
+2. PHASE 1 DECAY. Asked cold: training -> "reads embeddings from documents"; tokens -> "cost comes with vector DB"; generation -> "System -> Human -> AI". All inference-time. Correct set: TRAINING = predict, measure with a loss function, nudge weights toward smaller loss (gradient descent). OVERFITTING = memorized examples, not the pattern; test split = unseen data, honest score. TOKENS = ~3/4-word pieces, billed per token in and out by the LLM API; the context window is a token budget for system + messages + chunks + answer. ATTENTION = each token looks at every other token in THIS input and borrows meaning ("bank"). GENERATION = predict one token, append, feed back, repeat to stop.
+3. `ml-foundations/gradient_descent_one_weight.py` - fit y = 3x from w = 0, lr = 0.01, 50 epochs. His first draft: every formula right, two SCOPE bugs. `loss_total`/`grad_total` outside the epoch loop -> loss climbed 2.25 -> 1792 and stale gradients swung w 0 -> 5.96 -> 0.12 like a pendulum. Update + print inside `for d in data` -> four updates per epoch. Python indentation = "how many times does this line run", again.
+4. HALF-FIXED STILL LEARNS. With only the reset moved, per-point updates reached w = 3.0000 - that is STOCHASTIC gradient descent; the fixed version is BATCH (one update per pass); LLMs use mini-batches. Its loss rose 0.0164 -> 0.4344 inside epoch 10 because it was a partial sum. Fixed output matched the prediction exactly: loss 67.5 -> 0.0000, w 0.45 -> 2.9991.
+5. w IS THE MODEL, loss IS THE REPORT CARD (his answer, cold) - only w ships; Claude is billions of w. Flipping `-=` to `+=` sent loss to 59,936,603 and w to -3248, matching prediction: the minus sign is what "downhill" means. Backlog cleared: `time.sleep(2)` removed from day36 `get_price` (a blocking sleep freezes an async agent; day37's `await asyncio.sleep` stays).
+
+**Mental models added:**
+- Training changes the weights; inference freezes them - prompts, RAG and messages only change the input
+- w is the model, loss is the report card - only w ships
+- An accumulator's scope decides what it sums - declared outside the epoch loop, it sums history, not the current weight
+- Batch GD updates once per pass, SGD once per example, LLMs per mini-batch - a mid-pass loss is a partial sum
+- The minus sign is "downhill" - flip it and the same loop climbs without bound
+- Tokens are billed by the LLM API, in and out - not by the vector DB
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

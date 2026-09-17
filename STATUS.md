@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-09-10 (Day 42 - deploy hardening; Render service still not created)
+Last Updated: 2026-09-17 (Day 43 - REVISION WEEK opens: Phase 1 recap Weeks 0-1 + one-weight gradient descent)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -24,35 +24,35 @@ PROTOCOLS (condensed — full history in LEARNING_NOTES.md)
 MCP TIMING DECISION (2026-08-28, Tushar's call): KEEP THE SEQUENCE. MCP stays in Phase 3 (~Nov 2026); no spike day, no reorder. Reassess only at Phase 2 close.
 
 MILESTONES (recalibrate at each phase end)
-Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
+Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
-Day: 42 COMPLETE (2026-09-10) | Week: 7 - Phase 2 / INTERVIEW DETOUR | Next session = Day 43.
+Day: 43 COMPLETE (2026-09-17) | Week: REVISION WEEK, session 1 of 5 | Next session = Day 44.
 Goal: Staff SWE -> AI Backend Engineer (Autodesk) -> Staff/Principal AI Engineer, Walmart, July 2027
-Topic: Day 42 - DEPLOY HARDENING. `/health` that reports serving IDENTITY, `refused` across the HTTP boundary, one error envelope for 422 and 502. Committed 69fe01d.
-FINDINGS THIS SESSION: (1) **LIVENESS IS NOT IDENTITY.** `/heartbeat` returned `{"status":"OK"}` on every single day production served the 6-chunk toy corpus. `/health` now reports collection, `count()`, db_path, embedder, `chromadb.__version__`, THRESHOLD and N_RESULTS - from the SAME `collection` handle `retrieve()` uses, so it certifies the request path and not a second connection. (2) **A REFUSAL IS A DECLARED FIELD, NOT A SENTENCE.** `refused` lived in `RagResponse` since Day 40 and never reached an HTTP caller; `AskResponse` shipped `answer` + `sources` only, forcing exactly the string-matching `rag_service.py:16` forbids. In-process contracts do not survive serialization for free. (3) **ONE ENVELOPE OR TWO PARSERS.** 422 BAD_REQUEST (empty question, via a `RequestValidationError` handler) and 502 UPSTREAM_ERROR (Claude raises) now share `{code, message}`; the second handler on `HTTPException` is what stops the 502 arriving wrapped in `detail`. (4) **THE CHEAPEST RESPONSE IS THE HONEST ONE.** The France question returned `refused:true`, `sources:[]`, 200, $0 - nothing under 1.2, so Claude was never called. (5) `DefaultEmbeddingFunction` is a WRAPPER ALIAS naming no model; `chromadb==1.5.9` + `onnxruntime==1.27.0` are what pin the vectors, so the version is now in `/health`.
-Exercise: full rewrite of `app.py` - `/health`, `AskRequest.question` with `Field(min_length=1)`, `refused` on `AskResponse`, two exception handlers, 502 wrapper around `answer_question()`. Verified with five curls against local uvicorn.
-Quiz results: **3/3 CLEAN - SEVENTH CONSECUTIVE.** Q1 named the property exactly (a PASS state indistinguishable from "never ran"); Q2 added the onnxruntime pin rationale unprompted; Q3 attached "shared AND durable" cold.
-PREDICTION RECORD: 6 stated before running, 5 matched. The miss (embedder class name) produced a third outcome I had not listed and became finding (5) - the useful kind.
-HIS CATCH (name it next session): after the app.py rewrite he noticed we had proven both FAILURE paths and never re-run the SUCCESS path - `refused:false` was untested code, and it was a gap in MY test plan, not his execution. Ninth session running of turning an explanation into a controlled test.
-**OPEN AT SESSION END - START HERE ON DAY 43:** (a) `git push` of 69fe01d, still local; (b) the Render web service is STILL NOT CREATED (values are in the INTERVIEW DETOUR block below); (c) step 4 never started - point `precision_eval.py` at the deployed URL and reproduce 0.750/1.000 remotely; (d) the paid ragas run is still unbudgeted, asked twice, unanswered.
-SIDE TASK (not curriculum): drafted his ~340-word "why Anthropic" application essay in chat. Advice given: swap the closing paragraph per target team and name Kafka/Kubernetes/Redis explicitly if the role is backend-heavy.
-Project 1: SHIPPED. Project 2: real corpus + precision harness + serving config + health/error contract done; remaining: PUSH, create the Render service, remote eval run, model cost decision, ragas upgrade, one paid ragas run, grow CASES.
-Currently strong on: converting an explanation into a controlled experiment (nine sessions running); auditing the TEST PLAN, not just the code.
-
+Topic: Day 43 - PHASE 1 RECAP, WEEKS 0-1 (training, overfitting, tokens, attention, generation) + gradient descent on one weight, written from scratch (`ml-foundations/gradient_descent_one_weight.py`).
+DECISION (Tushar, 2026-09-17): REVISION WEEK now - clear backlogs and concepts. INTERVIEW DETOUR PAUSED (Days 43-46 of it never ran; where the interview stands was not stated - re-slot prep only if he names a date). 7-day gap since Day 42. Push CONFIRMED done (origin/main = 75357a4 before today).
+FINDINGS THIS SESSION: (1) **PHASE 1 HAS DECAYED UNDER PHASE 2.** Asked for the five Phase 1 sentences cold, every answer was an INFERENCE-TIME answer - training = "reads embeddings from documents", tokens = "cost comes with vector DB", generation = "System -> Human -> AI message order". Organizing sentence: **training changes the weights; at inference the weights are frozen and prompts/RAG/messages only change the input.** (2) **SCOPE BUGS, NOT MATH BUGS.** He jumped ahead and wrote the whole loop; every formula was right. Accumulators declared outside the epoch loop made loss climb 2.25 -> 1792 and w swing 0 -> 5.96 -> 0.12 like momentum; update+print inside the per-point loop gave 4 updates per epoch. (3) **HALF-FIXED STILL CONVERGED** - per-point updates reached w=3.0000: that is stochastic GD vs batch GD (LLMs train on mini-batches between). Its loss column ROSE within an epoch because it was a partial sum - a mid-pass loss is not a measurement. (4) **w IS THE MODEL, loss IS THE REPORT CARD** - his answer, cold. Only w ships; RAG never touches it. (5) **THE MINUS SIGN IS "DOWNHILL"** - flipping `-=` to `+=` sent loss 67.5 -> 59.9M and w -> -3248.
+Quiz results: **2/3 - streak ends at seven.** Q1 counted (said "started and ready" - that is readiness; liveness = process up; neither = identity). Q2 MISS: said `refused` never reached "the LLM call"; the boundary is the HTTP RESPONSE MODEL (`AskResponse`), and refusal happens before any LLM call. Q3 clean (hit@2 = 0.750 is production).
+RECAP SCORECARD (not quiz): training MISS -> clean on the retry frame; overfitting PARTIAL (said "hallucination" for "memorized"); tokens PARTIAL (context contents right, cost wrongly on vector DB); attention PARTIAL (King/Queen vs Pizza is embedding similarity; "depends on context" is the attention idea); generation MISS.
+PREDICTION RECORD: 4 stated (loss 67.5 at w=0; 6-line goal output; slower convergence with batch updates; sign-flip 6 lines) - all matched once his code was fixed.
+Exercise: `ml-foundations/gradient_descent_one_weight.py` - his code, 4 of 5 steps. Backlog cleared: `time.sleep(2)` deleted from `get_price` in `exercises/day36_streaming_agent.py` (`import time` kept - lines 70/76 use `time.time()`).
+OPEN: (a) paid ragas run - yes/no + dollar cap needed by Day 47 (asked a third time, will not ask again); (b) Render service still not created (Day 47); (c) `dgx_sim.py` is an untracked side project from 09-14, not curriculum - left uncommitted.
+Project 1: SHIPPED. Project 2: real corpus + precision harness + serving config + health/error contract done and pushed; remaining: Render service, remote eval run, model cost decision, ragas upgrade, one paid ragas run, grow CASES.
+Currently strong on: converting an explanation into a controlled experiment; writing the loop before being asked.
 WEAK SPOTS (revisit)
 1. MENU-vs-TRIPS — **CLOSED 2026-09-04.** Answered cold and correctly for the second session running (Q3, refine at top_k=10, with the async caveat attached unprompted). Do not re-drill.
 2. SENTENCES vs CODE — good eight sessions running. Keep light pressure, don't grind.
 3. `getattr` vs `.get()` — 2026-08-31. Still not retested. Watch once more, don't drill.
 4. LLAMAINDEX SHAPE (opened 2026-09-02) — **CLOSED 2026-09-04.** He can now state what the framework IS in one sentence ("it replaced my glue code, not my retrieval") and reasoned forward from the shape unprompted.
 5. LABEL SETS / ANSWERHOOD (opened 2026-09-08) — labelled a precision test by SOURCE DOCUMENT, twice, including the known false-positive chunk. The rule to re-test: "if a reader got ONLY this chunk, could they do the thing?" Retest by asking him to label 3 new questions cold at the start of REVISION WEEK.
+6. PHASE 1 MODEL LAYER (opened 2026-09-17) - training vs inference collapsed into RAG vocabulary. Re-test the five sentences across REVISION WEEK, max 3 per session: Day 44 = tokens, attention, generation.
 CLOSED 2026-08-28: DIRECTION INVERSIONS / SLOT SWAPS (open since Day 26).
 
 CARRIED FORWARD
 (0) **Day 39's biggest item — RETRIEVAL PRECISION EVAL — BUILT 2026-09-08** (`precision_eval.py`, $0 per run, no LLM). What it opened in turn: (a) GROW CASES to 15-20 questions — at n=4 each question is 25 points; (b) DECIDE `N_RESULTS`: 2 -> 6 makes hit@2 -> 1.000 on this corpus but triples context per request, and the sweep shows k=3,4,5 buy nothing — decide it as a cost/precision trade, measured; (c) RERANKING is the real fix and stays in Phase 3, now with his own hit@k cliff as the argument for it; (d) still open from Day 39: hard-bound the chunker (split inside an oversized paragraph), the title-prepend experiment in `ingest_corpus.py`, `category` metadata written but unused by the audit.
-(1) Phase 1 recap out loud (owed since 08-08; folds into REVISION WEEK). (2) Trim-experiment + prefill re-attach re-test. (3) Delete `time.sleep(2)` from `get_price` in **day36** before reusing that file as a reference (day37 uses `await asyncio.sleep(2)` deliberately — leave it). (4) Optional 2-minute Day 37 extension: add a batch `get_prices(tickers: list[str])` tool and show the 10-company question collapsing from 10 rounds to 1. (5) **THE QUIET TWIN — named 09-04, NOT tested:** two embedding models with the SAME width (384) but different vector spaces (MiniLM vs `bge-small-en-v1.5`) produce NO error and silently wrong neighbours. Part B proved only the loud failure. Costs a ~130MB model download; worth 10 minutes inside REVISION WEEK. (6) `.vscode/launch.json` CONFIRMED CREATED 2026-09-09 (appeared untracked in git status; committed in 35f29df). (7) Optional 5-minute parity close: add `SimilarityPostprocessor(similarity_cutoff=0.301)` to the query engine and show the refusal case coming back.
+(1) Phase 1 recap out loud (owed since 08-08; folds into REVISION WEEK). (2) Trim-experiment + prefill re-attach re-test. (3) DONE 2026-09-17: `time.sleep(2)` deleted from `get_price` in day36. (4) Optional 2-minute Day 37 extension: add a batch `get_prices(tickers: list[str])` tool and show the 10-company question collapsing from 10 rounds to 1. (5) **THE QUIET TWIN — named 09-04, NOT tested:** two embedding models with the SAME width (384) but different vector spaces (MiniLM vs `bge-small-en-v1.5`) produce NO error and silently wrong neighbours. Part B proved only the loud failure. Costs a ~130MB model download; worth 10 minutes inside REVISION WEEK. (6) `.vscode/launch.json` CONFIRMED CREATED 2026-09-09 (appeared untracked in git status; committed in 35f29df). (7) Optional 5-minute parity close: add `SimilarityPostprocessor(similarity_cutoff=0.301)` to the query engine and show the refusal case coming back.
 
-INTERVIEW DETOUR (declared 2026-09-08 — THIS OVERRIDES THE PHASE 2 CLOSE PLAN)
+INTERVIEW DETOUR (declared 2026-09-08 — PAUSED 2026-09-17 by Tushar in favour of REVISION WEEK; kept for reference, re-slot only if he names a date)
 TRIGGER: Tushar has a real interview (not a recruiter screen) WITHIN 2 WEEKS, for a CONTRACT AI ENGINEER role. Loop format: EXPERIENCE DEEP-DIVE + AI/ML SYSTEM DESIGN. **No live-coding screen** — so the Python-under-time-pressure risk is NOT in play for this loop and must not be prepped for.
 DECISION: compress by REORDERING, not by adding sessions. Cadence stays ~4/week — Day 38 proved that pushing volume costs more than it buys. Phase 4 (portfolio/deploy/story) is pulled FORWARD; Phase 2 close, REVISION WEEK and Phase 3 all slide right ~2 weeks. Phase 3's CrewAI/AutoGen/multi-agent depth is NOT interview-load-bearing for this role — cut it to LangGraph + agent loop + evals, which he already has from Days 31-37.
 - Day 41 (Wed Sep 9) - DEPLOY config: DONE, pushed (35f29df).
@@ -73,16 +73,40 @@ PHASE 2 CLOSE PLAN (deferred by the INTERVIEW DETOUR above — resume after Day 
 - Day 42 — PHASE 2 CLOSE: no new content. Capstone review of Days 22-41, weak-spots list becomes the REVISION WEEK syllabus, Phase 1 recap out loud (owed since 08-08).
 Then: REVISION WEEK (Phase 1+2, no new content) -> Phase 3 opens ~late September.
 
-NEXT SESSION (Day 43 = FINISH THE DEPLOY, then STORY PACKAGING) - QUIZ PLAN (MAX 3, ONE PART EACH)
-Q1. `/heartbeat` returned OK on every day production served the toy corpus. In one sentence: what is a liveness check actually allowed to claim?
-Q2. `refused` existed in `RagResponse` since Day 40 and HTTP clients still could not see it. Name the boundary it failed to cross.
-Q3. Cold, from Day 40: hit@10 = 1.000 and hit@2 = 0.750. Which of those two numbers describes production, and why?
-Morale opener: SEVEN consecutive 3/3 - and on Day 42 he audited MY test plan, not just his own code: we had proven both failure paths and never re-run the success path after the rewrite.
+REVISION WEEK PLAN (declared 2026-09-17 - no new content; each session = one concept block said out loud + the backlog that belongs to it)
+- Day 43 (Thu 9/17) - Phase 1 Weeks 0-1: training, overfitting, tokens, attention, generation. Backlog: day36 sleep. DONE.
+- Day 44 (Fri 9/18) - Phase 1 Weeks 2-4: embeddings, prompting, RAG vs fine-tune vs prompt. Backlog: THE QUIET TWIN (same-width different embedder, ~130MB download); trim-experiment + prefill re-attach re-test.
+- Day 45 (Mon 9/21) - Phase 2 agents: tool use, LangGraph loop, checkpointers (Days 31-37). Backlog: `getattr` vs `.get()` watch; batch `get_prices` extension.
+- Day 46 (Tue 9/22) - Phase 2 RAG + evals (Days 38-42). Backlog: LABEL 3 NEW QUESTIONS COLD (weak spot 5); grow CASES to 15; measured `N_RESULTS` decision; `SimilarityPostprocessor` parity.
+- Day 47 (Wed 9/23) - Deploy + cost. Backlog: Render service; `precision_eval.py` against the deployed URL; haiku vs sonnet cost; paid ragas run (NEEDS HIS BUDGET ANSWER).
+- PARKED TO PHASE 3 (reranking-adjacent): chunker hard bound, title-prepend, `category` metadata.
+Then: Phase 3 opens ~Thu 9/24. Nov milestone holds at ~4 sessions/week.
+
+GUARDRAILS MODULE (added 2026-09-17 at Tushar's request - runs AFTER Phase 3, before Projects 3+4; ~4 sessions, one week)
+Why after Phase 3: guardrails are only testable once there is an agent with tools to misuse. Already built in Project 2 (name these on day 1): distance-threshold refusal, `refused` as a declared field, 422 input validation.
+- G1 INPUT: prompt injection (incl. injected text inside RETRIEVED chunks), PII redaction before the LLM call (Presidio), topic/scope filter. Exercise: plant an injection in a corpus chunk and prove Project 2 obeys it, then block it.
+- G2 OUTPUT: structured output + Pydantic validation with retry, grounding/citation check (every claim maps to a source chunk), moderation classifier (Llama Guard class). Exercise: reject an answer that cites a chunk it was not given.
+- G3 AGENT/TOOLS: tool allowlists, argument validation, max-steps and token/dollar budgets per run, human-in-the-loop approval via LangGraph interrupt for write actions. Exercise: agent tries a destructive tool call and pauses for approval.
+- G4 OPERATE + COMPARE: guardrail hit-rates as metrics (LangSmith), red-team eval set in CI that fails the build, cost/latency added per guard. Framework survey in ONE session, not three: Guardrails AI vs NeMo Guardrails vs hand-rolled - decide which layer each belongs in.
+Content-density rule applies: one framework's internals at most per session.
+
+NEXT SESSION (Day 44 = Phase 1 Weeks 2-4 + the Quiet Twin) - QUIZ PLAN (MAX 3, ONE PART EACH)
+Q1. Fill the blank: "Tokens are billed by ______" (the LLM API, input AND output - not the vector DB).
+Q2. Fill the blank: "Self-attention lets each token ______" (look at every other token in THIS input and borrow meaning - "bank" in river vs account).
+Q3. Fill the blank: "An LLM generates text by ______" (predicting ONE next token, appending it, feeding the sequence back, repeating to a stop token).
+(Overfitting was closest - give its sentence in the opener, don't quiz it: memorized the examples instead of the pattern; test split = data it never saw.)
+Morale opener: he wrote the entire gradient-descent loop before being asked - every formula right, only scope wrong - and then answered "w is the model, loss is the report card" cold.
 
 ONE-SENTENCE SUMMARY (say out loud)
-"My health check told me the process was alive while it was serving the wrong data - liveness was never the question, identity was."
+"Training changes the weights; at inference they are frozen, and everything I built - prompts, RAG, messages - only changes the input."
 
 ACTIVE MENTAL MODELS (top of mind - full running list archived in LEARNING_NOTES.md)
+- Training changes the weights; inference freezes them - prompts, RAG and messages only change the input
+- w is the model, loss is the report card - only w ships
+- An accumulator's scope decides what it sums - declared outside the epoch loop, it sums history, not the current weight
+- Batch GD updates once per pass, SGD once per example, LLMs per mini-batch - a mid-pass loss is a partial sum, not a measurement
+- The minus sign is "downhill" - flip it and the same loop climbs without bound
+- Tokens are billed by the LLM API, in and out - the vector DB is not where token cost lives
 - Liveness is not identity - a health check that cannot name the data it serves certifies nothing
 - A health check must read the SAME handle the request path uses, or it certifies a connection nobody serves from
 - An in-process contract does not survive serialization for free - a flag must be in the response model
@@ -146,6 +170,7 @@ ACTIVE MENTAL MODELS (top of mind - full running list archived in LEARNING_NOTES
 - A run is evidence, not an explanation — the check question wants a sentence
 
 PROGRESS LOG (most recent first - headline only)
+Day 43: REVISION WEEK OPENS (his call; interview detour paused). Phase 1 recap exposed decay - all five sentences came back as inference-time RAG answers; organizing sentence: training changes weights, inference only changes input. Wrote one-weight gradient descent himself before being asked: two SCOPE bugs (accumulators outside the epoch loop, update inside the point loop), math all right; half-fixed version still converged (SGD vs batch). 67.5 -> 0.0000, w 2.9991 exact; sign flip -> 59.9M. Quiz 2/3, streak ends at seven (miss: HTTP response model boundary). day36 sleep deleted
 Day 42: DEPLOY HARDENING - `/heartbeat` had been certifying nothing; `/health` now reports serving IDENTITY (collection, 18 chunks, embedder, chromadb 1.5.9, threshold, n_results) off the same handle production queries. `refused` finally crosses the HTTP boundary, so clients branch on a flag instead of string-matching "I don't know". One `{code, message}` envelope for 422 BAD_REQUEST and 502 UPSTREAM_ERROR. The France question proved the cheapest response is the honest one - $0, Claude never called. 3/3 quiz, seventh running; 6 predictions, 5 matched, and the miss found the wrapper-alias embedder name. Committed 69fe01d, NOT pushed; Render service still not created
 Day 41: DEPLOY, part 1 — production had been serving the 6-chunk TOY corpus the whole time; two sessions of corpus and precision work were never on the request path. Blue/green built the new collection and nobody flipped the pointer. Collection name is now an env var. Vector DB proven rebuildable from tracked source (build step = `ingest_corpus.py`), and the first "passing" rebuild was caught as a test that never ran. Serving deps measured by `sys.modules`, not guessed: 1.8GB dev venv, 7 packages actually imported. 3/3 quiz, sixth running; 4 predictions, 4 matches
 Day 40: THE PRECISION HARNESS — `precision_eval.py`, labelled expected chunk IDs, depth 10, $0 per run. His own first label set (by source document) would have scored Day 39's bug as a PASS — the label set IS the test. hit@10 = 1.000 vs hit@2 = 0.750: retrieval isn't broken, ranking is. The answering chunk sits at 1.082, UNDER the 1.2 threshold — `N_RESULTS = 2` is what excludes it, not the gate. hit@k flat 0.750 through k=5, 1.000 at k=6: widening is a cliff, not a dial, and that is the measured case for reranking. 3/3 quiz, fifth running; Q2 was the exercise spec written cold

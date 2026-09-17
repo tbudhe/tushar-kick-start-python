@@ -271,3 +271,12 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Predictions: 6 stated, 5 matched. The miss was productive - `/health` reported `DefaultEmbeddingFunction`, a wrapper alias naming no model and no runtime, so `chromadb.__version__` went into the endpoint: versions pin the vectors, class names do not. Quiz 3/3, SEVENTH consecutive.
 - SIDE TASK (not curriculum): drafted his ~340-word "why Anthropic" job-application essay. Told him to retarget the closing paragraph per team and surface Kafka/Kubernetes/Redis if the role is backend-heavy.
 - Next: Day 43 - finish the deploy (push, Render service, `precision_eval.py` against the deployed URL reproducing 0.750/1.000), then STORY PACKAGING. The paid ragas run has now gone unbudgeted for three sessions - stop planning around it until he answers.
+
+**Session addendum - 2026-09-17 (Day 43)**
+
+- PLAN CHANGE, Tushar's call: REVISION WEEK now ("clearing all backlogs and concepts for AI"). Interview detour paused - he did not say where the interview stands; re-slot prep only if he names a date. 7-day gap after Day 42; the push was already done.
+- Phase 1 recap cold exposed decay: all five sentences (training, overfitting, tokens, attention, generation) came back as inference-time RAG vocabulary. Organizing sentence given: training changes weights, inference only changes input. Re-test max 3 per session across the week.
+- Built `ml-foundations/gradient_descent_one_weight.py` himself, jumping ahead to the full loop: math right, two scope bugs (accumulators outside the epoch loop; update inside the point loop). Half-fixed version still converged (SGD vs batch). Final matched prediction exactly; sign-flip break matched too. Answered "w is the model, loss is the report card" cold.
+- Quiz 2/3, streak ends at seven: missed that `refused` failed at the HTTP response model boundary. Backlog: day36 `time.sleep(2)` deleted.
+- Next: Day 44 - Phase 1 Weeks 2-4 + the Quiet Twin experiment. Paid ragas run needs his yes/no + cap by Day 47.
+
