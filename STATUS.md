@@ -27,7 +27,7 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
-Day: 43 COMPLETE (2026-09-17) | Week: REVISION WEEK, session 1 of 4 (compressed) | Next session = Day 44.
+Day: 43 COMPLETE (2026-09-17) | Week: REVISION WEEK, session 1 of 3 (Option A, concepts only) | Next session = Day 44.
 Goal: Staff SWE -> AI Backend Engineer (Autodesk) -> Staff/Principal AI Engineer, Walmart, July 2027
 Topic: Day 43 - PHASE 1 RECAP, WEEKS 0-1 (training, overfitting, tokens, attention, generation) + gradient descent on one weight, written from scratch (`ml-foundations/gradient_descent_one_weight.py`).
 DECISION (Tushar, 2026-09-17): REVISION WEEK now - clear backlogs and concepts. INTERVIEW DETOUR PAUSED (Days 43-46 of it never ran; where the interview stands was not stated - re-slot prep only if he names a date). 7-day gap since Day 42. Push CONFIRMED done (origin/main = 75357a4 before today).
@@ -36,7 +36,7 @@ Quiz results: **2/3 - streak ends at seven.** Q1 counted (said "started and read
 RECAP SCORECARD (not quiz): training MISS -> clean on the retry frame; overfitting PARTIAL (said "hallucination" for "memorized"); tokens PARTIAL (context contents right, cost wrongly on vector DB); attention PARTIAL (King/Queen vs Pizza is embedding similarity; "depends on context" is the attention idea); generation MISS.
 PREDICTION RECORD: 4 stated (loss 67.5 at w=0; 6-line goal output; slower convergence with batch updates; sign-flip 6 lines) - all matched once his code was fixed.
 Exercise: `ml-foundations/gradient_descent_one_weight.py` - his code, 4 of 5 steps. Backlog cleared: `time.sleep(2)` deleted from `get_price` in `exercises/day36_streaming_agent.py` (`import time` kept - lines 70/76 use `time.time()`).
-OPEN: (a) paid ragas run - yes/no + dollar cap needed by Phase 3 week 1 (asked a third time, will not ask again); (b) Render service still not created (Phase 3 week 1); (c) `dgx_sim.py` is an untracked side project from 09-14, not curriculum - left uncommitted.
+OPEN: (a) paid ragas run - yes/no + dollar cap needed before BACKLOG LANE item 7 (asked a third time, will not ask again); (b) Render service still not created (Phase 3 week 1); (c) `dgx_sim.py` is an untracked side project from 09-14, not curriculum - left uncommitted.
 Project 1: SHIPPED. Project 2: real corpus + precision harness + serving config + health/error contract done and pushed; remaining: Render service, remote eval run, model cost decision, ragas upgrade, one paid ragas run, grow CASES.
 Currently strong on: converting an explanation into a controlled experiment; writing the loop before being asked.
 WEAK SPOTS (revisit)
@@ -73,14 +73,21 @@ PHASE 2 CLOSE PLAN (deferred by the INTERVIEW DETOUR above — resume after Day 
 - Day 42 — PHASE 2 CLOSE: no new content. Capstone review of Days 22-41, weak-spots list becomes the REVISION WEEK syllabus, Phase 1 recap out loud (owed since 08-08).
 Then: REVISION WEEK (Phase 1+2, no new content) -> Phase 3 opens ~late September.
 
-REVISION WEEK PLAN (declared 2026-09-17, COMPRESSED to 4 sessions same day at Tushar's call - no new content; each session = one concept block said out loud + the backlog that belongs to it)
-- Day 43 (Thu 9/17) - Phase 1 Weeks 0-1: training, overfitting, tokens, attention, generation. Backlog: day36 sleep. DONE.
-- Day 44 (Fri 9/18) - Phase 1 Weeks 2-4: embeddings, prompting, RAG vs fine-tune vs prompt. Backlog: THE QUIET TWIN (same-width different embedder, ~130MB download); trim-experiment + prefill re-attach re-test.
-- Day 45 (Mon 9/21) - Phase 2 agents: tool use, LangGraph loop, checkpointers (Days 31-37). Backlog: `getattr` vs `.get()` watch; batch `get_prices` extension.
-- Day 46 (Tue 9/22) - Phase 2 RAG + evals (Days 38-42). Backlog: LABEL 3 NEW QUESTIONS COLD (weak spot 5); grow CASES to 15; measured `N_RESULTS` decision; `SimilarityPostprocessor` parity.
-- DAY 47 CUT (compressed 2026-09-17): deploy + cost backlog moves into PHASE 3 WEEK 1 as a ~1-hour block - Render service; `precision_eval.py` against the deployed URL; haiku vs sonnet cost; paid ragas run (NEEDS HIS BUDGET ANSWER by Phase 3 week 1).
-- PARKED TO PHASE 3 (reranking-adjacent): chunker hard bound, title-prepend, `category` metadata.
-Then: PHASE 3 OPENS Wed 9/23 as Day 47 (one session earlier than the 5-session plan). Nov milestone holds at ~4 sessions/week.
+REVISION WEEK PLAN (declared 2026-09-17; OPTION A chosen same day - CONCEPTS ONLY, 3 sessions, must finish THIS WEEK. Weekday slot only Fri left; weekend mornings belong to system design + YUNextGenAI, so Sat 6:00-7:30 is the one borrowed slot)
+- Day 43 (Thu 9/17) - Phase 1 Weeks 0-1: training, overfitting, tokens, attention, generation. DONE.
+- Day 44 (Fri 9/18) - TWO concept blocks, out loud, no experiments: Phase 1 Weeks 2-4 (embeddings, prompting, RAG vs fine-tune vs prompt) + Phase 2 agents (tool use, LangGraph loop, checkpointers, Days 31-37). Keep the one-dive cap at ZERO - two blocks is already the density ceiling.
+- Day 45 (Sat 9/19, 6:00-7:30) - Phase 2 RAG + evals (Days 38-42) + LABEL 3 NEW QUESTIONS COLD (weak spot 5, concept-level, ~10 min).
+Then: PHASE 3 OPENS Mon 9/21 as Day 46. Nov milestone holds; guardrails module still follows Phase 3.
+
+BACKLOG LANE (moved out of revision by Option A) - one item as a ~30-min tail on Phase 3 sessions, in this order:
+1. Deploy block (~1 h, Phase 3 week 1): Render service; `precision_eval.py` against the deployed URL (must reproduce 0.750/1.000); haiku vs sonnet cost measured.
+2. THE QUIET TWIN - same-width different embedder (MiniLM vs bge-small-en-v1.5), ~130MB download.
+3. Trim-experiment + prefill re-attach re-test.
+4. Batch `get_prices(tickers)` - 10 rounds collapse to 1.
+5. Grow CASES to 15 + measured `N_RESULTS` decision.
+6. `SimilarityPostprocessor(similarity_cutoff=0.301)` parity close.
+7. Paid ragas run - ONLY after his yes/no + dollar cap.
+PARKED FURTHER (reranking-adjacent, belongs with Phase 3 reranking): chunker hard bound, title-prepend, `category` metadata.
 
 GUARDRAILS MODULE (added 2026-09-17 at Tushar's request - runs AFTER Phase 3, before Projects 3+4; ~4 sessions, one week)
 Why after Phase 3: guardrails are only testable once there is an agent with tools to misuse. Already built in Project 2 (name these on day 1): distance-threshold refusal, `refused` as a declared field, 422 input validation.
@@ -90,7 +97,7 @@ Why after Phase 3: guardrails are only testable once there is an agent with tool
 - G4 OPERATE + COMPARE: guardrail hit-rates as metrics (LangSmith), red-team eval set in CI that fails the build, cost/latency added per guard. Framework survey in ONE session, not three: Guardrails AI vs NeMo Guardrails vs hand-rolled - decide which layer each belongs in.
 Content-density rule applies: one framework's internals at most per session.
 
-NEXT SESSION (Day 44 = Phase 1 Weeks 2-4 + the Quiet Twin) - QUIZ PLAN (MAX 3, ONE PART EACH)
+NEXT SESSION (Day 44, Fri 9/18 = Phase 1 Weeks 2-4 + Phase 2 agents, concepts only) - QUIZ PLAN (MAX 3, ONE PART EACH)
 Q1. Fill the blank: "Tokens are billed by ______" (the LLM API, input AND output - not the vector DB).
 Q2. Fill the blank: "Self-attention lets each token ______" (look at every other token in THIS input and borrow meaning - "bank" in river vs account).
 Q3. Fill the blank: "An LLM generates text by ______" (predicting ONE next token, appending it, feeding the sequence back, repeating to a stop token).
