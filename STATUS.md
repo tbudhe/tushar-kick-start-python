@@ -24,7 +24,7 @@ PROTOCOLS (condensed — full history in LEARNING_NOTES.md)
 MCP TIMING DECISION (2026-08-28, Tushar's call): KEEP THE SEQUENCE. MCP stays in Phase 3 (~Nov 2026); no spike day, no reorder. Reassess only at Phase 2 close.
 
 MILESTONES (recalibrate at each phase end)
-Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
+Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
 Day: 43 COMPLETE (2026-09-17) | Week: REVISION WEEK, session 1 of 3 (Option A, concepts only) | Next session = Day 44.
@@ -89,6 +89,14 @@ BACKLOG LANE (moved out of revision by Option A) - one item as a ~30-min tail on
 6. `SimilarityPostprocessor(similarity_cutoff=0.301)` parity close.
 7. Paid ragas run - ONLY after his yes/no + dollar cap.
 PARKED FURTHER (reranking-adjacent, belongs with Phase 3 reranking): chunker hard bound, title-prepend, `category` metadata.
+
+CELERY BUILD (added 2026-09-17 at Tushar's go - driven by a REAL AI-engineer interview gap; 2 sessions in PHASE 3 WEEK 2, before multi-agent)
+Why: AI-engineer JDs cluster on LangGraph + multi-agent + Celery/async Python; he answered "I don't know" on Celery. Build it on HIS pipeline so the next answer is a project, not theory.
+EXTERNAL DEPENDENCY: Redis running locally on his Mac (`brew install redis` or Docker) BEFORE session C1.
+- C1 SHAPE + FIRST TASK: producer / broker / worker / result backend on one screen; FastAPI `POST /ingest` returns a `task_id` at once; `ingest_corpus.py` becomes a Celery task; `GET /ingest/{task_id}` reads state. Predict-then-run: state goes PENDING -> STARTED -> SUCCESS.
+- C2 PRODUCTION BEHAVIOUR: `chord` = group(embed batches) -> callback flips the collection pointer (Day 41 blue/green, now async); `acks_late=True` + idempotent upsert, proved by killing a worker mid-task; `worker_prefetch_multiplier=1`; `rate_limit` + `retry_backoff` on 429; separate `ingest` queue; prefork vs gevent pool tied to weak spot 7 (IO vs CPU).
+Interview line it must produce: "I moved my RAG ingestion onto Celery - here is why acks_late and prefetch=1, and why the pool is gevent for LLM calls."
+Content-density rule applies: Celery internals at most one dive per session.
 
 GUARDRAILS MODULE (added 2026-09-17 at Tushar's request - runs AFTER Phase 3, before Projects 3+4; ~4 sessions, one week)
 Why after Phase 3: guardrails are only testable once there is an agent with tools to misuse. Already built in Project 2 (name these on day 1): distance-threshold refusal, `refused` as a declared field, 422 input validation.
