@@ -5,3 +5,5 @@ anthropic==0.120.0
 pydantic==2.13.4
 python-dotenv==1.2.2
 onnxruntime==1.27.0
+pillow==12.3.0
+python-multipart==0.0.32

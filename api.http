@@ -42,3 +42,36 @@ Content-Type: application/json
   "question": "How to add a floor in Revit?",
   "category": "floors"
 }
+
+### Split - one level, 4 quadrants
+POST {{baseUrl}}/split?depth=1
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="sample.png"
+Content-Type: image/png
+
+< ./scratch/sample.png
+------Boundary--
+
+### Split - depth 2, 16 tiles
+POST {{baseUrl}}/split?depth=2
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="sample.png"
+Content-Type: image/png
+
+< ./scratch/sample.png
+------Boundary--
+
+### Split - depth out of range (expect 422)
+POST {{baseUrl}}/split?depth=9
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="sample.png"
+Content-Type: image/png
+
+< ./scratch/sample.png
+------Boundary--
