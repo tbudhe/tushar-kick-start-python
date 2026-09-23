@@ -743,6 +743,20 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - The minus sign is "downhill" - flip it and the same loop climbs without bound
 - Tokens are billed by the LLM API, in and out - not by the vector DB
 
+## Day 47 - Phase 3: the edge that points back (2026-09-23)
+**One-liner:** a router sends the flow forward; a loop is the same conditional edge with one entry pointing back at the node that just ran - and the only thing that stops it is my routing function or my recursion_limit.
+
+1. BACKFILL: Days 44-46 ran 9/18-9/22 unrecorded - StateGraph + keyword router (day45, he added `greet`), Claude as router with `in ROUTES` safety net (day46_llm_router), router wired into the graph with `rag_service.answer_question` in `docs` (day46_graph). Quiz 3/3.
+2. `exercises/day47_loop.py`, goal-first, 6 steps: State{attempts}; `work` returns `{"attempts": n+1}`; `should_continue` returns "work" while attempts < 3 else END; `add_conditional_edges("work", should_continue, {"work": "work", END: END})`. Output matched the goal: 3 attempts, final state {'attempts': 3}. No for/while written - the graph loops.
+3. `KeyError: True` - an edit returned `True` from the router. The return value is looked up as a KEY in the mapping dict; `True` is not a key. Read the LAST traceback line first: `KeyError: X` = X looked up, not found.
+4. BROKEN STOP CONDITION (`if True:`): ran to ~10,000 attempts. Installed langgraph 1.2.9 has `DEFAULT_RECURSION_LIMIT = 10007` (`langgraph/_internal/_config.py:32`). Claude predicted 25 (old default) - wrong; the run was the referee.
+5. OWN BUDGET: `graph.invoke({"attempts": 0}, config={"recursion_limit": 10})` -> exactly 10 attempts then `GraphRecursionError`. With Claude in the loop every step is a paid call - the framework version of my old `for iteration in range(MAX_ITERATIONS)`. His catch: `return END` is dead code under `if True:`.
+
+**Mental models added:**
+- A loop is a conditional edge that points BACK - router and loop differ by one dict entry
+- Nodes return dicts, routers return strings - and the string must be a key in the mapping dict
+- The framework's recursion limit is a backstop, not a budget - set recursion_limit yourself
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

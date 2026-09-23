@@ -280,3 +280,11 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Quiz 2/3, streak ends at seven: missed that `refused` failed at the HTTP response model boundary. Backlog: day36 `time.sleep(2)` deleted.
 - Next: Day 44 - Phase 1 Weeks 2-4 + the Quiet Twin experiment. Paid ragas run needs his yes/no + cap by Day 47.
 
+**Session addendum - 2026-09-23 (Day 47)**
+
+- STATUS.md had not been updated since Day 43; Tushar confirmed Days 44-46 done (day45 StateGraph, day46 LLM router + graph). Backfilled from files on disk only.
+- Opened concept-first and he pushed back: "Give me goal first approach with file names. Please don't go random. I am new to AI." Restarted goal-first (printout + file + 6 numbered steps) and every step ran clean. Goal-first applies even to one-concept days.
+- Built `exercises/day47_loop.py`: the backward edge. Two mis-edits from "change line 15" instructions (KeyError: True; `is True` stopping at 1) -> rule: give whole-function replacement blocks.
+- Claude predicted recursion_limit 25; his langgraph 1.2.9 default is 10007 and his run showed ~10k attempts. Then recursion_limit=10 matched prediction exactly. Quiz 3/3. His catch: dead `return END`.
+- Next: Day 48 - Claude inside the loop, hand-built tool-calling agent (`exercises/day48_agent_loop.py`).
+

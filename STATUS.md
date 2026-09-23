@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-09-17 (Day 43 - REVISION WEEK opens: Phase 1 recap Weeks 0-1 + one-weight gradient descent)
+Last Updated: 2026-09-23 (Day 47 - PHASE 3: the backward edge. A LangGraph loop built by hand in `exercises/day47_loop.py`)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -12,8 +12,8 @@ PROTOCOLS (condensed — full history in LEARNING_NOTES.md)
 - CONTENT DENSITY (2026-09-02, **HONORED 09-04 — it worked**): at most **ONE library-internals dive per session**, and 09-04 used ZERO. Teach the framework's SHAPE before its footnotes. Day 38b opened with the five-stage pipeline on one screen and he immediately reasoned forward from it unprompted. Keep this cap.
 - ANALOGY DOMAIN (2026-09-02, his explicit correction): **anchor analogies in Node.js/TypeScript or C#, NOT Java/Spring** — "I am not from Java." EF Core vs raw ADO.NET landed instantly on 09-04.
 - SHOW HIS OWN CODE (2026-09-02, HONORED 09-04): when referencing his files, PASTE THE CODE inline with exact file:line — he cannot browse installed packages.
-- CODE DELIVERY (2026-08-31, EXTENDED 09-04): paste COMPLETE blocks, name the file AND the exact position in it. 09-04 FAILURE: "add it after ask_llamaindex(), before if __name__" was not precise enough — line numbers had drifted, the block landed INSIDE the __main__ block, and it silently swallowed the whole COMPARISON tail into the function body. FIX: when giving an insertion point, read the file on disk FIRST and quote the two real anchor lines it goes between.
-- EXAMPLE FIDELITY (2026-08-31): examples must use HIS tools with HIS semantics. His Anthropic key env var is `CLAUDE_API_KEY`, not `ANTHROPIC_API_KEY`; his QA model is `claude-opus-4-8`; his RAG entry point is `rag_service.answer_question()`.
+- CODE DELIVERY (2026-08-31, EXTENDED 09-04): paste COMPLETE blocks, name the file AND the exact position in it. 09-04 FAILURE: "add it after ask_llamaindex(), before if __name__" was not precise enough — line numbers had drifted, the block landed INSIDE the __main__ block, and it silently swallowed the whole COMPARISON tail into the function body. FIX: when giving an insertion point, read the file on disk FIRST and quote the two real anchor lines it goes between. 09-23 FAILURE: "change line 15 to `if True:`" was misapplied TWICE (edited line 16 -> `return True` -> KeyError: True; then `if state["attempts"] is True:` -> stopped after 1). FIX: for any edit inside a function, give the WHOLE FUNCTION as a replacement block, never a one-line "change line N".
+- EXAMPLE FIDELITY (2026-08-31): examples must use HIS tools with HIS semantics. His Anthropic key env var is `CLAUDE_API_KEY`, not `ANTHROPIC_API_KEY`; his QA model is `claude-opus-4-8`; his RAG entry point is `rag_service.answer_question()`. VERSION FIDELITY (2026-09-23): predict from HIS INSTALLED version, not memory - langgraph is 1.2.9 and its DEFAULT_RECURSION_LIMIT is 10007 (`langgraph/_internal/_config.py:32`, env `LANGGRAPH_DEFAULT_RECURSION_LIMIT`), not 25. Claude predicted 25 and was wrong; check `.venv/.../*.dist-info` before any library-behaviour prediction.
 - DEBUG PROTOCOL (2026-08-26/27, EXTENDED 08-31, APPLIED 09-01 → 09-04): when a result doesn't change after an edit, READ THE FILE ON DISK. When behavior and docs disagree, read the installed library source in .venv (subject to the CONTENT DENSITY cap). Probe config with BEHAVIOR, never formatting. A good instrument has exactly ONE explanation for its failure. An instrument that FILTERS its input reports the filter. DOC-EDIT NOTE (2026-09-04, Claude's near-miss): when patching this file by string index, anchor on a UNIQUE marker — "CURRENT STATUS" also appears inside the RULE FOR CLAUDE line, and slicing on the first match silently deleted the whole PROTOCOLS block. Restored with `git show HEAD:STATUS.md > STATUS.md` (plain `git checkout --` fails in the mounted shell: cannot unlink).
 - MORALE (2026-08-24, EXTENDED 08-28): he undercounts his wins — open with one concrete previous win before the quiz. When frustration surfaces, FIRST check whether Claude caused it. A process complaint gets a protocol fix, not encouragement.
 - EXERCISE OWNERSHIP (2026-08-24): Tushar writes the exercise code himself. (Honored 08-25 → 09-04.)
@@ -27,18 +27,18 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
-Day: 43 COMPLETE (2026-09-17) | Week: REVISION WEEK, session 1 of 3 (Option A, concepts only) | Next session = Day 44.
+Day: 47 COMPLETE (2026-09-23) | Week: PHASE 3, week 1 | Next session = Day 48.
 Goal: Staff SWE -> AI Backend Engineer (Autodesk) -> Staff/Principal AI Engineer, Walmart, July 2027
-Topic: Day 43 - PHASE 1 RECAP, WEEKS 0-1 (training, overfitting, tokens, attention, generation) + gradient descent on one weight, written from scratch (`ml-foundations/gradient_descent_one_weight.py`).
-DECISION (Tushar, 2026-09-17): REVISION WEEK now - clear backlogs and concepts. INTERVIEW DETOUR PAUSED (Days 43-46 of it never ran; where the interview stands was not stated - re-slot prep only if he names a date). 7-day gap since Day 42. Push CONFIRMED done (origin/main = 75357a4 before today).
-FINDINGS THIS SESSION: (1) **PHASE 1 HAS DECAYED UNDER PHASE 2.** Asked for the five Phase 1 sentences cold, every answer was an INFERENCE-TIME answer - training = "reads embeddings from documents", tokens = "cost comes with vector DB", generation = "System -> Human -> AI message order". Organizing sentence: **training changes the weights; at inference the weights are frozen and prompts/RAG/messages only change the input.** (2) **SCOPE BUGS, NOT MATH BUGS.** He jumped ahead and wrote the whole loop; every formula was right. Accumulators declared outside the epoch loop made loss climb 2.25 -> 1792 and w swing 0 -> 5.96 -> 0.12 like momentum; update+print inside the per-point loop gave 4 updates per epoch. (3) **HALF-FIXED STILL CONVERGED** - per-point updates reached w=3.0000: that is stochastic GD vs batch GD (LLMs train on mini-batches between). Its loss column ROSE within an epoch because it was a partial sum - a mid-pass loss is not a measurement. (4) **w IS THE MODEL, loss IS THE REPORT CARD** - his answer, cold. Only w ships; RAG never touches it. (5) **THE MINUS SIGN IS "DOWNHILL"** - flipping `-=` to `+=` sent loss 67.5 -> 59.9M and w -> -3248.
-Quiz results: **2/3 - streak ends at seven.** Q1 counted (said "started and ready" - that is readiness; liveness = process up; neither = identity). Q2 MISS: said `refused` never reached "the LLM call"; the boundary is the HTTP RESPONSE MODEL (`AskResponse`), and refusal happens before any LLM call. Q3 clean (hit@2 = 0.750 is production).
-RECAP SCORECARD (not quiz): training MISS -> clean on the retry frame; overfitting PARTIAL (said "hallucination" for "memorized"); tokens PARTIAL (context contents right, cost wrongly on vector DB); attention PARTIAL (King/Queen vs Pizza is embedding similarity; "depends on context" is the attention idea); generation MISS.
-PREDICTION RECORD: 4 stated (loss 67.5 at w=0; 6-line goal output; slower convergence with batch updates; sign-flip 6 lines) - all matched once his code was fixed.
-Exercise: `ml-foundations/gradient_descent_one_weight.py` - his code, 4 of 5 steps. Backlog cleared: `time.sleep(2)` deleted from `get_price` in `exercises/day36_streaming_agent.py` (`import time` kept - lines 70/76 use `time.time()`).
-OPEN: (a) paid ragas run - yes/no + dollar cap needed before BACKLOG LANE item 7 (asked a third time, will not ask again); (b) Render service still not created (Phase 3 week 1); (c) `dgx_sim.py` is an untracked side project from 09-14, not curriculum - left uncommitted.
-Project 1: SHIPPED. Project 2: real corpus + precision harness + serving config + health/error contract done and pushed; remaining: Render service, remote eval run, model cost decision, ragas upgrade, one paid ragas run, grow CASES.
-Currently strong on: converting an explanation into a controlled experiment; writing the loop before being asked.
+Topic: Day 47 - THE BACKWARD EDGE. A loop in LangGraph is a conditional edge whose mapping points back at a node that already ran. Built `exercises/day47_loop.py` himself, goal-first, 6 steps: State{attempts} -> `work` node -> `should_continue` (the while-condition) -> `{"work": "work", END: END}` -> invoke -> break the stop condition.
+BACKFILL (confirmed by Tushar 2026-09-23): Days 44-46 ran 9/18-9/22 in sessions NOT recorded in this file. Evidence on disk only: `exercises/day45_stategraph.py` (StateGraph, TypedDict state, keyword `classify` + `add_conditional_edges`, he added a `greet` node himself; committed a240b8e); `exercises/day46_llm_router.py` (Claude as classifier, max_tokens=5, `label if label in ROUTES else "docs"` safety net) and `exercises/day46_graph.py` (router wired into the graph, `docs` node calls `rag_service.answer_question`). Whether REVISION WEEK Days 44-45 (concept blocks, weak spots 5-7) actually ran is UNKNOWN - treat weak spots 5, 6, 7 as still open.
+FINDINGS THIS SESSION: (1) THE BACKWARD EDGE IS THE WHOLE IDEA - router vs loop differ by one dict entry pointing back; the routing fn is the TS `while` condition. (2) KeyError: True - a routing function's return value is looked up as a KEY in the mapping dict; anything not a key crashes. Same failure his Day 46 `in ROUTES` safety net prevents. (3) RECURSION LIMIT IS 10,007 in his langgraph 1.2.9 - he ran the broken loop to ~10k attempts. Claude predicted 25 (old default) and was WRONG; his run caught it. (4) SET YOUR OWN BUDGET: `graph.invoke(..., config={"recursion_limit": 10})` -> exactly 10 attempts then GraphRecursionError, matched prediction. It is the framework version of his own Day 2x `for iteration in range(MAX_ITERATIONS)`. (5) HIS CATCH: noticed unprompted that `return END` is never reached under `if True:` - dead code.
+Quiz results: 3/3 (Q1 self-corrected mid-answer "price" -> "docs"; Q2 mapping-dict lookup; Q3 keyword router picks docs for "hi, how much does Fusion cost?").
+PREDICTION RECORD: 2 stated by Claude - recursion limit 25 (MISS, it is 10007), limit 10 -> 10 attempts + GraphRecursionError (MATCH).
+COACHING NOTE: session opened with concept-before-goal; he pushed back ("Give me goal first approach with file names... I am new to AI"). Restarted goal-first and it ran clean. Goal-first is non-negotiable even for "just one concept" days.
+Exercise: `exercises/day47_loop.py` - his code, 6/6 steps. LEFT BROKEN on purpose at session end (`if True:` + recursion_limit=10); homework restores it.
+OPEN: (a) paid ragas run - still needs yes/no + dollar cap (will not ask again); (b) Render service not created (BACKLOG LANE item 1); (c) `dgx_sim.py`, `image_split.py` committed in a240b8e as "need review after phase 3" - not curriculum.
+Project 1: SHIPPED. Project 2: pushed; remaining: Render service, remote eval run, model cost decision, ragas upgrade, paid ragas run, grow CASES. Project 3 (LangGraph Autodesk agent): router graph exists (day46_graph.py) - Day 48's loop is its engine.
+Currently strong on: predicting before running; catching dead code and test gaps unprompted.
 WEAK SPOTS (revisit)
 1. MENU-vs-TRIPS — **CLOSED 2026-09-04.** Answered cold and correctly for the second session running (Q3, refine at top_k=10, with the async caveat attached unprompted). Do not re-drill.
 2. SENTENCES vs CODE — good eight sessions running. Keep light pressure, don't grind.
@@ -106,17 +106,24 @@ Why after Phase 3: guardrails are only testable once there is an agent with tool
 - G4 OPERATE + COMPARE: guardrail hit-rates as metrics (LangSmith), red-team eval set in CI that fails the build, cost/latency added per guard. Framework survey in ONE session, not three: Guardrails AI vs NeMo Guardrails vs hand-rolled - decide which layer each belongs in.
 Content-density rule applies: one framework's internals at most per session.
 
-NEXT SESSION (Day 44, Fri 9/18 = Phase 1 Weeks 2-4 + Phase 2 agents, concepts only) - QUIZ PLAN (MAX 3, ONE PART EACH)
-Q1. Fill the blank: "Tokens are billed by ______" (the LLM API, input AND output - not the vector DB).
-Q2. Fill the blank: "Self-attention lets each token ______" (look at every other token in THIS input and borrow meaning - "bank" in river vs account).
-Q3. Fill the blank: "An LLM generates text by ______" (predicting ONE next token, appending it, feeding the sequence back, repeating to a stop token).
-(Overfitting was closest - give its sentence in the opener, don't quiz it: memorized the examples instead of the pattern; test split = data it never saw.)
-Morale opener: he wrote the entire gradient-descent loop before being asked - every formula right, only scope wrong - and then answered "w is the model, loss is the report card" cold.
+NEXT SESSION (Day 48 - CLAUDE INSIDE THE LOOP: hand-built tool-calling agent in LangGraph) - file `exercises/day48_agent_loop.py`
+Shape: State{messages} -> `agent` node calls Claude (`claude-opus-4-8`, `CLAUDE_API_KEY`) with one tool (`get_price` from day36) -> `should_continue` returns "tools" if the last response has a tool_use block, else END -> `tools` node runs the tool and appends the tool_result -> edge BACK to `agent`. recursion_limit set explicitly. This is what `create_agent` (Day 33) hid.
+Coaching: GOAL printout first + file name, numbered steps, ONE at a time, whole-function replacement blocks only. Zero library dives planned.
+QUIZ PLAN (MAX 3, ONE PART EACH)
+Q1. Fill the blank: "A LangGraph graph loops instead of just branching when a conditional edge ______" (maps to a node that already ran - points back).
+Q2. Fill the blank: "`KeyError: True` from a routing function means ______" (it returned a value that is not a key in the mapping dict).
+Q3. Fill the blank: "In a loop that calls a paid API, I set `recursion_limit` myself because ______" (the default in 1.2.9 is 10,007 steps - thousands of paid calls before the framework stops it).
+Morale opener: he predicted, ran, and caught Claude's wrong prediction (25 vs 10,007) with his own run - then spotted the dead `return END` unprompted.
+BACKLOG LANE tail (only if energy remains, ~30 min): item 1, the Render service.
 
 ONE-SENTENCE SUMMARY (say out loud)
-"Training changes the weights; at inference they are frozen, and everything I built - prompts, RAG, messages - only changes the input."
+"A LangGraph loop is just a conditional edge that points back - the routing function is my while-condition, and recursion_limit is my budget, not the framework's."
 
 ACTIVE MENTAL MODELS (top of mind - full running list archived in LEARNING_NOTES.md)
+- A loop is a conditional edge that points BACK - router and loop differ by one dict entry
+- The routing function is the while-condition: nodes return dicts, routers return strings
+- A router's return value is a dict KEY - anything else is KeyError (why `in ROUTES` exists)
+- The framework's recursion limit (10,007 in langgraph 1.2.9) is a backstop, not a budget - set recursion_limit yourself
 - Training changes the weights; inference freezes them - prompts, RAG and messages only change the input
 - w is the model, loss is the report card - only w ships
 - An accumulator's scope decides what it sums - declared outside the epoch loop, it sums history, not the current weight
