@@ -757,6 +757,22 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Nodes return dicts, routers return strings - and the string must be a key in the mapping dict
 - The framework's recursion limit is a backstop, not a budget - set recursion_limit yourself
 
+## Day 48 - Claude inside the loop: the tool-calling agent by hand (2026-09-24)
+**One-liner:** an agent is a router plus one backward edge - Claude asks for a tool, my code runs it, and the result goes back to Claude until it answers in text.
+
+1. CLAUDE ONLY ASKS. `model.bind_tools([get_price]).invoke(...)` returned `.tool_calls = [{'name': 'get_price', 'args': {'ticker': 'YNXT'}, 'id': 'toolu_...'}]` and no price. The `tools` node runs it: `TOOLS[tc["name"]].invoke(tc["args"])` -> `ToolMessage(content=str(output), tool_call_id=tc["id"])` - the same id pairs answer to request. Quiz 3/3.
+2. NO REDUCER = OVERWRITE. State{messages: list} has no merge rule, so each node returns `state["messages"] + [response]`. Dropping the brackets -> `TypeError: can only concatenate list (not "AIMessage") to list`: `+` joins two lists; `[x]` is TS `[...arr, x]`.
+3. `return` INSIDE `for` exits on the first item. In `tools` it was invisible with one tool call; with two, the second gets no ToolMessage and the API rejects the next call. `return` goes at the same indent as `for`.
+4. THE GRAPH: `START -> agent`; conditional `agent -> {"tools": "tools", END: END}` via `should_continue` (last.tool_calls ? "tools" : END - END is the string "__end__"); PLAIN edge `tools -> agent` = the backward edge; `recursion_limit=10`. Output matched the goal: tool_calls -> 42.0 -> "$42.00" -> 4 messages (question, request, result, answer).
+5. SWITCH vs WHILE, and WHY LANGGRAPH. Router chooses once; agent loops until Claude stops asking. The same thing is a 10-line `while True` loop (invoke -> break if no tool_calls -> run tools -> repeat). LangGraph earns its place for checkpoint/resume, human-in-the-loop pause, per-node streaming - async method vs Azure Durable Functions.
+
+**Mental models added:**
+- Claude never runs a tool - it writes a request; my code executes it and sends back a ToolMessage with the same id
+- Router = switch (choose once); agent = router + a plain edge back to Claude = while
+- No reducer on a key means the node's return REPLACES it - return old list + [new]
+- `return` inside `for` = runs once; put it at the `for` indent
+- For one simple loop, `while` is enough; reach for LangGraph for crash-resume, human approval, observability
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

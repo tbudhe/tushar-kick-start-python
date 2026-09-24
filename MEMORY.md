@@ -288,3 +288,11 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Claude predicted recursion_limit 25; his langgraph 1.2.9 default is 10007 and his run showed ~10k attempts. Then recursion_limit=10 matched prediction exactly. Quiz 3/3. His catch: dead `return END`.
 - Next: Day 48 - Claude inside the loop, hand-built tool-calling agent (`exercises/day48_agent_loop.py`).
 
+**Session addendum - 2026-09-24 (Day 48)**
+
+- Built `exercises/day48_agent_loop.py` himself, goal-first, 6 steps: bind_tools -> `agent` node -> `tools` node (ToolMessage with same toolu_ id) -> `should_continue` -> backward edge tools->agent -> invoke(recursion_limit=10). Goal printout matched; 6/6 Claude predictions matched. Quiz 3/3.
+- Bugs he hit: dropped `[ ]` around response (list + AIMessage TypeError); `return` indented inside `for` in `tools` (latent, fixed); twice deleted the new `__main__` line instead of the old ones.
+- After all steps matched he said "I didn't understand today's logic" - steps without SHAPE. Slack-coworker analogy + 10-line plain `while` loop mapped to nodes landed. Protocol added: SHAPE BEFORE STEPS.
+- He asked "why do we need LangGraph? just for routing?" - answered: a while loop suffices here; LangGraph = checkpoint/resume, human-in-the-loop, per-node streaming (C#: Azure Durable Functions).
+- NVIDIA 90-sec intro not done (stopped after core). Next: Day 49 - same loop three ways (while / graph / prebuilt ToolNode) + NVIDIA intro tail. Call Mon 9/28.
+
