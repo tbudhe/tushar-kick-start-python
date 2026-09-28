@@ -773,6 +773,21 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - `return` inside `for` = runs once; put it at the `for` indent
 - For one simple loop, `while` is enough; reach for LangGraph for crash-resume, human approval, observability
 
+## Day 49 - Same loop, two ways: while loop vs prebuilt ToolNode (2026-09-28)
+**One-liner:** `ToolNode`, `tools_condition` and `add_messages` are my Day 48 `tools` node, `should_continue` and hand-written append - the same while loop, just prebuilt.
+
+1. PARALLEL TOOL CALLS. "Compare the prices of YNXT and AAPL." -> Claude asked for both in ONE turn: `tool_calls: ['get_price', 'get_price']`. Count = Human, AI, Tool, Tool, AI = 5 (sequential would be 6). Claude decides parallel vs sequential, not my code.
+2. WAY 1 = PLAIN `while True`: invoke -> `if not response.tool_calls: break` -> for each call run `TOOLS[name].invoke(args)` and append `ToolMessage(str(result), tool_call_id=call["id"])` -> loop. End of the loop body = the `tools -> agent` edge.
+3. WAY 3 = PREBUILT: `ToolNode([get_price])` replaces my `tools` node (and prints nothing); `tools_condition` replaces my `should_continue`. Same 5 messages - prediction matched.
+4. `add_messages` IS A REDUCER. `messages: Annotated[list, add_messages]` -> node returns only `{"messages": [response]}` and LangGraph appends (Redux `[...state.messages, ...new]`). Without it (Day 48) the return REPLACES the key, so I had to write `state["messages"] + [response]` (setState).
+5. EQUALITY TEST = STRUCTURE. The final text differed between the two runs; the tool calls, values and message count matched. Compare agents on structure, not wording. Quiz 3/3.
+
+**Mental models added:**
+- Parallel tool calls: 1 AI message with N tool_calls -> N ToolMessages; 2 tools = 5 messages total
+- ToolNode = my tools node; tools_condition = my should_continue; the backward edge is still mine
+- add_messages = reducer that appends; no reducer = the node's return replaces the key
+- LLM wording varies per run - assert on structure (calls, values, counts)
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

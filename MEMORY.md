@@ -296,3 +296,9 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - He asked "why do we need LangGraph? just for routing?" - answered: a while loop suffices here; LangGraph = checkpoint/resume, human-in-the-loop, per-node streaming (C#: Azure Durable Functions).
 - NVIDIA 90-sec intro not done (stopped after core). Next: Day 49 - same loop three ways (while / graph / prebuilt ToolNode) + NVIDIA intro tail. Call Mon 9/28.
 
+**Session addendum - 2026-09-28 (Day 49)**
+
+- STATUS.md stopped at Day 48 but `exercises/day49_three_ways.py` existed untracked from Fri 9/25 (Way 1 while loop + Way 3 ToolNode/tools_condition/add_messages). Ran and closed it Mon 9/28 (NVIDIA call day - he chose to continue; kept light).
+- Quiz 3/3. Claude corrected its own Day 48 homework note ("parallel -> 4" was wrong; it is 5) BEFORE the run, then predicted parallel + 5/5 - matched.
+- His add_messages sentence landed first try: "a node returns only the new message, and add_messages appends it."
+- Next: Day 50 - rag_service.answer_question as a tool (Project 3 core). Record NVIDIA call outcome at start.
