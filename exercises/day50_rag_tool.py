@@ -22,12 +22,11 @@ def get_price(ticker: str):
 
 @tool(description="Search the Autodesk Revit help docs. Use for any question about Revit features such as walls, doors, or levels.")
 def search_revit_docs(question: str) -> str:
-    result = answer_question(question)     # returns RagResponse(answer, sources, refused, ...)
-    if result.refused:                     # retriever found nothing under the threshold
+    result = answer_question(question)
+    print(f"search_revit_docs-> {result.answer}")        # probe: what the inner Claude said
+    if result.refused or result.answer.strip() == "I don't know.":
         return "NO_MATCH: the Revit docs have nothing relevant to this question."
-    print(f"search_revit_docs-> {result.answer }")
-    return result.answer                   # Claude only sees this string        # Claude only sees this string
-
+    return result.answer
 
 TOOLS = [get_price, search_revit_docs]     # ONE list: what Claude sees == what ToolNode runs
 model = ChatAnthropic(model="claude-opus-4-8",
@@ -57,6 +56,7 @@ builder.add_edge("tools", "agent")                        # the backward edge = 
 graph = builder.compile()
 
 if __name__ == "__main__":
+    USE_SYSTEM = False          # homework: test the code guard ALONE
     SYSTEM = SystemMessage(
         "For Revit questions, answer ONLY from what search_revit_docs returns. "
         "If it returns \"I don't know\" or NO_MATCH, say the Revit docs don't cover it. "
@@ -64,8 +64,6 @@ if __name__ == "__main__":
     )
     for QUESTION in ["How do I create a wall in Revit?", "hi"]:
         print(f"===== Q: {QUESTION} =====")
-        final = graph.invoke({"messages": [SYSTEM, HumanMessage(QUESTION)]},
-                             config={"recursion_limit": 10})
+        msgs = [SYSTEM, HumanMessage(QUESTION)] if USE_SYSTEM else [HumanMessage(QUESTION)]
+        final = graph.invoke({"messages": msgs}, config={"recursion_limit": 10})
         print(f"messages: {len(final['messages'])}")
-
-
