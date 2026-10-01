@@ -302,3 +302,12 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Quiz 3/3. Claude corrected its own Day 48 homework note ("parallel -> 4" was wrong; it is 5) BEFORE the run, then predicted parallel + 5/5 - matched.
 - His add_messages sentence landed first try: "a node returns only the new message, and add_messages appends it."
 - Next: Day 50 - rag_service.answer_question as a tool (Project 3 core). Record NVIDIA call outcome at start.
+
+**Session addendum - 2026-10-01 (Day 50)**
+
+- NVIDIA 9/28: behavioral round with a Data Scientist on the AI Platform team (he first called it a recruiter screen - corrected). Next: manager round or direct loop, then director; reply within 7 days.
+- Quiz 3/3. Built `exercises/day50_rag_tool.py`; wrote steps 2-3 ahead of instructions and hardened get_price to UNKNOWN_TICKER unprompted.
+- Confusion "model -> LangGraph -> condition RAG / prices" resolved with the 2-node diagram: Claude picks the tool name, ToolNode dispatches; graph never grows.
+- Edits A+B not applied on first try (ran old __main__) - caught by reading the file on disk; verify edits landed before diagnosing.
+- Headline finding: agent answered a wall question from training data after RAG said "I don't know"; agent SystemMessage fixed it. Next: Day 51 Celery C1 (needs Redis) or checkpointer memory fallback.
+

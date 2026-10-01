@@ -23,7 +23,7 @@ model = ChatAnthropic(model="claude-opus-4-8",
                       api_key=os.getenv("CLAUDE_API_KEY"))
 model_with_tools = model.bind_tools([get_price]) # tell Claude the tool exists
 
-QUESTION = "Compare the prices of YNXT and AAPL."
+QUESTION = "Compare the prices of YNXT, AAPL and MSFT."
 
 # ================= WAY 1: plain while loop, NO LangGraph =================
 print("----- WAY 1: while loop -----")

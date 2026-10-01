@@ -788,6 +788,21 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - add_messages = reducer that appends; no reducer = the node's return replaces the key
 - LLM wording varies per run - assert on structure (calls, values, counts)
 
+## Day 50 - Your RAG as a tool: the agent dropped the grounding guarantee (2026-10-01)
+**One-liner:** Wrapping a grounded RAG pipeline in an agent silently drops the grounding guarantee unless the agent itself is told - or forced - to answer only from the tool.
+
+1. PUSH vs PULL. Project 2 always retrieves (even for "hi"); as a tool, Claude decides. "hi" -> no tool, 3 msgs. The graph stays 2 nodes no matter how many tools - adding RAG = one more item in `TOOLS`; Claude writes the name, ToolNode `switch`es on it.
+2. THE LEAK. "How do I create a wall in Revit?" -> corpus has no Place-a-Wall page -> inner Claude said "I don't know." -> outer Claude wrote 6 steps from training data (WA shortcut, Options Bar - none in my docs). Every guard green.
+3. FIX 1 = agent SystemMessage: answer ONLY from search_revit_docs; "I don't know"/NO_MATCH -> say the docs don't cover it -> grounded refusal, 5 msgs (System, Human, AI, Tool, AI).
+4. `refused=True` only fires on ZERO chunks - not "chunks found but no answer". That gap belongs in code (homework), not only in a prompt.
+5. A tool's return value is Claude's only evidence: bare `None` -> "temporary issue, retry?"; `UNKNOWN_TICKER` -> correct. Quiz 3/3; 3/3 predictions matched.
+
+**Mental models added:**
+- PUSH (always retrieve) vs PULL (model decides) = REST join vs GraphQL resolver
+- Grounding is per-LLM: the inner Claude's rule does not protect the outer Claude
+- Tool return strings are API contracts for the model - make failures explicit
+- More tools = longer TOOLS list, never more nodes
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
