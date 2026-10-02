@@ -311,3 +311,10 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Edits A+B not applied on first try (ran old __main__) - caught by reading the file on disk; verify edits landed before diagnosing.
 - Headline finding: agent answered a wall question from training data after RAG said "I don't know"; agent SystemMessage fixed it. Next: Day 51 Celery C1 (needs Redis) or checkpointer memory fallback.
 
+**Session addendum - 2026-10-02 (Day 51)**
+
+- `brew install redis` failed -> Celery C1 deferred, fallback Project 3 memory taught. NVIDIA not reported.
+- Quiz 3/3. He built the hand-rolled SESSIONS memory ahead of the steps but wired chat() in as a node; fixed with "chat() is the caller, not a node" (Claude's sketch hadn't said where it lived).
+- Checkpointer swap matched: 4/6/2 both ways. Finding: memory served a cached tool result (no get_price on turn 2).
+- Edit C not applied before first checkpointer run - caught by reading the file on disk.
+- Next: Day 52 Celery C1 if Redis works, else SqliteSaver persistence.

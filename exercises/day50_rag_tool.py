@@ -56,7 +56,7 @@ builder.add_edge("tools", "agent")                        # the backward edge = 
 graph = builder.compile()
 
 if __name__ == "__main__":
-    USE_SYSTEM = False          # homework: test the code guard ALONE
+    USE_SYSTEM = True          # homework: test the code guard ALONE
     SYSTEM = SystemMessage(
         "For Revit questions, answer ONLY from what search_revit_docs returns. "
         "If it returns \"I don't know\" or NO_MATCH, say the Revit docs don't cover it. "

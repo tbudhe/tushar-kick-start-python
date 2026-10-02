@@ -803,6 +803,21 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Tool return strings are API contracts for the model - make failures explicit
 - More tools = longer TOOLS list, never more nodes
 
+## Day 51 - Memory: checkpointer = session store for the graph (2026-10-02)
+**One-liner:** A checkpointer is `express-session` for my graph: `thread_id` is the cookie, LangGraph LOADs history before the run and SAVEs after, and I send only the new message.
+
+1. SHAPE FIRST: memory = load/save AROUND the loop, not a node. I first registered `chat()` as a node (crash: edges still pointed at "agent", and chat calls graph.invoke = self-recursion). `chat()` is the CALLER of the graph - route handler vs service.
+2. Hand-rolled `SESSIONS` dict, then `compile(checkpointer=InMemorySaver())` + `{"configurable": {"thread_id": ...}}` sending ONE message - same counts both ways: 4, 6, 2. Turn 2 = turn 1 + 2 proves history was loaded. Stranger asked "which ticker?" = threads isolated.
+3. FINDING: on turn 2 Claude did NOT call get_price - it answered "$42.00 (from the lookup I just did)". Memory acts as a CACHE; the agent served a possibly stale tool result. Cache-aside staleness, again.
+4. `recursion_limit` is unrelated to sessions: caps steps inside ONE invoke, resets every call (installed default 10007). Sessions grow across turns; the limit never sees history.
+5. Python traps hit: `list(OperationsChats)` as a type hint CALLS list() -> TypeError (use `list[...]`); `for a, b in list_of_dicts` unpacks KEYS silently. SYSTEM moved inside `agent()` so it is sent every call but never stored in the thread. Quiz 3/3.
+
+**Mental models added:**
+- Checkpointer = session store; thread_id = session cookie; InMemorySaver = MemoryStore (dev only)
+- Memory is per-thread state the CALLER selects - never a node
+- Conversation memory is a cache of tool results - it can go stale
+- Config (system prompt) vs conversation (messages): prepend config in the node, don't store it
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
