@@ -35,9 +35,7 @@ model = ChatAnthropic(model="claude-opus-4-8", api_key=os.getenv("CLAUDE_API_KEY
 model_with_tools = model.bind_tools(TOOLS)
 
 SYSTEM = SystemMessage(
-    "For Revit questions, answer ONLY from what search_revit_docs returns. "
-    "If it returns \"I don't know\" or NO_MATCH, say the Revit docs don't cover it. "
-    "Never fill gaps from your own knowledge."
+    "Prices change — always call get_price for any price question; never reuse an earlier result."
 )
 
 
