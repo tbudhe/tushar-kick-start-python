@@ -326,4 +326,4 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - He asked "why are we doing this?" and "it shouldn't call the LLM for the same thread" (3 phrasings): response-cache misconception. Ticket-history analogy + the with/without message listing resolved it. Lesson: put the production WHY in the shape step.
 - He asked Redis vs SQLite trade-off: answered as checkpointer store (one box vs fleet) vs Celery broker (different job).
 - Next: Day 53 Celery C1 if PONG, else message trimming.
-
+- Homework done same session: InMemorySaver ablation -> receiving 1, "which ticker?", count 2 - matched. He also asked why send all 8 for a new question -> trim/summarize/retrieve; that is Day 53's fallback.
