@@ -818,6 +818,20 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Conversation memory is a cache of tool results - it can go stale
 - Config (system prompt) vs conversation (messages): prepend config in the node, don't store it
 
+## Day 52 - Persistent memory: SqliteSaver = connect-sqlite3 for the graph (2026-10-05)
+**One-liner:** A persistent checkpointer writes the thread to disk so a brand-new process reloads it as CONTEXT for the LLM - the LLM is still called every turn; memory is input, not a cached answer.
+
+1. Swap = 2 lines: `conn = sqlite3.connect("memory.db", check_same_thread=False)` + `compile(checkpointer=SqliteSaver(conn))`. Graph, chat(), thread_id unchanged. `check_same_thread=False` because ToolNode runs tools on worker threads.
+2. Proof: one turn per process (TURN switch). Run 1 -> 4, Run 2 (new process) -> 8 and knew YNXT. Probe `LLM is receiving N messages` on run 3: 9 -> 11 -> 12. I sent 1, Claude read 9.
+3. Session store != response cache. Same thread_id still calls the LLM: memory tells it what "my ticker" means. A response/semantic cache skips the LLM - different pattern, and it would serve a stale price.
+4. Every chat LLM is stateless (Claude, OpenAI, ...). My code remembers, the model re-reads the whole history each call - and I pay for those tokens every turn.
+5. Why persist: deploys, pod kills and load-balancing to another pod wipe InMemorySaver; HITL approvals need a paused graph to sleep somewhere. SQLite = one instance; prod = Postgres/Redis saver shared by all pods. Quiz 3/3.
+
+**Mental models added:**
+- InMemorySaver = MemoryStore (dev); SqliteSaver = connect-sqlite3 (one box); Postgres/Redis saver = connect-redis (fleet)
+- Memory = context INTO the LLM, never an answer OUT of it
+- Stateless model + stateful caller: the client resends history, every vendor
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

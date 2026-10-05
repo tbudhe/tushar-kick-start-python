@@ -28,3 +28,6 @@ deepfashion-multimodal-rag/
 .venv/
 revit_db_07_25/
 _to_delete/
+
+# LangGraph SqliteSaver checkpoint files (Day 52)
+memory.db

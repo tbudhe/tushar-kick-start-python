@@ -318,3 +318,12 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Checkpointer swap matched: 4/6/2 both ways. Finding: memory served a cached tool result (no get_price on turn 2).
 - Edit C not applied before first checkpointer run - caught by reading the file on disk.
 - Next: Day 52 Celery C1 if Redis works, else SqliteSaver persistence.
+
+**Session addendum - 2026-10-05 (Day 52)**
+
+- Redis: brew lock error ("already locked /opt/homebrew/Cellar/redis") -> Celery C1 deferred again; fallback SqliteSaver taught. NVIDIA: no reply yet, he followed up Fri 10/2.
+- Quiz 3/3. He did steps 1-2 (pip install, copy file) before being asked. All three predictions matched: 4, 8, then probe 9/11/12.
+- He asked "why are we doing this?" and "it shouldn't call the LLM for the same thread" (3 phrasings): response-cache misconception. Ticket-history analogy + the with/without message listing resolved it. Lesson: put the production WHY in the shape step.
+- He asked Redis vs SQLite trade-off: answered as checkpointer store (one box vs fleet) vs Celery broker (different job).
+- Next: Day 53 Celery C1 if PONG, else message trimming.
+
