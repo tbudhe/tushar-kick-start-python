@@ -11,7 +11,6 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from rag_service import answer_question   # your Project 2 pipeline
 import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
-from rag_service import answer_question   # your Project 2 pipeline
 load_dotenv()
 
 PRICES = {"YNXT": 42.0, "AAPL": 189.5}
