@@ -327,3 +327,8 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - He asked Redis vs SQLite trade-off: answered as checkpointer store (one box vs fleet) vs Celery broker (different job).
 - Next: Day 53 Celery C1 if PONG, else message trimming.
 - Homework done same session: InMemorySaver ablation -> receiving 1, "which ticker?", count 2 - matched. He also asked why send all 8 for a new question -> trim/summarize/retrieve; that is Day 53's fallback.
+
+**Session addendum - 2026-10-06 (Day 53)**
+- Celery C1 done on his own ingest (tasks.py, celery_demo.py, run_ingest()); all predictions matched.
+- NVIDIA hiring manager interview booked Thu 2026-10-08; intro + Walmart Scan&Go story (5s -> 2.97s p99, 300K req/min) built - see STATUS.md INTERVIEW KIT.
+- Next: Day 54 Wed = NVIDIA prep, no new code; Day 55 Fri = Celery C2.

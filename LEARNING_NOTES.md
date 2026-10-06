@@ -832,6 +832,20 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Memory = context INTO the LLM, never an answer OUT of it
 - Stateless model + stateful caller: the client resends history, every vendor
 
+## Day 53 - Celery C1: the API drops a ticket, a worker does the slow work (2026-10-06)
+**One-liner:** The producer gets a task_id instantly; a separate worker process runs the slow job and writes status + result to Redis, which the producer polls.
+
+1. Four parts: producer (`celery_demo.py`, `.delay()`), broker (Redis /0, list `celery`), worker (`celery -A tasks worker --pool=solo`), result backend (Redis /1, key `celery-task-meta-<task_id>`).
+2. `ingest_corpus.py` __main__ became importable `run_ingest()` returning {"files": 7, "chunks": 18} - a task must import a function, like `export` in Node.
+3. Run: task_id at 0.0s, PENDING -> STARTED x5 -> SUCCESS at 6.0s, result {'files': 7, 'chunks': 18}. `task_track_started=True` is what makes STARTED visible.
+4. /0 and /1 = two numbered Redis DBs on one server (SELECT n). Proved: key set with `-n 1` is nil from `-n 0`. After the run: /1 has the JSON result, `llen celery` in /0 = 0.
+5. Celery is NOT the `redis` package - it's a job queue framework on top of it: Kafka-style producer/consumer PLUS per-job id, status, result and retries. Quiz 3/3.
+
+**Mental models added:**
+- Restaurant: token = task_id, kitchen rail = broker, cook = worker, status screen = result backend
+- `.delay()` enqueues, it never runs the function
+- Interview line: "Caller gets a task_id instantly; the 6-second ingest runs in a worker, so a slow job never holds an HTTP request open."
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

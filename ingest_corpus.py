@@ -34,7 +34,8 @@ def chunk_paragraphs(text, max_chars=MAX_CHARS):
     return chunks
 
 
-if __name__ == "__main__":
+def run_ingest():
+    """Full ingest. Importable, so a Celery task can call it."""
     manifest = json.loads(MANIFEST.read_text())
     collection = client.get_or_create_collection(name=NEW_COLLECTION)
 
@@ -48,13 +49,7 @@ if __name__ == "__main__":
 
         ids, documents, metadatas = [], [], []
         for i, chunk in enumerate(chunks):
-            # YOUR CALL: prepend the title so the chunk carries its own topic
-            # into the VECTOR, e.g. f"{entry['title']}\n\n{chunk}".
-            # Chunk 3 of place_a_door.md is a bare options table — it never
-            # says the word "door". Prepending fixes that and costs you
-            # 3 words of dilution on every chunk. Decide, don't default.
             documents.append(chunk)
-
             ids.append(f"{path.stem}_{i}")          # stable -> upsert, not duplicate
             metadatas.append({
                 "source_file": entry["file"],
@@ -72,7 +67,12 @@ if __name__ == "__main__":
         print(f"{entry['file']:24} {entry['category']:8} "
               f"v{entry['revit_version']}  {words:5} words -> {len(chunks):2} chunks")
 
-    old = client.get_or_create_collection(name="revit_docs_project_2")
     print(f"\n{len(manifest)} files -> {total_chunks} chunks  |  "
           f"collection {NEW_COLLECTION} count: {collection.count()}")
-    print(f"old collection revit_docs_project_2 count: {old.count()}   (untouched)")
+
+    # NEW: return a result instead of only printing -> Celery stores this
+    return {"files": len(manifest), "chunks": total_chunks}
+
+
+if __name__ == "__main__":
+    run_ingest()
