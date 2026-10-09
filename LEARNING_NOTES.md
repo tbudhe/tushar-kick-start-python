@@ -846,6 +846,20 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - `.delay()` enqueues, it never runs the function
 - Interview line: "Caller gets a task_id instantly; the 6-second ingest runs in a worker, so a slow job never holds an HTTP request open."
 
+## Day 54 - Celery C2: pick the pool by what the task spends its time doing (2026-10-09)
+**One-liner:** If a task WAITS (LLM call, HTTP, DB) use threads; if it COMPUTES use processes - the GIL lets only one thread run Python at a time, but releases it while waiting.
+
+1. Plain Python first: waiting task (sleep 2) x4 -> solo 8.0s, ThreadPoolExecutor(4) 2.0s. CPU loop x4 -> solo 1.6s, threads 1.5s (no gain - GIL). ProcessPoolExecutor(4) on an 80M loop -> 6.3s -> 1.9s (~3.3x; the gap is process start-up cost).
+2. `max_workers=4` on ThreadPoolExecutor = 4 threads in ONE process (same PID, proved). On ProcessPoolExecutor = 4 child processes (4 PIDs, proved). Mac needs `if __name__ == "__main__":` for processes - children re-import the file.
+3. Celery: same producer (`day54_pool_demo.py`, 4x `fake_llm_task.delay(n)`), worker `--pool=solo` -> 8.1s, `--pool=threads --concurrency=4` -> worker did all 4 in 2.04s. Redis never changed - the pool lives in the Python WORKER, Redis only holds tickets (/0) and results (/1).
+4. Ops lessons: `celery: command not found` = venv not activated (like node_modules/.bin). Banner said `16 (solo)` because the command had `-A -A` -> flags silently ignored. Read the banner, not what you think you typed. Pool can live in code: `app.conf.worker_pool` / `worker_concurrency` (CLI overrides).
+5. Calling `fake_llm_task(n)` WITHOUT `.delay` runs it in the producer - no queue. `.delay` comes from `@app.task`. Producer still measured 4.1s while the worker took 2.04s: sequential `.get()` drains results in 1-second cycles (celery/backends/asynchronous.py:79 `interval=1`) - "job done" and "client knows" are two latencies. Fix candidate: `group(...)`. Quiz 3/3.
+
+**Mental models added:**
+- Threads overlap WAITING, never COMPUTING (Node: event loop handles 1000 fetches, one heavy for-loop freezes it)
+- Restaurant: Redis = ticket rail + status screen; worker pool = number of cooks
+- Interview line: "I measured it - threads took IO-bound work from 8s to 2s and did nothing for CPU work; processes took CPU work from 6.3s to 1.9s. So LLM-calling Celery workers get a threads pool, CPU-heavy ingestion gets prefork."
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
