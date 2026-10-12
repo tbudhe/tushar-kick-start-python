@@ -14,8 +14,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
-from rag_service import answer_question  # noqa: E402
-from retriever import client, collection, THRESHOLD, N_RESULTS  # noqa: E402
+from revit_rag.rag_service import answer_question  # noqa: E402
+from revit_rag.retriever import client, collection, THRESHOLD, N_RESULTS  # noqa: E402
 
 
 load_dotenv()

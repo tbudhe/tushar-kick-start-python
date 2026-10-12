@@ -25,7 +25,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_anthropic import ChatAnthropic
 from datasets import Dataset
 
-from rag_service import answer_question   # same code path as production
+from revit_rag.rag_service import answer_question   # same code path as production
 import os
 from dotenv import load_dotenv
 

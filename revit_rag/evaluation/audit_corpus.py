@@ -5,7 +5,7 @@ retyping the constant (same rule debug_floor.py follows).
 """
 import statistics
 
-from retriever import client, THRESHOLD
+from revit_rag.retriever import client, THRESHOLD
 
 QUESTIONS = [
     "How do I create a wall in Revit?",

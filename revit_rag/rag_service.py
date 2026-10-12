@@ -1,4 +1,4 @@
-from retriever import retrieve
+from revit_rag.retriever import retrieve
 from prompting.revit_context_qa import ask_revit_question
 from pydantic import BaseModel
 

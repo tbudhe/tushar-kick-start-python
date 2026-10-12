@@ -1,4 +1,4 @@
-from day53_tasks import fake_llm_task
+from celery_lab.day53_tasks import fake_llm_task
 import time
 
 start = time.time()

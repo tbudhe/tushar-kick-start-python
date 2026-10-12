@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 import chromadb
 
 from image_split import MAX_DEPTH, UnreadableImage, split_image
-from rag_service import answer_question
-from retriever import COLLECTION_NAME, DB_PATH, N_RESULTS, THRESHOLD, collection
+from revit_rag.rag_service import answer_question
+from revit_rag.retriever import COLLECTION_NAME, DB_PATH, N_RESULTS, THRESHOLD, collection
 
 app = FastAPI()
 

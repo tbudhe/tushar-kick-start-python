@@ -3,7 +3,7 @@ import time
 
 from celery import Celery
 
-from ingest_corpus import run_ingest
+from revit_rag.ingest_corpus import run_ingest
 
 app = Celery(
     "day53_tasks_1",

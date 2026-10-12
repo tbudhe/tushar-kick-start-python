@@ -1,4 +1,4 @@
-from rag_service import answer_question
+from revit_rag.rag_service import answer_question
 
 TEST_CASES = [
     {"question": "How do I add a door in Revit?", "expected_id": "doc3"},

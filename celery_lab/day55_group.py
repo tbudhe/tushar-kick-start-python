@@ -3,7 +3,7 @@ import time
 
 from celery import group
 
-from day53_tasks import fake_llm_task
+from celery_lab.day53_tasks import fake_llm_task
 
 start = time.time()
 job = group(fake_llm_task.s(n) for n in range(4))   # 4 packed calls, not sent yet

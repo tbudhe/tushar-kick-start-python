@@ -3,8 +3,8 @@
 Imports N_RESULTS and THRESHOLD from retriever so the audit can never
 drift from the pipeline. Retyping them here is how an audit starts lying.
 """
-from retriever import collection, N_RESULTS, THRESHOLD
-from evals import TEST_CASES
+from revit_rag.retriever import collection, N_RESULTS, THRESHOLD
+from revit_rag.evaluation.evals import TEST_CASES
 
 print(f"audit params: n_results={N_RESULTS} threshold={THRESHOLD}\n")
 

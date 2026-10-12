@@ -2,7 +2,7 @@ from typing import TypedDict
 
 from langgraph.graph import StateGraph, START, END
 from exercises.day46_llm_router import llm_route
-from rag_service import answer_question
+from revit_rag.rag_service import answer_question
 
 
 class State(TypedDict):

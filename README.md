@@ -1,48 +1,43 @@
 # AI/ML Learning Lab
 
-Personal, hands-on curriculum for learning the building blocks of LLM applications: tokenization, embeddings, retrieval-augmented generation (RAG), prompting, and vector databases — using the Claude API and a running Autodesk Revit example.
-
-Organized by topic rather than by week, so related exercises stay together regardless of when they were written.
+Hands-on curriculum for building LLM applications (tokenization, embeddings, RAG, prompting, agents, async workers) with the Claude API and a running Autodesk Revit example.
 
 ## Structure
 
 | Folder | What's in it |
 | --- | --- |
-| [tokenization/](tokenization/) | How text becomes tokens (`tiktoken`) |
-| [embeddings/similarity/](embeddings/similarity/) | Sentence embeddings + cosine similarity |
-| [embeddings/persisted/](embeddings/persisted/) | Chunking text and persisting embeddings to Chroma |
-| [rag/basics/](rag/basics/) | Minimal retrieval-augmented generation from scratch |
-| [rag/metadata-filtering/](rag/metadata-filtering/) | Filtering Chroma retrieval results by metadata |
-| [prompting/](prompting/) | Few-shot prompting with the Claude API |
-| [vector-db/](vector-db/) | Basic Chroma persistent vector store usage |
-| [ml-foundations/](ml-foundations/) | Train/test splits, overfitting demo, k-means, self-supervised training pairs, positional encoding |
-| [chatbots/revit-chatbot/](chatbots/revit-chatbot/) | Multi-turn streaming chatbot, tool use, and chain-of-thought prompting with the Claude API |
-| [deepfashion-multimodal-rag/](deepfashion-multimodal-rag/) | In-progress: DeepFashion dataset for a multimodal RAG project |
-| [exercises/](exercises/) | NumPy/Pandas tutorials, data analysis practice, LeetCode-style practice |
-| [notebooks/](notebooks/) | Jupyter notebooks (conceptual walkthroughs) |
-| [scratch/](scratch/) | Empty/in-progress files not yet tied to a topic |
+| [revit_rag/](revit_rag/) | **Project 2:** RAG API over Revit help docs (FastAPI + ChromaDB). `app`, `rag_service`, `retriever`, `ingest_corpus`, `corpus/` |
+| [revit_rag/evaluation/](revit_rag/evaluation/) | Deterministic evals, retrieval-precision harness, RAGAS evals, corpus audit |
+| [chatbots/](chatbots/) | **Project 1:** streaming multi-turn chatbot, tool use, chain-of-thought; stocks agent loop |
+| [agents/](agents/) | Day 31–52: LangChain tools, ReAct, streaming/async agents, LlamaIndex, LangGraph graphs, memory, persistence |
+| [celery_lab/](celery_lab/) | Day 53–55: Celery background ingest, pool choice (threads vs processes), `group` |
+| [foundations/](foundations/) | ML basics, tokenization, embeddings, vector DB, RAG basics, metadata filtering, prompting, notebooks |
+| [system_design/](system_design/) | System-design practice code (consistent hashing) |
+| [practice/](practice/) | NumPy/Pandas tutorials, data analysis, LeetCode practice |
+| [scratch/](scratch/) | Experiments not tied to the curriculum |
 
-Chroma-backed scripts (`embeddings/persisted`, `rag/metadata-filtering`, `vector-db`) write their database files next to the script when run (e.g. `revit_db/`) — these are regenerated output and gitignored, not source.
+Learning log: `STATUS.md` (current position), `LEARNING_NOTES.md` (per-day notes).
 
 ## Setup
 
 ```bash
-pip3 install -r requirements.txt
-
-cp .env.example .env
-# then fill in CLAUDE_API_KEY (and OPENAI_API_KEY if needed)
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env    # fill in CLAUDE_API_KEY
 ```
 
-## Running an exercise
+## Running code — always from the repo root
 
-Each script assumes it's run from its own directory (relative paths for Chroma DBs and CSVs are relative to cwd):
+Use `python -m folder.file` (no `.py`). Running from the root lets every folder import `revit_rag` — like running `node` from the project root so `node_modules` resolves.
 
 ```bash
-cd prompting
-python3 claude_prompting.py
+python -m revit_rag.ingest_corpus              # build the vector DB from corpus/
+uvicorn revit_rag.app:app --reload             # serve the RAG API (try revit_rag/api.http)
+python -m revit_rag.evaluation.precision_eval  # retrieval precision, $0
+python -m agents.day50_rag_tool                # agent that uses the RAG as a tool
+
+celery -A celery_lab.day53_tasks worker --loglevel=info   # terminal 1 (needs Redis)
+python -m celery_lab.day55_group                          # terminal 2
 ```
 
-## Requirements
-
-- Python 3.13
-- A `CLAUDE_API_KEY` (Anthropic) for anything under `prompting/` and `chatbots/`
+Chroma DB folders (`revit_db_07_25/`, `metadata_filter/`, ...) and `memory.db` are generated output and gitignored.

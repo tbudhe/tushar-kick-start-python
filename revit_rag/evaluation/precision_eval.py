@@ -1,5 +1,5 @@
 """Day 40 — retrieval precision harness. No LLM in the loop."""
-from retriever import client
+from revit_rag.retriever import client
 
 v2 = client.get_or_create_collection(name="revit_docs_v2")
 

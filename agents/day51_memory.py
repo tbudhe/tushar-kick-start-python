@@ -8,9 +8,9 @@ from langchain_core.tools import tool
 from langgraph.graph import START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
-from rag_service import answer_question   # your Project 2 pipeline
-import sqlite3
-from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.memory import InMemorySaver
+from revit_rag.rag_service import answer_question   # your Project 2 pipeline
+
 load_dotenv()
 
 PRICES = {"YNXT": 42.0, "AAPL": 189.5}
@@ -45,7 +45,6 @@ class State(TypedDict):
 
 def agent(state: State) -> dict:
     # SYSTEM is prepended on EVERY call but never returned -> never stored in the thread
-    print(f"[agent] LLM is receiving {len(state['messages'])} messages")
     response = model_with_tools.invoke([SYSTEM] + state["messages"])
     if response.tool_calls:
         print(f"[agent] tool_calls: {[c['name'] for c in response.tool_calls]}")
@@ -60,8 +59,7 @@ builder.add_node("tools", ToolNode(TOOLS))
 builder.add_edge(START, "agent")
 builder.add_conditional_edges("agent", tools_condition)
 builder.add_edge("tools", "agent")
-conn = sqlite3.connect("memory.db", check_same_thread=False)   # a file next to where you run it
-graph = builder.compile(checkpointer=SqliteSaver(conn))         # = connect-sqlite3 store
+graph = builder.compile(checkpointer=InMemorySaver())   # = express-session MemoryStore
 
 
 def chat(thread_id, text):
@@ -73,13 +71,12 @@ def chat(thread_id, text):
 
 
 if __name__ == "__main__":
-    TURN = 2   # run once with 1, then change to 2 and run again
-
-    TURNS = {
-        1: "My ticker is YNXT.",
-        2: "What's the price of my ticker?",
-    }
-    text = TURNS[TURN]
-    print(f"===== thread=tushar | TURN {TURN} | {text} =====")
-    final = chat("tushar", text)
-    print(f"messages in thread: {len(final['messages'])}")
+    TURNS = [
+        ("tushar", "My ticker is YNXT."),
+        ("tushar", "What's the price of my ticker?"),
+        ("stranger", "What's the price of my ticker?"),
+    ]
+    for thread_id, text in TURNS:
+        print(f"===== thread={thread_id} | {text} =====")
+        final = chat(thread_id, text)
+        print(f"messages in thread: {len(final['messages'])}")

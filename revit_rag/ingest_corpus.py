@@ -9,7 +9,7 @@ from pathlib import Path
 # client comes from retriever.py — same PersistentClient, same DB_PATH.
 # Importing it (instead of making a second one) is what guarantees both
 # collections live in the same revit_db_07_25 directory.
-from retriever import client
+from revit_rag.retriever import client
 
 CORPUS_DIR = Path(__file__).parent / "corpus" / "revit_help"
 MANIFEST = CORPUS_DIR / "manifest.json"

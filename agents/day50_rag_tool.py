@@ -9,7 +9,7 @@ from langgraph.graph import START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from rag_service import answer_question   # your Project 2 pipeline (works: file is at repo root)
+from revit_rag.rag_service import answer_question   # your Project 2 pipeline (run from repo root: python -m agents.day50_rag_tool)
 
 load_dotenv()
 

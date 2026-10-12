@@ -1,7 +1,7 @@
 # day53_celery_demo.py - the PRODUCER: asks for the work, never does it
 import time
 
-from day53_tasks import ingest_task
+from celery_lab.day53_tasks import ingest_task
 
 result = ingest_task.delay()           # drop ticket on queue (/0) -> returns instantly
 print(f"task_id: {result.id}")

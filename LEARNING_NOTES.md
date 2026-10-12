@@ -172,8 +172,8 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 **One-liner:** Wired FastAPI + ChromaDB + Claude into a working /ask endpoint with calibrated threshold, empty-context short-circuit, refusal system prompt, and evals that test the production code path.
 
 1. How do you pick a distance threshold? Calibrate, don't guess — run known-relevant and known-irrelevant queries, look at the distance gap (relevant: 0.18–0.75, junk: 1.69+), pick a value inside the gap (chose 1.2).
-2. Where does the threshold live and why? Application code (retriever.py) — vector DBs return "closest," not "relevant."
-3. Write path vs. read path rule? ingest.py writes (upsert, idempotent, run manually), retriever.py reads (per-request, threshold applied); neither imports the other.
+2. Where does the threshold live and why? Application code (revit_rag/retriever.py) — vector DBs return "closest," not "relevant."
+3. Write path vs. read path rule? revit_rag/ingest.py writes (upsert, idempotent, run manually), revit_rag/retriever.py reads (per-request, threshold applied); neither imports the other.
 4. What happens when retrieval returns zero chunks? Short-circuit — return "I don't know" WITHOUT calling Claude: no hallucination, no cost, faster response.
 5. What makes a system prompt hallucination-resistant? Answer ONLY from provided context; reply exactly "I don't know" if context lacks the answer; keep answers short. Rules go in system (middleware policy), context + question go in the user message (request payload).
 6. Why did "Revite" (typo) still retrieve door docs? Embeddings are semantic, not lexical — cosine/L2 distance tolerates typos that string matching would not.
@@ -187,10 +187,10 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 1. What is faithfulness? Supported claims ÷ total claims — judge LLM decomposes the answer into atomic claims and checks each against the retrieved contexts. Domain-blind containment check (answer ⊆ contexts), NOT a truth check.
 2. Why did "I don't know" score 0.0? A correct refusal has no supporting context, so the judge marks it unsupported. Exclude refusals from faithfulness; track refusal_rate as its own metric.
 3. HF Dataset vs. ChromaDB? Dataset = ephemeral fixtures array (eval input packaging, rebuilt every run); ChromaDB = persistent production data. Only eval SCORES over time are worth persisting.
-4. Why separate ragas_evals.py from evals.py? Deterministic checks are fast/free/run-every-change (unit tests); LLM-judged evals are slow/costly/run-on-prompt-threshold-chunk-changes (load tests). Both import rag_service — the prod path.
+4. Why separate revit_rag/evaluation/ragas_evals.py from revit_rag/evaluation/evals.py? Deterministic checks are fast/free/run-every-change (unit tests); LLM-judged evals are slow/costly/run-on-prompt-threshold-chunk-changes (load tests). Both import rag_service — the prod path.
 5. Judge LLM vs. pipeline LLM? Pipeline LLM writes the answer under domain policy (system prompt); judge LLM grades evidence-match with no domain knowledge at all.
 6. Debugging lesson: a traceback whose paths are all in site-packages = dependency version conflict, not your code. venv = node_modules for Python; never pip install without (.venv) in the prompt.
-7. Open refactor: ragas_evals.py retrieves twice (inside answer_question + directly for contexts) — correctness risk if calls diverge. Fix: answer_question returns (answer, sources, chunks). Exercise for Day 19.
+7. Open refactor: revit_rag/evaluation/ragas_evals.py retrieves twice (inside answer_question + directly for contexts) — correctness risk if calls diverge. Fix: answer_question returns (answer, sources, chunks). Exercise for Day 19.
 
 ## Day 19 — Double-retrieval refactor: pipeline returns its own evidence
 **One-liner:** answer_question now returns (answer, sources, chunks) so evals grade against the real context — re-retrieving in the eval risks scoring against evidence the answer never saw.The judge must grade against the evidence the pipeline returned, because a second retrieval is a guess about the past, not a record of it.
@@ -200,7 +200,7 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 3. refusal_rate jumped to 0.5 after adding category filters — bug or finding? Finding. WHERE filter runs before vector search; a miscategorized chunk gets filtered out → empty retrieval → short-circuit refusal. The eval surfaced a real data problem.
 4. Do eval files ship to production? No — they're dev/CI tools. But they must IMPORT production code (rag_service), never copy it, so they always test the real code path. One pipeline, many importers; a copied pipeline drifts and evals score a ghost.
 5. Pipeline behavior vs. eval behavior are different layers: the distance threshold explains why a refusal HAPPENED; "no supported claims" explains why the judge SCORES it 0.
-6. Open finding: floor-plan chunk likely tagged with a category other than "floors" — verify in ingest.py and fix tag or eval (Day 20).
+6. Open finding: floor-plan chunk likely tagged with a category other than "floors" — verify in revit_rag/ingest.py and fix tag or eval (Day 20).
 7. Why must the RAGAS judge score against the chunks returned by answer_question instead of calling retrieve() again? A: The judge grades a past event — "was this answer supported by what the LLM actually saw?" The returned chunks are the audit log (proof); a second retrieve() is a replay (guess) that can differ due to re-ingest, different params, or code drift. Grade the evidence, never re-fetch it.
 8. Walk through the chain that refused "floor plan view" with category="floors" — before the LLM was called. A: (1) category becomes a ChromaDB WHERE filter, (2) filter runs BEFORE vector search, (3) miscategorized chunk excluded → empty retrieval, (4) short-circuit returns refusal without calling the LLM. The refusal was application code, not the model — like a Redis cache miss with no DB fallback.
 9. What happens when a 2-var caller unpacks a 3-value return? A: Python: ValueError: too many values to unpack — strict arity, fails loud. Node: [a, b] = threeThings() silently drops the third — fails quiet. Python's crash is a feature: it forces you to update every caller.
@@ -210,13 +210,13 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 **One-liner:** A RAG refusal can fire at three layers — metadata filter (empty retrieval), distance threshold (gate in application code), or the LLM's refusal prompt — debug them in order with evidence, never guesses; ours was layer 3: a correct refusal exposing a coverage gap, fixed with data (new doc), not code.
 
 1.  What are the three layers where a RAG refusal can originate? (1) WHERE filter excludes everything → empty retrieval → short-circuit; (2) chunks return but all distances fail the threshold gate in retrieve(); (3) chunks pass into the prompt but the LLM's refusal system prompt says the context doesn't answer the question. Check them in order.
-2. How did we falsify the "miscategorized chunk" hypothesis? Opened ingest.py — doc5 was correctly tagged "floors". Evidence killed hypothesis #1.
-3. How did we falsify the "threshold refusal" hypothesis? debug_floor.py printed distance 1.12 < 1.2 threshold — doc5 passed the gate, so the short-circuit never fired. Hypothesis #2 dead. One printed number beats any amount of reasoning.
+2. How did we falsify the "miscategorized chunk" hypothesis? Opened revit_rag/ingest.py — doc5 was correctly tagged "floors". Evidence killed hypothesis #1.
+3. How did we falsify the "threshold refusal" hypothesis? revit_rag/evaluation/debug_floor.py printed distance 1.12 < 1.2 threshold — doc5 passed the gate, so the short-circuit never fired. Hypothesis #2 dead. One printed number beats any amount of reasoning.
 4. So why did Claude say "I don't know"? The retrieved chunk was about *creating a floor element*; the question was about *floor plan views*. Context genuinely didn't answer the question — the refusal system prompt worked exactly as designed. Not a bug: a correct refusal revealing a coverage gap.
-5. Knowledge gap fix — code or data? Data. Added doc6 (floor plan view doc, category "floors") to ingest.py. Day 15's rule applied: knowledge gap → RAG/data, behavior gap → prompting. After re-ingest: doc6 distance 0.76 (vs doc5's 1.12) — relevant doc now ranks first.
-6. Why re-run evals.py after only changing data? Corpus changes can break existing behavior — regression check. 5/5 still green, including the off-topic "I don't know" case.
+5. Knowledge gap fix — code or data? Data. Added doc6 (floor plan view doc, category "floors") to revit_rag/ingest.py. Day 15's rule applied: knowledge gap → RAG/data, behavior gap → prompting. After re-ingest: doc6 distance 0.76 (vs doc5's 1.12) — relevant doc now ranks first.
+6. Why re-run revit_rag/evaluation/evals.py after only changing data? Corpus changes can break existing behavior — regression check. 5/5 still green, including the off-topic "I don't know" case.
 7. Chroma lists (documents/ids/metadatas) must stay the same length — same strict-arity spirit as Python tuple unpacking.
-8. Debug scripts (debug_floor.py) = one-off curl against your own API: import the SAME collection object production uses, probe below the abstraction, delete or keep after.
+8. Debug scripts (revit_rag/evaluation/debug_floor.py) = one-off curl against your own API: import the SAME collection object production uses, probe below the abstraction, delete or keep after.
 
 ## Day 21 — Retrieval audit loop + RAGAS triad (answer_relevancy, context_precision) + sabotage test
 **One-liner:** Built a retrieval audit (top-k distances + coverage-risk flag per eval question), completed the RAGAS triad — precision grades retrieval, faithfulness grades grounding, relevancy grades direction — then broke retrieval on purpose and learned that refusal_rate catches what judge metrics can't see.
@@ -245,9 +245,9 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 8. Where does this code live? chatbots/revit-chatbot/async_batch_questions.py — concurrent batch of 3 Revit questions with per-question stop_reason + length. First Phase 2 code.
 
 ## 🚢 Project 2 — RAG API over Revit Docs (SHIPPED v1 — Day 17)
-**What it is:** FastAPI RAG service — `POST /ask` answers Revit questions grounded in ChromaDB docs with sources. Files: ingest.py, retriever.py, rag_service.py, app.py, prompting/revit_context_qa.py, evals.py.
+**What it is:** FastAPI RAG service — `POST /ask` answers Revit questions grounded in ChromaDB docs with sources. Files: revit_rag/ingest.py, revit_rag/retriever.py, revit_rag/rag_service.py, revit_rag/app.py, foundations/prompting/revit_context_qa.py, revit_rag/evaluation/evals.py.
 
-1. Architecture: write path (ingest.py, idempotent upsert) vs. read path (retriever.py, per-request) — neither imports the other; app.py and evals.py share rag_service.answer_question() so evals test the production pipeline.
+1. Architecture: write path (revit_rag/ingest.py, idempotent upsert) vs. read path (revit_rag/retriever.py, per-request) — neither imports the other; revit_rag/app.py and revit_rag/evaluation/evals.py share rag_service.answer_question() so evals test the production pipeline.
 2. Calibrated threshold: measured distances (relevant 0.18–0.75, junk 1.69+) → chose 1.2. Threshold is an output of an experiment, not a guess.
 3. Hallucination control: refusal system prompt (context-only, exact "I don't know", short answers) + empty-retrieval short-circuit that skips Claude entirely.
 4. Evals: 5/5 — four grounded questions checked against expected source ids, one off-topic question required to return exactly "I don't know".
@@ -309,20 +309,20 @@ TTFT (time-to-first-token) is the UX metric; tokens-per-second is the throughput
 
 1. What was wrong with returning (answer, sources, chunks)? Nothing describes or validates the shape — callers must know order and arity. Day 19 proved the cost: adding a third value broke all three callers. A tuple is res.send([a,b,c]); a Pydantic model is a DTO with a declared contract.
 2. Why must BOTH return statements return the same type? The refusal branch and the happy branch are one promise. Return a DTO on one and a tuple on the other and resp.answer crashes only when a refusal happens — passes every test, breaks at 3am on the one off-topic question.
-3. What proved the refactor took effect? evals.py RAN. Identical 5/5 output is weak evidence (it's also what you'd see if nothing changed), but any caller still unpacking three values would have died on TypeError before case 1.
-4. Why did Source need a text field? ragas_evals.py grades faithfulness against chunk TEXT — the response object is the pipeline's audit log. The first schema had id + distance only, designed from two callers and never checked against the third. Design the DTO against every consumer, not the loudest one.
-5. How did each caller change? app.py: resp.answer + [s.id for s in resp.sources]. evals.py: same, unpacking removed. ragas_evals.py: resp.answer + [s.text for s in resp.sources]. Each takes what it needs, by name.
+3. What proved the refactor took effect? revit_rag/evaluation/evals.py RAN. Identical 5/5 output is weak evidence (it's also what you'd see if nothing changed), but any caller still unpacking three values would have died on TypeError before case 1.
+4. Why did Source need a text field? revit_rag/evaluation/ragas_evals.py grades faithfulness against chunk TEXT — the response object is the pipeline's audit log. The first schema had id + distance only, designed from two callers and never checked against the third. Design the DTO against every consumer, not the loudest one.
+5. How did each caller change? revit_rag/app.py: resp.answer + [s.id for s in resp.sources]. revit_rag/evaluation/evals.py: same, unpacking removed. revit_rag/evaluation/ragas_evals.py: resp.answer + [s.text for s in resp.sources]. Each takes what it needs, by name.
 6. What did adding category prove? Zero callers changed, suite stayed green. Adding a field to a DTO is backward-compatible; adding a slot to a tuple is a breaking change for everyone. Same change, opposite cost.
 7. Same type is not the same contract — what was P1? The refusal branch hardcoded category=None while the happy path passed the real value, so a refused "floors" question reported no category. Branches must populate the same FIELDS, not just return the same type.
 8. What is P2 actually about? Not the behavior — "no chunks → I don't know" is correct. It's that other modules DETECT the refusal by string-matching an English sentence. Checking a response body for the word "error" instead of reading the status code.
-9. P2 proven live: the refusal message was reworded to "I don't know based on the available docs." and evals.py's == assertion went red immediately, while ragas_evals.py's substring match sailed through. Predicted an hour earlier, then triggered for real.
+9. P2 proven live: the refusal message was reworded to "I don't know based on the available docs." and revit_rag/evaluation/evals.py's == assertion went red immediately, while revit_rag/evaluation/ragas_evals.py's substring match sailed through. Predicted an hour earlier, then triggered for real.
 10. Why isn't "i don't know" in answer.lower() the fix? It survived the reword, which is what makes it dangerous — it tolerates the coupling silently. And it invents refusals: "I don't know the exact Revit version, but use the Door tool" is a real answer that would be counted as a refusal. == under-counts, in over-counts; both guess intent from prose.
-11. Loud break vs silent tolerance? evals.py failed visibly — a gift. ragas_evals.py passed while staying wrong — the bug that reaches production. Prefer the assertion that breaks when the contract changes. Java anchor: catch (NotFoundException e) instead of e.getMessage().includes("not found").
+11. Loud break vs silent tolerance? revit_rag/evaluation/evals.py failed visibly — a gift. revit_rag/evaluation/ragas_evals.py passed while staying wrong — the bug that reaches production. Prefer the assertion that breaks when the contract changes. Java anchor: catch (NotFoundException e) instead of e.getMessage().includes("not found").
 12. Why did n_results=3 return only 2 rows? The WHERE filter runs BEFORE vector search — only 2 docs were tagged "floors", so only 2 candidates could be ranked. The query gives you what exists after filtering.
 13. Why is expected_id in sources a weak assertion? Membership, not rank — it passes whether the right doc ranked 1st or 2nd. sources[0] == expected_id catches a rank regression the old suite slept through.
 14. Why must the refusal case also assert sources == []? It pins WHICH layer refused. Layer 2 (threshold) returns no chunks and never calls Claude; layer 3 (LLM refusal) has chunks and costs an API call. Same answer text, completely different systems.
-15. Why must debug_floor.py import N_RESULTS and THRESHOLD? Retyping them is how an audit starts lying — it was printing top-3 unfiltered while production took top-2 at 1.2. One pipeline, many importers (Day 19), applied to the debug tool.
-16. Verification-of-own-work gap (3 incidents): declared P1 fixed while the file still read category=None; predicted "all tests pass" for a refactor that would have crashed; offered a green evals.py as proof for a debug_floor.py question. Evidence habit is strong when debugging, switches off when confirming his own fixes.
+15. Why must revit_rag/evaluation/debug_floor.py import N_RESULTS and THRESHOLD? Retyping them is how an audit starts lying — it was printing top-3 unfiltered while production took top-2 at 1.2. One pipeline, many importers (Day 19), applied to the debug tool.
+16. Verification-of-own-work gap (3 incidents): declared P1 fixed while the file still read category=None; predicted "all tests pass" for a refactor that would have crashed; offered a green revit_rag/evaluation/evals.py as proof for a revit_rag/evaluation/debug_floor.py question. Evidence habit is strong when debugging, switches off when confirming his own fixes.
 
 ## Day 26 — Tool Use / Function Calling in Production
 **One-liner:** The tool loop is `while stop_reason == "tool_use"` — declare tools like an OpenAPI spec, the model requests by name, my code dispatches and replies with tool_result + tool_use_id (correlation ID), results ride back as a user message, and we go around until end_turn; agents are this loop with a bigger catalog.
@@ -461,7 +461,7 @@ Next: Day 31 — LangChain intro (map TOOLS/TOOL_FUNCTIONS/INPUT_MODELS/budget o
 ## Day 31 — LangChain Intro: @tool Collapses the Four Registries
 **One-liner:** `@tool` generates all four registries — schema, function, dispatch, validator — from the one function signature, so the Day 30 wrong-validator bug is structurally impossible: no separate copies left to disagree.
 
-**The goal printout (achieved — `exercises/day31_langchain_tool.py`, no API call, no cost):**
+**The goal printout (achieved — `agents/day31_langchain_tool.py`, no API call, no cost):**
 ```
 === WHAT @tool GENERATED ===
 TOOL: get_ticker_symbol
@@ -498,7 +498,7 @@ Next: Day 32 — LangChain continued (bind tools to a model / the loop side: wha
 ## Day 32 — LangChain cont.: bind_tools Kills the Plumbing, the Loop Survives
 **One-liner:** `.bind_tools()` staples the TOOLS menu onto the model and parses replies into `response.tool_calls`, but the orchestration loop — invoke, run tools, append, invoke again until `tool_calls` is empty — is still yours to write.
 
-**The goal printout (achieved — `exercises/day32_bind_tools.py`, ChatAnthropic + haiku):**
+**The goal printout (achieved — `agents/day32_bind_tools.py`, ChatAnthropic + haiku):**
 ```
 === ROUND 0 === get_ticker{'company_name': 'YUNextGenAI'} -> YNXT
 === ROUND 1 === get_price{'ticker': 'YNXT'} -> 42.0
@@ -522,7 +522,7 @@ Session note: end-of-session discouragement ("why can't I learn quickly") — co
 ## Day 33 — create_agent: The Framework Takes the Loop
 **One-liner:** `create_agent` (né `create_react_agent`) is the Day 32 loop shipped as a library function — ReAct means reason→act→observe→repeat, the framework now runs it inside `agent.invoke()`, and the returned `result["messages"]` transcript proves the same rounds still happen.
 
-**The goal printout (achieved — `exercises/day33_react_agent.py`, ChatAnthropic + haiku):**
+**The goal printout (achieved — `agents/day33_react_agent.py`, ChatAnthropic + haiku):**
 ```
 HumanMessage: Price of Yieldnext?
 AIMessage: tool_calls=[('get_ticker', {'company_name': 'Yieldnext'})]
@@ -545,7 +545,7 @@ Next: Day 34 — agent abstractions cont. (system prompt / state / streaming on 
 ## Day 34 — create_agent cont.: System Prompt Moves to Config, State Stays Mine
 **One-liner:** The system prompt is Day 32's `messages[0]` relocated to a config-time argument that the framework prepends on every model call; conversation state did NOT move — the agent is stateless between invokes, and memory is something I pass in, not something it has.
 
-**The goal printout (achieved — `exercises/day34_react_agent.py`):**
+**The goal printout (achieved — `agents/day34_react_agent.py`):**
 ```
 === B: fresh invoke ===        Je n'ai pas de contexte precedent... (amnesia)
 === C: transcript carried ===  Le prix actuel de Yieldnext (YNXT) est de **quarante-deux dollars**.
@@ -565,7 +565,7 @@ Next: Day 35 — `checkpointer` + `thread_id` (the framework's session store) or
 ## Day 35 — checkpointer + thread_id: The Framework's Session Store
 **One-liner:** Day 34 proved memory is something I pass in; `checkpointer=` moves it into a store and `thread_id` becomes the key — the agent itself is still stateless, I just send a session ID instead of the whole transcript.
 
-**The goal printout (COMPLETE — `exercises/day35_react_agent.py`):**
+**The goal printout (COMPLETE — `agents/day35_react_agent.py`):**
 ```
 === A: NO checkpointer, one message in ===   amnesia
 === B: WITH checkpointer, thread_id=... ===  B2 answered "YNXT" from stored state, ONE message sent
@@ -590,7 +590,7 @@ Next: Day 36 — streaming on create_agent, or Project 2 hardening; decide at se
 ## Day 36 — Streaming on the agent: updates vs values vs messages
 **One-liner:** `.invoke()` and `.stream()` run the SAME graph — streaming doesn't change what the agent does, it changes when I'm allowed to look; `stream_mode` picks whether I see the delta, the whole state, or the tokens.
 
-**The goal printout (COMPLETE — `exercises/day36_streaming_agent.py`):**
+**The goal printout (COMPLETE — `agents/day36_streaming_agent.py`):**
 ```
 === PART A: updates ===   5 yields: [model] tool_calls -> [tools] result -> [model] tool_calls -> [tools] result -> [model] text
 === PART B: values ===    6 yields: 1..6 messages, HumanMessage -> AIMessage -> ToolMessage -> AIMessage -> ToolMessage -> AIMessage
@@ -606,7 +606,7 @@ Next: Day 36 — streaming on create_agent, or Project 2 hardening; decide at se
 ## Day 37 — Async agent: what async overlaps, and what it can never overlap
 **One-liner:** Async doesn't make the agent faster — it makes *waiting* overlappable; the chain inside one request stays serial in any runtime, so the only lever on latency is FEWER ROUNDS, not more async.
 
-**The goal printout (COMPLETE — `exercises/day37_async_agent.py`):**
+**The goal printout (COMPLETE — `agents/day37_async_agent.py`):**
 ```
 PART A  two INDEPENDENT get_price calls, ONE round -> both START t+1.57, both END t+3.57  (4s sleep in 2s)
 PART B  DEPENDENT chain name->ticker->price       -> get_ticker 0.77-2.77, get_price 3.48-5.48, NO overlap
@@ -626,7 +626,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 1. Same 6 chunks, same MiniLM embedder, two frameworks -> identical top chunk and identical ordering (`MATCH: True`). The framework buys code, not better retrieval.
 2. LlamaIndex reports `score = math.exp(-distance)` (`vector_stores/chroma/base.py:472`), NOT Chroma's distance. My `THRESHOLD = 1.2` translates to `score > 0.301`. Constants do not port across frameworks.
 3. LlamaIndex embeds METADATA with the text by default (`indices/utils.py:192` -> `MetadataMode.EMBED`). Two bookkeeping fields inflated doc4's distance 0.128 -> 0.365 (~185%), and NOT by a constant — so it can't be corrected for. Fix: `excluded_embed_metadata_keys=[...]`. After the fix, `-ln(score)` matched `chroma dist` to 3 decimals, confirming the diagnosis.
-4. The framework silently replaced my system prompt too: `chat_content_qa_template` ("expert Q&A system... never directly reference the given context") overrode `SYSTEM_PROMPT` in `prompting/revit_context_qa.py`, including my `refused=True` refusal contract. It also ships no similarity threshold — `similarity_top_k=2` returns 2 chunks however bad they are.
+4. The framework silently replaced my system prompt too: `chat_content_qa_template` ("expert Q&A system... never directly reference the given context") overrode `SYSTEM_PROMPT` in `foundations/prompting/revit_context_qa.py`, including my `refused=True` refusal contract. It also ships no similarity threshold — `similarity_top_k=2` returns 2 chunks however bad they are.
 5. `refine_template` = one LLM call PER chunk, sequentially, feeding `{existing_answer}` forward. `top_k=10` becomes 10 serial round trips. Day 37's verdict in someone else's code: refine converts WIDTH into DEPTH.
 
 **Mental models added:**
@@ -680,7 +680,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 2. hit@10 = 1.000, hit@2 = 0.750. The answering chunk is in the store for EVERY question. Nothing is missing — no re-chunking, no new embedder, no bigger corpus fixes this. Retrieval is fine; ranking is not, and 25% of answerable questions are answered from the wrong chunk with the gate passing, `refused=False`, and faithfulness high.
 3. THE THRESHOLD WAS NEVER THE CONSTRAINT. `walls_overview_0` sits at **1.082, under `THRESHOLD = 1.2`** — the gate would accept it. It never gets the chance, because `N_RESULTS = 2` cuts the list four rows above it. THRESHOLD is a quality gate; N_RESULTS is an admission gate. I had been tuning the one that wasn't failing.
 4. WIDENING IS A CLIFF, NOT A DIAL. hit@k measured: k=1 0.500, k=2..k=5 flat at 0.750, k=6 1.000. Raising `N_RESULTS` from 2 to 5 costs 3x the context tokens per request for **zero** improvement, then works abruptly at 6. That is the measured argument for RERANKING (reorder 10 candidates) over retrieving more of them — Phase 3, now with my own numbers behind it.
-5. THE HARNESS IS FREE. `precision_eval.py` runs with no API key and no LLM: `collection.query` is a local call, and rank comparison is `ids.index(expected)`. Deterministic, $0, runnable on every corpus change — unlike the RAGAS judge. Caveat I have to respect: n=4 means each question is worth 25 points, so this is a smoke test until CASES reaches 15-20.
+5. THE HARNESS IS FREE. `revit_rag/evaluation/precision_eval.py` runs with no API key and no LLM: `collection.query` is a local call, and rank comparison is `ids.index(expected)`. Deterministic, $0, runnable on every corpus change — unlike the RAGAS judge. Caveat I have to respect: n=4 means each question is worth 25 points, so this is a smoke test until CASES reaches 15-20.
 
 **Mental models added:**
 - The label set IS the test — label by SOURCE DOCUMENT and the eval agrees with whatever the retriever already does
@@ -694,11 +694,11 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 ## Day 41 — Deploying the pipeline: what production actually serves (2026-09-09)
 **One-liner:** Blue/green only works if somebody flips the pointer — mine had been green for two sessions with nobody reading it.
 
-1. PRODUCTION WAS SERVING THE TOY CORPUS. `retriever.py` hard-coded `revit_docs_project_2` — the 6 one-liners. Days 39 and 40's real corpus and the entire precision harness live in `revit_docs_v2` (18 chunks) and had NEVER been on the request path. Day 39's blue/green worked exactly as designed; the pointer flip was the step nobody wrote down. Fix: `COLLECTION_NAME = os.environ.get("REVIT_COLLECTION", "revit_docs_v2")` — a pointer, not a constant, so the next corpus swap costs an env var instead of a deploy.
-2. THE VECTOR DB IS DERIVED DATA, NOT SOURCE. `revit_db_07_25/` is gitignored, so a fresh box gets nothing; `corpus/revit_help/*.md` IS tracked, so the deploy build step is `python ingest_corpus.py`. Proven rather than assumed: moved the DB aside, rebuilt from empty, and got `about_doors_0 0.720 / place_a_door_0 0.756` back to three decimals.
+1. PRODUCTION WAS SERVING THE TOY CORPUS. `revit_rag/retriever.py` hard-coded `revit_docs_project_2` — the 6 one-liners. Days 39 and 40's real corpus and the entire precision harness live in `revit_docs_v2` (18 chunks) and had NEVER been on the request path. Day 39's blue/green worked exactly as designed; the pointer flip was the step nobody wrote down. Fix: `COLLECTION_NAME = os.environ.get("REVIT_COLLECTION", "revit_docs_v2")` — a pointer, not a constant, so the next corpus swap costs an env var instead of a deploy.
+2. THE VECTOR DB IS DERIVED DATA, NOT SOURCE. `revit_db_07_25/` is gitignored, so a fresh box gets nothing; `revit_rag/corpus/revit_help/*.md` IS tracked, so the deploy build step is `python -m revit_rag.ingest_corpus`. Proven rather than assumed: moved the DB aside, rebuilt from empty, and got `about_doors_0 0.720 / place_a_door_0 0.756` back to three decimals.
 3. AN UNCHANGED DB PROVES NOTHING. The first rebuild "passed" — identical distances — but reading the collection list on disk showed `revit_docs_llamaindex` still sitting there with 6 vectors, so the `mv` had never run. A test whose PASS state is indistinguishable from "the test didn't run" is not an instrument. The fix was a marker only a real run can produce: llamaindex ABSENT and `project_2` at 0 means the directory was genuinely empty.
 4. DEV DEPENDENCIES ARE NOT SERVING DEPENDENCIES. Measured site-packages: 1.8GB, of which torch 529MB and transformers 104MB. `sys.modules` after a live `retrieve()` — torch no, transformers no, sentence_transformers no, langchain no, ragas no, llama_index no; chromadb YES, onnxruntime YES, anthropic YES, fastapi YES. Chroma embeds the query with ONNX MiniLM, not sentence-transformers, which is why the torch half is dead weight on a 512MB box. `requirements-serve.txt` pins the 7 that are actually imported — including onnxruntime explicitly, because it IS the embedder and a version bump can move the vectors under a stored eval.
-5. PREDICT, THEN RUN — 4 for 4. Stated before each run: `place_a_door_0` at 0.756; the `old collection revit_docs_project_2 count: 0` line that looks like a bug and isn't (`ingest_corpus.py:75` recreates it empty); the full 14-row import table; `/heartbeat` returning `{"status":"OK"}`. All four matched.
+5. PREDICT, THEN RUN — 4 for 4. Stated before each run: `place_a_door_0` at 0.756; the `old collection revit_docs_project_2 count: 0` line that looks like a bug and isn't (`revit_rag/ingest_corpus.py:75` recreates it empty); the full 14-row import table; `/heartbeat` returning `{"status":"OK"}`. All four matched.
 
 **Mental models added:**
 - Blue/green is TWO steps — build the new collection AND flip the pointer; only the first one is in the ingest script
@@ -712,8 +712,8 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 ## Day 42 - The API tells the truth about itself (2026-09-10)
 **One-liner:** `/heartbeat` said OK on every day production served the wrong corpus - liveness was never the question, identity was.
 
-1. HEALTH REPORTS IDENTITY, NOT LIVENESS. New `/health` in `app.py` returns collection name, `collection.count()`, DB path, embedder class, `chromadb.__version__`, THRESHOLD and N_RESULTS - all read from the SAME `collection` handle `retrieve()` queries, never a second connection (a health check that opens its own connection can report green while the request path is broken). Local: `revit_docs_v2`, 18 chunks, chromadb 1.5.9. Day 41's two-session bug is now a one-curl question.
-2. A REFUSAL IS A DECLARED FIELD, NOT A SENTENCE. `RagResponse.refused` has existed since Day 40 but never crossed the HTTP boundary - `AskResponse` shipped only `answer` and `sources`, so any HTTP client had to string-match "I don't know based on the available docs.", the exact thing the comment at `rag_service.py:16` forbids. An in-process contract does not survive serialization for free.
+1. HEALTH REPORTS IDENTITY, NOT LIVENESS. New `/health` in `revit_rag/app.py` returns collection name, `collection.count()`, DB path, embedder class, `chromadb.__version__`, THRESHOLD and N_RESULTS - all read from the SAME `collection` handle `retrieve()` queries, never a second connection (a health check that opens its own connection can report green while the request path is broken). Local: `revit_docs_v2`, 18 chunks, chromadb 1.5.9. Day 41's two-session bug is now a one-curl question.
+2. A REFUSAL IS A DECLARED FIELD, NOT A SENTENCE. `RagResponse.refused` has existed since Day 40 but never crossed the HTTP boundary - `AskResponse` shipped only `answer` and `sources`, so any HTTP client had to string-match "I don't know based on the available docs.", the exact thing the comment at `revit_rag/rag_service.py:16` forbids. An in-process contract does not survive serialization for free.
 3. ONE ENVELOPE FOR EVERY FAILURE CLASS. Empty question -> 422 `{"code":"BAD_REQUEST","field":"question","message":...}` from a `RequestValidationError` handler; a raising Claude call -> 502 `{"code":"UPSTREAM_ERROR","message":<exception class name>}`. A second handler on `HTTPException` normalizes the envelope - without it the 502 arrives wrapped in `detail` and the client needs two parsers for one class of problem.
 4. THE CHEAPEST RESPONSE IS THE HONEST ONE. "What is the capital of France?" -> 200, `refused:true`, `sources:[]`, $0 spent: nothing landed under distance 1.2, so `retrieve()` returned empty and Claude was never called. Refusal is a RETRIEVAL decision, made before any token is bought.
 5. PREDICT, THEN RUN - 5 of 6, and the miss was the useful one. Matched: the two-key response shape, the 422 body and code, the refusal path, chunks=18, chromadb 1.5.9. MISSED: predicted the embedder would read `ONNXMiniLM_L6_V2` or a schema default; it read `DefaultEmbeddingFunction` - a WRAPPER ALIAS that names no model and no runtime. What actually pins the vectors is `chromadb==1.5.9` + `onnxruntime==1.27.0`, so the version went into `/health`.
@@ -731,7 +731,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 
 1. REVISION WEEK DECLARED (Tushar's call). Interview detour paused; five sessions, each one concept block said out loud plus its backlog. Quiz 2/3 - streak ends at seven. Miss: `refused` failed to cross the HTTP RESPONSE MODEL (`AskResponse` lacked the field), not "the LLM call" - refusal happens before any LLM call. Q1 nuance: "ready to take traffic" is readiness; liveness is only "process up"; neither is identity.
 2. PHASE 1 DECAY. Asked cold: training -> "reads embeddings from documents"; tokens -> "cost comes with vector DB"; generation -> "System -> Human -> AI". All inference-time. Correct set: TRAINING = predict, measure with a loss function, nudge weights toward smaller loss (gradient descent). OVERFITTING = memorized examples, not the pattern; test split = unseen data, honest score. TOKENS = ~3/4-word pieces, billed per token in and out by the LLM API; the context window is a token budget for system + messages + chunks + answer. ATTENTION = each token looks at every other token in THIS input and borrows meaning ("bank"). GENERATION = predict one token, append, feed back, repeat to stop.
-3. `ml-foundations/gradient_descent_one_weight.py` - fit y = 3x from w = 0, lr = 0.01, 50 epochs. His first draft: every formula right, two SCOPE bugs. `loss_total`/`grad_total` outside the epoch loop -> loss climbed 2.25 -> 1792 and stale gradients swung w 0 -> 5.96 -> 0.12 like a pendulum. Update + print inside `for d in data` -> four updates per epoch. Python indentation = "how many times does this line run", again.
+3. `foundations/ml_basics/gradient_descent_one_weight.py` - fit y = 3x from w = 0, lr = 0.01, 50 epochs. His first draft: every formula right, two SCOPE bugs. `loss_total`/`grad_total` outside the epoch loop -> loss climbed 2.25 -> 1792 and stale gradients swung w 0 -> 5.96 -> 0.12 like a pendulum. Update + print inside `for d in data` -> four updates per epoch. Python indentation = "how many times does this line run", again.
 4. HALF-FIXED STILL LEARNS. With only the reset moved, per-point updates reached w = 3.0000 - that is STOCHASTIC gradient descent; the fixed version is BATCH (one update per pass); LLMs use mini-batches. Its loss rose 0.0164 -> 0.4344 inside epoch 10 because it was a partial sum. Fixed output matched the prediction exactly: loss 67.5 -> 0.0000, w 0.45 -> 2.9991.
 5. w IS THE MODEL, loss IS THE REPORT CARD (his answer, cold) - only w ships; Claude is billions of w. Flipping `-=` to `+=` sent loss to 59,936,603 and w to -3248, matching prediction: the minus sign is what "downhill" means. Backlog cleared: `time.sleep(2)` removed from day36 `get_price` (a blocking sleep freezes an async agent; day37's `await asyncio.sleep` stays).
 
@@ -747,7 +747,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 **One-liner:** a router sends the flow forward; a loop is the same conditional edge with one entry pointing back at the node that just ran - and the only thing that stops it is my routing function or my recursion_limit.
 
 1. BACKFILL: Days 44-46 ran 9/18-9/22 unrecorded - StateGraph + keyword router (day45, he added `greet`), Claude as router with `in ROUTES` safety net (day46_llm_router), router wired into the graph with `rag_service.answer_question` in `docs` (day46_graph). Quiz 3/3.
-2. `exercises/day47_loop.py`, goal-first, 6 steps: State{attempts}; `work` returns `{"attempts": n+1}`; `should_continue` returns "work" while attempts < 3 else END; `add_conditional_edges("work", should_continue, {"work": "work", END: END})`. Output matched the goal: 3 attempts, final state {'attempts': 3}. No for/while written - the graph loops.
+2. `agents/day47_loop.py`, goal-first, 6 steps: State{attempts}; `work` returns `{"attempts": n+1}`; `should_continue` returns "work" while attempts < 3 else END; `add_conditional_edges("work", should_continue, {"work": "work", END: END})`. Output matched the goal: 3 attempts, final state {'attempts': 3}. No for/while written - the graph loops.
 3. `KeyError: True` - an edit returned `True` from the router. The return value is looked up as a KEY in the mapping dict; `True` is not a key. Read the LAST traceback line first: `KeyError: X` = X looked up, not found.
 4. BROKEN STOP CONDITION (`if True:`): ran to ~10,000 attempts. Installed langgraph 1.2.9 has `DEFAULT_RECURSION_LIMIT = 10007` (`langgraph/_internal/_config.py:32`). Claude predicted 25 (old default) - wrong; the run was the referee.
 5. OWN BUDGET: `graph.invoke({"attempts": 0}, config={"recursion_limit": 10})` -> exactly 10 attempts then `GraphRecursionError`. With Claude in the loop every step is a paid call - the framework version of my old `for iteration in range(MAX_ITERATIONS)`. His catch: `return END` is dead code under `if True:`.
@@ -836,7 +836,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 **One-liner:** The producer gets a task_id instantly; a separate worker process runs the slow job and writes status + result to Redis, which the producer polls.
 
 1. Four parts: producer (`celery_demo.py`, `.delay()`), broker (Redis /0, list `celery`), worker (`celery -A tasks worker --pool=solo`), result backend (Redis /1, key `celery-task-meta-<task_id>`).
-2. `ingest_corpus.py` __main__ became importable `run_ingest()` returning {"files": 7, "chunks": 18} - a task must import a function, like `export` in Node.
+2. `revit_rag/ingest_corpus.py` __main__ became importable `run_ingest()` returning {"files": 7, "chunks": 18} - a task must import a function, like `export` in Node.
 3. Run: task_id at 0.0s, PENDING -> STARTED x5 -> SUCCESS at 6.0s, result {'files': 7, 'chunks': 18}. `task_track_started=True` is what makes STARTED visible.
 4. /0 and /1 = two numbered Redis DBs on one server (SELECT n). Proved: key set with `-n 1` is nil from `-n 0`. After the run: /1 has the JSON result, `llen celery` in /0 = 0.
 5. Celery is NOT the `redis` package - it's a job queue framework on top of it: Kafka-style producer/consumer PLUS per-job id, status, result and retries. Quiz 3/3.
@@ -851,7 +851,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 
 1. Plain Python first: waiting task (sleep 2) x4 -> solo 8.0s, ThreadPoolExecutor(4) 2.0s. CPU loop x4 -> solo 1.6s, threads 1.5s (no gain - GIL). ProcessPoolExecutor(4) on an 80M loop -> 6.3s -> 1.9s (~3.3x; the gap is process start-up cost).
 2. `max_workers=4` on ThreadPoolExecutor = 4 threads in ONE process (same PID, proved). On ProcessPoolExecutor = 4 child processes (4 PIDs, proved). Mac needs `if __name__ == "__main__":` for processes - children re-import the file.
-3. Celery: same producer (`day54_pool_demo.py`, 4x `fake_llm_task.delay(n)`), worker `--pool=solo` -> 8.1s, `--pool=threads --concurrency=4` -> worker did all 4 in 2.04s. Redis never changed - the pool lives in the Python WORKER, Redis only holds tickets (/0) and results (/1).
+3. Celery: same producer (`celery_lab/day54_pool_demo.py`, 4x `fake_llm_task.delay(n)`), worker `--pool=solo` -> 8.1s, `--pool=threads --concurrency=4` -> worker did all 4 in 2.04s. Redis never changed - the pool lives in the Python WORKER, Redis only holds tickets (/0) and results (/1).
 4. Ops lessons: `celery: command not found` = venv not activated (like node_modules/.bin). Banner said `16 (solo)` because the command had `-A -A` -> flags silently ignored. Read the banner, not what you think you typed. Pool can live in code: `app.conf.worker_pool` / `worker_concurrency` (CLI overrides).
 5. Calling `fake_llm_task(n)` WITHOUT `.delay` runs it in the producer - no queue. `.delay` comes from `@app.task`. Producer still measured 4.1s while the worker took 2.04s: sequential `.get()` drains results in 1-second cycles (celery/backends/asynchronous.py:79 `interval=1`) - "job done" and "client knows" are two latencies. Fix candidate: `group(...)`. Quiz 3/3.
 
@@ -863,7 +863,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 ## Day 55 - Celery group: one handle for a batch, not a speed-up (2026-10-12)
 **One-liner:** Once all tasks are SENT, waiting for them one by one costs the same as waiting for them together - total time = the slowest task, not the sum.
 
-1. `group(fake_llm_task.s(n) for n in range(4)).apply_async().get()` = one handle, one wait for 4 results (`day55_group.py`). `.s(n)` = a packed call, not sent yet (like `() => fakeLlm(n)`).
+1. `group(fake_llm_task.s(n) for n in range(4)).apply_async().get()` = one handle, one wait for 4 results (`celery_lab/day55_group.py`). `.s(n)` = a packed call, not sent yet (like `() => fakeLlm(n)`).
 2. First run 6.0s = COLD START (worker started ~10s earlier); warm runs 2.0s, 2.0s. Throw away the first run, like a load-test warm-up.
 3. Control: Day 54's one-by-one `.get()` loop ALSO ran 2.0s today. Friday's 4.1s did NOT reproduce - the "1-second pub/sub cycle" explanation is withdrawn as unproven.
 4. Why the loop is 2.0s not 8s: all 4 were already `.delay()`-ed before the first `.get()`; while waiting 2s on task 0, tasks 1-3 finished too. JS: `ps = items.map(start); for (p of ps) await p` is already Promise.all-speed - the slow version creates the promise INSIDE the loop.
