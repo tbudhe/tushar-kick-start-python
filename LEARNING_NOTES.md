@@ -860,6 +860,19 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Restaurant: Redis = ticket rail + status screen; worker pool = number of cooks
 - Interview line: "I measured it - threads took IO-bound work from 8s to 2s and did nothing for CPU work; processes took CPU work from 6.3s to 1.9s. So LLM-calling Celery workers get a threads pool, CPU-heavy ingestion gets prefork."
 
+## Day 55 - Celery group: one handle for a batch, not a speed-up (2026-10-12)
+**One-liner:** Once all tasks are SENT, waiting for them one by one costs the same as waiting for them together - total time = the slowest task, not the sum.
+
+1. `group(fake_llm_task.s(n) for n in range(4)).apply_async().get()` = one handle, one wait for 4 results (`day55_group.py`). `.s(n)` = a packed call, not sent yet (like `() => fakeLlm(n)`).
+2. First run 6.0s = COLD START (worker started ~10s earlier); warm runs 2.0s, 2.0s. Throw away the first run, like a load-test warm-up.
+3. Control: Day 54's one-by-one `.get()` loop ALSO ran 2.0s today. Friday's 4.1s did NOT reproduce - the "1-second pub/sub cycle" explanation is withdrawn as unproven.
+4. Why the loop is 2.0s not 8s: all 4 were already `.delay()`-ed before the first `.get()`; while waiting 2s on task 0, tasks 1-3 finished too. JS: `ps = items.map(start); for (p of ps) await p` is already Promise.all-speed - the slow version creates the promise INSIDE the loop.
+5. What `group` actually buys: one handle for a batch, and it is the building block of `chord` (group + callback when all finish). Prediction 2.1s vs 4.1s: wrong framing (Claude's) - measured tie. Quiz 3/3 (Q3 completed by Claude); weak spot 7 CLOSED.
+
+**Mental models added:**
+- Latency of a fan-out = the slowest branch, once everything is started
+- One run is an anecdote: warm up, then repeat, then run the control
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

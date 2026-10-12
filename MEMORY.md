@@ -332,3 +332,8 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Celery C1 done on his own ingest (tasks.py, celery_demo.py, run_ingest()); all predictions matched.
 - NVIDIA hiring manager interview booked Thu 2026-10-08; intro + Walmart Scan&Go story (5s -> 2.97s p99, 300K req/min) built - see STATUS.md INTERVIEW KIT.
 - Next: Day 54 Wed = NVIDIA prep, no new code; Day 55 Fri = Celery C2.
+
+**Session addendum - 2026-10-12 (Day 55)**
+- Celery `group` on day55_group.py: cold 6.0s, warm 2.0s/2.0s; control (one-by-one .get()) also 2.0s. Friday's 4.1s did not reproduce; group = one handle + base of chord, not speed.
+- Claude's prediction framing and Promise.all analogy were wrong (already-started promises awaited in a loop = Promise.all speed); owned and corrected.
+- Weak spot 7 closed. Next: Day 56 Celery C3 (separate queues). He asked for a repo reorg (system-design/ consistent hashing added).
