@@ -41,6 +41,16 @@ Project 1: SHIPPED. Project 2: pushed; remaining: Render service, remote eval ru
 Currently strong on: debugging from evidence once shown where to look; reading the worker banner; hardening Claude's code unprompted (try/except in day56_send).
 WEAK SPOT 7 (IO vs CPU in Python) - CLOSED 2026-10-12 (answered cold).
 
+BREAK SCHEDULE (decided 2026-10-14, Tushar chose OPTION B): break 10/15-10/25, but 1 HOUR Mon-Fri for learning. ONE idea per session, goal-first, shape before steps. Forecast: Phase 3 done ~Nov 3 (was Nov 10); Guardrails ~mid-Nov; Projects 3+4 Dec holds. If a day is skipped, slide the list - do not double up.
+- Thu 10/15 Day 57 - Celery `chord` (group + callback when all finish). [NVIDIA nudge to Sophia today if silent - 5 min, not learning time]
+- Fri 10/16 Day 58 - `acks_late=True` + kill a worker mid-task, prove the task is redelivered.
+- Mon 10/19 Day 59 - `retry_backoff` + `rate_limit` on a fake 429 (uses bind=True / self.retry) + `worker_prefetch_multiplier=1`.
+- Tue 10/20 Day 60 - CELERY CLOSE: no new code. Say the interview line out loud; Days 53-59 recap.
+- Wed 10/21 Day 61 - Multi-agent SHAPE: LangGraph supervisor -> 2 worker agents (plain-code equivalent first).
+- Thu 10/22 Day 62 - Multi-agent BUILD on Project 3 (RAG agent + one other).
+- Fri 10/23 Day 63 - MCP SHAPE (server / client / tools) - plain-code equivalent first.
+- Mon 10/26 - normal cadence resumes.
+
 REPO LAYOUT (reorganized 2026-10-12 - run EVERYTHING from the repo root with `python -m folder.file`, no `.py`)
 - revit_rag/ = Project 2 package (app, rag_service, retriever, ingest_corpus, ingest, api.http, corpus/, revit_db_07_25/); revit_rag/evaluation/ = evals, precision_eval, ragas_evals, audit_corpus, debug_floor.
 - celery_lab/ = day53-55 Celery files. Worker: `celery -A celery_lab.day53_tasks worker --loglevel=info`. Producer: `python -m celery_lab.day55_group`.
