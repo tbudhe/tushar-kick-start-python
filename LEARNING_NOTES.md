@@ -873,6 +873,19 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Latency of a fan-out = the slowest branch, once everything is started
 - One run is an anecdote: warm up, then repeat, then run the control
 
+## Day 56 - Celery separate queues: each kind of work gets its own queue and the right pool (2026-10-14)
+**One-liner:** `task_routes` sends each task to a named queue; a worker started with `-Q <name>` consumes only that queue - so LLM calls get a threads worker, CPU ingest gets a prefork worker, and a flood in one never blocks the other.
+
+1. `app.conf.task_routes = {"fake_llm": {"queue": "llm"}, "fake_embed": {"queue": "ingest"}}` = task name -> queue (a Redis list with that name). `@app.task(name="fake_llm")` gives the short name the routes use (`celery_lab/day56_queues.py`).
+2. `-Q llm` = Kafka `consumer.subscribe({topic: "llm"})`: this worker only consumes from `llm`. Banner check: `[queues] .> llm`. `-n llm@%h` names the worker.
+3. `bind=True` = Celery injects the current run as `self` (like Express `req` / NestJS `@Req()`); `self.request.hostname` proved which worker ran each task: 4/4 rows matched, zero mixing.
+4. Mac prefork crash `not enough values to unpack (expected 3, got 0)`: billiard uses `spawn` on darwin, fresh children skip Celery's setup -> empty task list. Fix: `FORKED_BY_MULTIPROCESSING=1` before the worker command. Linux does not need it.
+5. Interview line: "LLM calls and ingestion go on separate queues: llm -> threads worker because it's IO-bound, ingest -> prefork because embedding is CPU-bound, and a 1,000-document ingest can't starve user-facing LLM calls."
+
+**Mental models added:**
+- Queue = Kafka topic, worker `-Q` = consumer group subscription; size each independently
+- The crash that proves half the claim: the error came FROM worker B, so routing already worked
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

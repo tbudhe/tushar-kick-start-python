@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-10-12 (Day 55 - PHASE 3: CELERY group DONE - batch of 4 = 2.0s both ways; one-by-one .get() was never the slow part; Friday's 4.1s did not reproduce. NVIDIA: nudge Sophia Thu 10/15 if silent)
+Last Updated: 2026-10-14 (Day 56 - PHASE 3: CELERY separate queues DONE - fake_llm -> llm@ (threads), fake_embed -> ingest@ (prefork), zero mixing; Mac prefork needs FORKED_BY_MULTIPROCESSING=1. NVIDIA: nudge Sophia Thu 10/15 if silent)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -27,18 +27,18 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
-Day: 55 COMPLETE (2026-10-12) | Week: PHASE 3, week 2 | Next session = Day 56.
+Day: 56 COMPLETE (2026-10-14) | Week: PHASE 3, week 2 | Next session = Day 57.
 Goal: Staff SWE -> AI Backend Engineer (Autodesk) -> Staff/Principal AI Engineer, Walmart, July 2027
-Topic: Day 55 - CELERY `group`. `celery_lab/day55_group.py`: group(fake_llm_task.s(n) for n in range(4)).apply_async().get(). Runs: 6.0s (COLD - worker started 10s earlier), then 2.0s, 2.0s. CONTROL celery_lab/day54_pool_demo.py (one-by-one .get()) ALSO 2.0s. Lesson: once all tasks are SENT, sequential waiting = slowest task, not the sum. group's value = one handle + it is the base of `chord`, NOT speed.
-CORRECTIONS: Day 54 finding (3) "sequential .get() drains pub/sub in 1s cycles -> 4.1s" did NOT reproduce - WITHDRAWN. Claude's Day 55 prediction framing (group 2.1s vs loop 4.1s) and the Promise.all-vs-await-loop analogy were wrong: `for (p of alreadyStartedPromises) await p` is already Promise.all speed.
-SESSION SHAPE: ONE file, ONE idea, ~15 min - held. He said the idea back ("4 threads, each 2s in parallel"); Claude completed the "already sent" half.
-Quiz results: 3/3 (Q1 pool right, "why" completed by Claude; Q2 GIL right; Q3 badly worded by Claude, answered for him). WEAK SPOT 7 CLOSED.
-DAY 56 OPENING (max 3 single-part Qs): (1) Why did the one-by-one .get() loop take 2.0s, not 8s? (2) What does `.s(n)` give you that `.delay(n)` doesn't? (3) Why throw away the first timed run? Then ONE item: Celery C3 - separate queues (llm queue -> threads worker, ingest queue -> prefork worker). `chord` comes after.
-HOMEWORK: none.
+Topic: Day 56 - CELERY SEPARATE QUEUES. `celery_lab/day56_queues.py` (app + `task_routes` {fake_llm: llm, fake_embed: ingest} + 2 tasks with `bind=True` returning `self.request.hostname`) and `celery_lab/day56_send.py` (2+2 tasks, try/except around .get() - HIS hardening). Worker A `-Q llm --pool=threads -c 4 -n llm@%h`; worker B `FORKED_BY_MULTIPROCESSING=1 ... -Q ingest --pool=prefork -c 2 -n ingest@%h`. Result: 4/4 matched the goal printout, zero mixing. Worker logs: A only fake_llm (2.02s each), B only fake_embed on SpawnPoolWorker-1/2 (~0.45s).
+FINDING: prefork on macOS crashed with `ValueError: not enough values to unpack (expected 3, got 0)` at celery/app/trace.py:762. Cause: billiard/context.py:371 defaults to `spawn` on darwin, fresh children skip `setup_worker_optimizations` (celery/concurrency/prefork.py:67) so `_localized` is empty. Fix: `FORKED_BY_MULTIPROCESSING=1`. Routing was already proven by the crash (embed tickets reached worker B). Linux/Render does not need it. (This was the session's ONE internals dive.)
+SESSION SHAPE: he said "It's too much for me, can you slow down" after Claude's 4-row mapping table + 5-step runtime list. What worked next: ONE point (`-Q llm` = Kafka consumer.subscribe), <=8 lines, one fill-in-the-blank. He also framed bind=True himself as "dependency injection" (refined: context injection, like NestJS @Req()).
+Quiz results: 3/3, no completions needed.
+DAY 57 OPENING (max 3 single-part Qs): (1) What does `-Q ingest` do to a worker? (2) In which setting do you map a task name to a queue? (`task_routes`) (3) Why did prefork crash on the Mac until FORKED_BY_MULTIPROCESSING=1? Then ONE item: Celery `chord` (group + callback when all finish -> Day 41 blue/green collection-pointer flip, now async).
+HOMEWORK (Step 5, ~5 min): stop worker B, run `python -m celery_lab.day56_send`, see the 2 fake_llm rows print and the script hang on fake_embed (nobody subscribed to `ingest`); `redis-cli -n 0 llen ingest` should show 2. Restart worker B -> the 2 waiting tasks run and the script finishes.
 NVIDIA: HM round with Jerome Ansia done Thu 10/8. If silent, ONE nudge to Sophia Alvoeiro (salvoeiro@nvidia.com, JR2015832) Thu 10/15.
-OPEN: (a) paid ragas run - still needs yes/no + dollar cap (will not ask again); (b) Render service not created; (c) `scratch/dgx_sim.py`, `scratch/image_split.py` - not curriculum; (d) system_design/ - his consistent-hashing code (2026-10-12), repo reorg requested same day.
-Project 1: SHIPPED. Project 2: pushed; remaining: Render service, remote eval run, model cost decision, ragas upgrade, paid ragas run, grow CASES; CORPUS GAP: no Place-a-Wall procedure page. Project 3 (LangGraph Autodesk agent): router (day46) + hand loop (day48) + prebuilt loop (day49) + RAG-as-tool with grounding rule (day50) + InMemorySaver (day51) + SqliteSaver persistence (day52). Celery: ingest as background task (day53); pool choice measured (day54); group (day55).
-Currently strong on: debugging from evidence once shown where to look; reading the worker banner.
+OPEN: (a) paid ragas run - still needs yes/no + dollar cap (will not ask again); (b) Render service not created; (c) `scratch/dgx_sim.py`, `scratch/image_split.py` - not curriculum; (d) system_design/consistent_hashing.py has uncommitted edits (his).
+Project 1: SHIPPED. Project 2: pushed; remaining: Render service, remote eval run, model cost decision, ragas upgrade, paid ragas run, grow CASES; CORPUS GAP: no Place-a-Wall procedure page. Project 3 (LangGraph Autodesk agent): router (day46) + hand loop (day48) + prebuilt loop (day49) + RAG-as-tool with grounding rule (day50) + InMemorySaver (day51) + SqliteSaver persistence (day52). Celery: ingest as background task (day53); pool choice measured (day54); group (day55); separate queues + per-queue pool (day56).
+Currently strong on: debugging from evidence once shown where to look; reading the worker banner; hardening Claude's code unprompted (try/except in day56_send).
 WEAK SPOT 7 (IO vs CPU in Python) - CLOSED 2026-10-12 (answered cold).
 
 REPO LAYOUT (reorganized 2026-10-12 - run EVERYTHING from the repo root with `python -m folder.file`, no `.py`)

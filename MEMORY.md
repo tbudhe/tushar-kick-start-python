@@ -337,3 +337,8 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Celery `group` on day55_group.py: cold 6.0s, warm 2.0s/2.0s; control (one-by-one .get()) also 2.0s. Friday's 4.1s did not reproduce; group = one handle + base of chord, not speed.
 - Claude's prediction framing and Promise.all analogy were wrong (already-started promises awaited in a loop = Promise.all speed); owned and corrected.
 - Weak spot 7 closed. Next: Day 56 Celery C3 (separate queues). He asked for a repo reorg (system-design/ consistent hashing added).
+
+**Session addendum - 2026-10-14 (Day 56)**
+- Celery separate queues (day56_queues.py, day56_send.py): 4/4 routed correctly; Mac prefork needed FORKED_BY_MULTIPROCESSING=1 (billiard spawn on darwin).
+- He asked to slow down after a mapping table + 5-step list; one point + one fill-in-the-blank worked. Keep "didn't get it" replies to ONE point.
+- Next: Day 57 chord. Homework = Step 5 (stop worker B, watch ingest tasks wait).
