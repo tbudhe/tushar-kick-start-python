@@ -31,3 +31,8 @@ def fake_llm_task(n):
 def summarize_task(results):
     print(f"[worker] summarize got {results}")   # proves the callback runs on the WORKER
     return f"total={sum(results)} from {len(results)} results"
+
+@app.task
+def flip_task(chunk_counts):                       # blank 1: the task's name
+    print(f"[worker] flip got {chunk_counts}")    # proof it ran on the worker
+    return f"flip -> v2 ({sum(chunk_counts)} chunks)"      # blank 2: add up the list
