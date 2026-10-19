@@ -342,3 +342,8 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Celery separate queues (day56_queues.py, day56_send.py): 4/4 routed correctly; Mac prefork needed FORKED_BY_MULTIPROCESSING=1 (billiard spawn on darwin).
 - He asked to slow down after a mapping table + 5-step list; one point + one fill-in-the-blank worked. Keep "didn't get it" replies to ONE point.
 - Next: Day 57 chord. Homework = Step 5 (stop worker B, watch ingest tasks wait).
+
+**Session addendum - 2026-10-19 (Day 57)**
+- Celery chord (day57_chord.py + summarize_task in day53_tasks.py): 2.1s with .get(), 0.0s without and the callback still ran on the worker; results in send order.
+- Days 57-58 slid 2 sessions (10/15-10/16 skipped); Phase 3 forecast ~Nov 5. Weekend: DSA recursion (subsets, combinations, permutations with dedupe) in DSA/recursion.
+- Ambiguity: "remove .get()" made him ask about `return n` in day53_tasks.py - name file + line for every removal. Next: Day 58 acks_late.

@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-10-14 (Day 56 - PHASE 3: CELERY separate queues DONE - fake_llm -> llm@ (threads), fake_embed -> ingest@ (prefork), zero mixing; Mac prefork needs FORKED_BY_MULTIPROCESSING=1. NVIDIA: nudge Sophia Thu 10/15 if silent)
+Last Updated: 2026-10-19 (Day 57 - PHASE 3: CELERY CHORD DONE - group + callback on the worker; results in send order; callback runs even after the script exits)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -27,29 +27,29 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
-Day: 56 COMPLETE (2026-10-14) | Week: PHASE 3, week 2 | Next session = Day 57.
+Day: 57 COMPLETE (2026-10-19) | Week: PHASE 3, week 2 | Next session = Day 58.
 Goal: Staff SWE -> AI Backend Engineer (Autodesk) -> Staff/Principal AI Engineer, Walmart, July 2027
-Topic: Day 56 - CELERY SEPARATE QUEUES. `celery_lab/day56_queues.py` (app + `task_routes` {fake_llm: llm, fake_embed: ingest} + 2 tasks with `bind=True` returning `self.request.hostname`) and `celery_lab/day56_send.py` (2+2 tasks, try/except around .get() - HIS hardening). Worker A `-Q llm --pool=threads -c 4 -n llm@%h`; worker B `FORKED_BY_MULTIPROCESSING=1 ... -Q ingest --pool=prefork -c 2 -n ingest@%h`. Result: 4/4 matched the goal printout, zero mixing. Worker logs: A only fake_llm (2.02s each), B only fake_embed on SpawnPoolWorker-1/2 (~0.45s).
-FINDING: prefork on macOS crashed with `ValueError: not enough values to unpack (expected 3, got 0)` at celery/app/trace.py:762. Cause: billiard/context.py:371 defaults to `spawn` on darwin, fresh children skip `setup_worker_optimizations` (celery/concurrency/prefork.py:67) so `_localized` is empty. Fix: `FORKED_BY_MULTIPROCESSING=1`. Routing was already proven by the crash (embed tickets reached worker B). Linux/Render does not need it. (This was the session's ONE internals dive.)
-SESSION SHAPE: he said "It's too much for me, can you slow down" after Claude's 4-row mapping table + 5-step runtime list. What worked next: ONE point (`-Q llm` = Kafka consumer.subscribe), <=8 lines, one fill-in-the-blank. He also framed bind=True himself as "dependency injection" (refined: context injection, like NestJS @Req()).
+Topic: Day 57 - CELERY CHORD. `summarize_task(results)` added at end of `celery_lab/day53_tasks.py`; `celery_lab/day57_chord.py` = `chord([fake_llm_task.s(n) for n in range(4)])(summarize_task.s())`. Run 1 (with .get()): `summary: total=6 from 4 results`, elapsed 2.1s (predicted 2.0s). Worker log: 4 fake_llm started together, summarize_task received 1ms after the last one succeeded. Run 2 (no .get()): script done at 0.0s, worker STILL ran summarize (id b3400170 matched) -> fire-and-forget fan-in proven.
+FINDING: tasks finished 0,3,2,1 but callback got [0, 1, 2, 3] - chord passes results in SEND order, not finish order (same as Promise.all). Zero internals dives.
+SESSION SHAPE: plain-code shape (Promise.all + summarize, "both lines run on the worker") before the goal printout landed; 5/5 steps matched. He asked "remove `return n`?" at Step 5 - "remove .get()" was ambiguous because day53_tasks.py has a comment mentioning .get(). FIX: name the FILE and LINE for every removal. He adapted Step 5 himself (`summary = result` prints the AsyncResult id); line 13 comment "waits for summarize_task" is now stale (his to fix).
 Quiz results: 3/3, no completions needed.
-DAY 57 OPENING (max 3 single-part Qs): (1) What does `-Q ingest` do to a worker? (2) In which setting do you map a task name to a queue? (`task_routes`) (3) Why did prefork crash on the Mac until FORKED_BY_MULTIPROCESSING=1? Then ONE item: Celery `chord` (group + callback when all finish -> Day 41 blue/green collection-pointer flip, now async).
-HOMEWORK (Step 5, ~5 min): stop worker B, run `python -m celery_lab.day56_send`, see the 2 fake_llm rows print and the script hang on fake_embed (nobody subscribed to `ingest`); `redis-cli -n 0 llen ingest` should show 2. Restart worker B -> the 2 waiting tasks run and the script finishes.
+DAY 58 OPENING (max 3 single-part Qs): (1) In what order does a chord callback receive results? (send order) (2) Where does the callback run - your script or the worker? (worker) (3) Without .get(), what did `print(result)` show? (the callback task's id) Then ONE item: `acks_late=True` + kill a worker mid-task, prove the task is redelivered.
+HOMEWORK (~15 min, he writes it): in day53_tasks.py add `flip_task(chunk_counts)` returning f"flip -> v2 ({sum(chunk_counts)} chunks)"; restart worker; new `celery_lab/day57_flip.py` = chord of fake_llm_task over [5, 6, 7] with flip_task as callback, .get() and print. Predicted: `flip -> v2 (18 chunks)` in ~2.0s (the Day 41 blue/green flip, async).
 NVIDIA: HM round with Jerome Ansia done Thu 10/8. If silent, ONE nudge to Sophia Alvoeiro (salvoeiro@nvidia.com, JR2015832) Thu 10/15.
 OPEN: (a) paid ragas run - still needs yes/no + dollar cap (will not ask again); (b) Render service not created; (c) `scratch/dgx_sim.py`, `scratch/image_split.py` - not curriculum; (d) system_design/consistent_hashing.py has uncommitted edits (his).
-Project 1: SHIPPED. Project 2: pushed; remaining: Render service, remote eval run, model cost decision, ragas upgrade, paid ragas run, grow CASES; CORPUS GAP: no Place-a-Wall procedure page. Project 3 (LangGraph Autodesk agent): router (day46) + hand loop (day48) + prebuilt loop (day49) + RAG-as-tool with grounding rule (day50) + InMemorySaver (day51) + SqliteSaver persistence (day52). Celery: ingest as background task (day53); pool choice measured (day54); group (day55); separate queues + per-queue pool (day56).
+Project 1: SHIPPED. Project 2: pushed; remaining: Render service, remote eval run, model cost decision, ragas upgrade, paid ragas run, grow CASES; CORPUS GAP: no Place-a-Wall procedure page. Project 3 (LangGraph Autodesk agent): router (day46) + hand loop (day48) + prebuilt loop (day49) + RAG-as-tool with grounding rule (day50) + InMemorySaver (day51) + SqliteSaver persistence (day52). Celery: ingest as background task (day53); pool choice measured (day54); group (day55); separate queues + per-queue pool (day56); chord fan-in callback (day57).
 Currently strong on: debugging from evidence once shown where to look; reading the worker banner; hardening Claude's code unprompted (try/except in day56_send).
 WEAK SPOT 7 (IO vs CPU in Python) - CLOSED 2026-10-12 (answered cold).
 
 BREAK SCHEDULE (decided 2026-10-14, Tushar chose OPTION B): break 10/15-10/25, but 1 HOUR Mon-Fri for learning. ONE idea per session, goal-first, shape before steps. Forecast: Phase 3 done ~Nov 3 (was Nov 10); Guardrails ~mid-Nov; Projects 3+4 Dec holds. If a day is skipped, slide the list - do not double up.
-- Thu 10/15 Day 57 - Celery `chord` (group + callback when all finish). [NVIDIA nudge to Sophia today if silent - 5 min, not learning time]
-- Fri 10/16 Day 58 - `acks_late=True` + kill a worker mid-task, prove the task is redelivered.
-- Mon 10/19 Day 59 - `retry_backoff` + `rate_limit` on a fake 429 (uses bind=True / self.retry) + `worker_prefetch_multiplier=1`.
-- Tue 10/20 Day 60 - CELERY CLOSE: no new code. Say the interview line out loud; Days 53-59 recap.
-- Wed 10/21 Day 61 - Multi-agent SHAPE: LangGraph supervisor -> 2 worker agents (plain-code equivalent first).
-- Thu 10/22 Day 62 - Multi-agent BUILD on Project 3 (RAG agent + one other).
-- Fri 10/23 Day 63 - MCP SHAPE (server / client / tools) - plain-code equivalent first.
-- Mon 10/26 - normal cadence resumes.
+- Mon 10/19 Day 57 - Celery `chord` DONE (slid from Thu 10/15; 10/15-10/16 skipped).
+- Tue 10/20 Day 58 - `acks_late=True` + kill a worker mid-task, prove the task is redelivered.
+- Wed 10/21 Day 59 - `retry_backoff` + `rate_limit` on a fake 429 (uses bind=True / self.retry) + `worker_prefetch_multiplier=1`.
+- Thu 10/22 Day 60 - CELERY CLOSE: no new code. Say the interview line out loud; Days 53-59 recap.
+- Fri 10/23 Day 61 - Multi-agent SHAPE: LangGraph supervisor -> 2 worker agents (plain-code equivalent first).
+- Mon 10/26 Day 62 - Multi-agent BUILD on Project 3 (RAG agent + one other).
+- Tue 10/27 Day 63 - MCP SHAPE (server / client / tools) - plain-code equivalent first.
+- Forecast after the 2-day slide: Phase 3 done ~Nov 5 (was Nov 3); Dec projects milestone holds.
 
 REPO LAYOUT (reorganized 2026-10-12 - run EVERYTHING from the repo root with `python -m folder.file`, no `.py`)
 - revit_rag/ = Project 2 package (app, rag_service, retriever, ingest_corpus, ingest, api.http, corpus/, revit_db_07_25/); revit_rag/evaluation/ = evals, precision_eval, ragas_evals, audit_corpus, debug_floor.

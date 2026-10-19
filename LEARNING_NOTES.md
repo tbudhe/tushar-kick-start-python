@@ -886,6 +886,19 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Queue = Kafka topic, worker `-Q` = consumer group subscription; size each independently
 - The crash that proves half the claim: the error came FROM worker B, so routing already worked
 
+## Day 57 - Celery chord: group + a callback that runs on the worker when all finish (2026-10-19)
+**One-liner:** `chord(header)(callback.s())` = `Promise.all(tasks).then(summarize)` where BOTH halves run on the worker - the script sends one ticket and can exit.
+
+1. `chord([fake_llm_task.s(n) for n in range(4)])(summarize_task.s())` - first call packs the group, second attaches the callback AND sends; the handle returned is the CALLBACK's (`celery_lab/day57_chord.py`).
+2. `summarize_task.s()` has empty brackets - Celery passes the list of header results as the first argument.
+3. Results arrive in SEND order: tasks finished 0,3,2,1, callback got [0, 1, 2, 3] (like Promise.all).
+4. Measured: 2.1s with .get() (predicted 2.0s); 0.0s without .get() and the worker still ran summarize (same task id) - fire-and-forget fan-in.
+5. Interview line: "Ingest fans out as a chord - chunks embed in parallel and the callback flips the collection pointer only when every chunk succeeded, so the API returns 202 and the blue/green swap happens on the worker."
+
+**Mental models added:**
+- group = Promise.all you await; chord = Promise.all whose .then lives on the server
+- The proof of where code runs is which terminal prints the line
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call

@@ -27,3 +27,7 @@ def fake_llm_task(n):
     time.sleep(2)                         # stands in for waiting on an LLM API (IO-bound)
     return n                              # stored in Redis /1, read back by .get()
 
+@app.task
+def summarize_task(results):
+    print(f"[worker] summarize got {results}")   # proves the callback runs on the WORKER
+    return f"total={sum(results)} from {len(results)} results"
