@@ -89,3 +89,24 @@ assert {k: ring.get_server(k) for k in keys} == before
 print(Counter(before.values()))
 print(f"moved {len(moved)} of {len(keys)} keys")
 print("all tests passed")
+# Data test with Key & Value
+storage = {"server 0": {}, "server 1": {}, "server 2": {}}   # fake servers
+
+def write(key: str, value: str, n: int = 2) -> None:
+    for server in ring.get_servers(key, n):   # owner + next distinct server
+        storage[server][key] = value          # same value saved on each
+
+def read(key: str, n: int = 2) -> str:
+    for server in ring.get_servers(key, n):   # try owner first, then the copy
+        if key in storage[server]:
+            return storage[server][key]
+    raise KeyError(key)
+
+write("user:42", "Tushar")
+owner, copy = ring.get_servers("user:42", 2)
+print(owner, copy)                       # where it was saved
+
+storage[owner].clear()                   # owner's disk is wiped
+ring.remove_server(owner)                # health check removes it
+
+print(read("user:42"))                   # still "Tushar", from the copy
