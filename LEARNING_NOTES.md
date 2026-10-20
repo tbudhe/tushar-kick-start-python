@@ -911,6 +911,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 **Mental models added:**
 - acks_late=False = Service Bus ReceiveAndDelete; acks_late=True = PeekLock + CompleteAsync() after the work
 - Never let a proof depend on human reaction time - script the kill
+- Exercise: no guard -> `charged 42` twice (double charge); `if line already in log: skip` -> `charged 43` once. Production guard = DB unique constraint / Redis SET NX, not check-then-write
 
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know

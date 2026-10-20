@@ -18,3 +18,21 @@ def slow_task(n):
     print(f"[worker] slow_task {n} started")
     time.sleep(10)                        # 10s window to kill the worker mid-task
     return f"done {n}"
+
+@app.task(acks_late=True)                 # at-least-once: may run twice after a crash
+def charge_task(order_id):
+    line = f"charged {order_id}\n"
+    try:
+        with open("celery_lab/charges.log") as f:     # read mode (default)
+            already = line in f.readlines()           # was this order charged before?
+    except FileNotFoundError:                         # first ever charge: no file yet
+        already = False
+
+    if already:
+        print(f"[worker] order {order_id} already charged - skipping")
+    else:
+        with open("celery_lab/charges.log", "a") as f:
+            f.write(line)                             # the side effect, at most once per order
+        print(f"[worker] charged {order_id}")
+    time.sleep(10)                        # slow follow-up work - the kill lands here
+    return f"order {order_id} done"
