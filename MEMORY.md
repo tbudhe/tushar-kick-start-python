@@ -347,3 +347,8 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Celery chord (day57_chord.py + summarize_task in day53_tasks.py): 2.1s with .get(), 0.0s without and the callback still ran on the worker; results in send order.
 - Days 57-58 slid 2 sessions (10/15-10/16 skipped); Phase 3 forecast ~Nov 5. Weekend: DSA recursion (subsets, combinations, permutations with dedupe) in DSA/recursion.
 - Ambiguity: "remove .get()" made him ask about `return n` in day53_tasks.py - name file + line for every removal. Next: Day 58 acks_late.
+
+**Session addendum - 2026-10-20 (Day 58)**
+- Celery acks_late (new files day58_tasks.py + day58_acks.py at his request): kill -9 mid-task -> same id redelivered on a fresh worker; acks_late=False control lost the task.
+- Manual 10s kill window missed twice - automated with a `& sleep 3; pkill -9` one-liner. Never make a proof depend on reaction time.
+- Next: Day 59 retry_backoff + rate_limit + prefetch=1. Exercise owed: charge_task duplicate side effect -> idempotent fix.

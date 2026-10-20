@@ -899,6 +899,19 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - group = Promise.all you await; chord = Promise.all whose .then lives on the server
 - The proof of where code runs is which terminal prints the line
 
+## Day 58 - Celery acks_late: ack AFTER the work, so a killed worker's task comes back (2026-10-20)
+**One-liner:** default Celery acks on RECEIVE (message deleted, a crash loses it); `acks_late=True` acks after the task finishes, so a `kill -9` leaves it parked and Redis hands it to the next worker.
+
+1. `@app.task(acks_late=True)` in `celery_lab/day58_tasks.py`; producer `celery_lab/day58_acks.py` = `slow_task.delay(7)` + `.get(timeout=120)`.
+2. Redis has no real lock: `broker_transport_options={"visibility_timeout": 20}` decides when a parked (unacked) message is considered lost. Default is 1 HOUR. Must be longer than the longest task, or a healthy task gets delivered twice.
+3. Proof: kill -9 at 3s -> restart -> SAME id 08df20c4 received 1ms after `ready`, succeeded 10s later. Control (acks_late=False): same kill -> restart -> silence. The task was gone.
+4. Trade-off: acks_late = at-least-once delivery -> every task must be idempotent (a charge or a DB write can run twice).
+5. Interview line: "Ingest tasks run with acks_late so a pod OOM-kill or a node drain doesn't drop work - the message stays unacked and is redelivered - and because that's at-least-once, the tasks are idempotent."
+
+**Mental models added:**
+- acks_late=False = Service Bus ReceiveAndDelete; acks_late=True = PeekLock + CompleteAsync() after the work
+- Never let a proof depend on human reaction time - script the kill
+
 ## Archived Mental Models (moved from STATUS.md 2026-08-20 — STATUS.md now keeps only the active top-of-mind set)
 - World knowledge is a bypass — models guess internal IDs they think they know
 - A half-designed tool is not neutral — its description misleads the model on EVERY call
@@ -983,3 +996,11 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - ToolNode._func = threadpool (sync), ToolNode._afunc = asyncio.gather (async) — both parallelize; async just doesn't park an OS thread
 - LangChain = model/tool layer; LangGraph = the runtime that owns the loop and the state
 - Wall clock mixes model latency + tool time + network; stamp the thing you are actually measuring
+
+
+## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
+- Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
+- Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).
+- replicaCount is used only when autoscaling.enabled=false; minReplicas belongs to the HPA.
+- Upgrade = rolling update (new pod-template hash, staggered pod ages); rollback creates a NEW revision and reuses the old ReplicaSet hash.
+- Real ACR differences: az acr create, helm registry login with token, HTTPS (no --plain-http), az aks update --attach-acr.
