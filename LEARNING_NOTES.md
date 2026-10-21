@@ -999,6 +999,21 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Wall clock mixes model latency + tool time + network; stamp the thing you are actually measuring
 
 
+## Day 59 - Celery retry on 429: backoff + jitter, and rate_limit (2026-10-21)
+**One-liner:** a retry is the SAME task id re-sent through Redis with `retries` +1 and a countdown; the thread is freed while waiting. `autoretry_for` + `retry_backoff=True` does it for you WITH jitter; `rate_limit` stops the 429 from happening at all.
+
+1. `celery_lab/day59_tasks.py`: `@app.task(bind=True, ...)` -> `self.request.retries` = attempt number. Manual `raise self.retry(exc=error, countdown=2 ** attempt)` -> waits 1, 2, 4 -> `ok 7 after 3 retries` in 7.1s (predicted 7.x).
+2. Shortcut `autoretry_for=(RateLimited,), retry_backoff=True` -> no try/except. Jitter ON by default (`autoretry.py:30`); `utils/time.py:460` = `random.randrange(countdown + 1)` -> waits 1, 2, 3 = 6.1s, then 5.0s. 2**n is the CEILING; jitter only makes it shorter. Why: 500 throttled workers don't retry in lockstep.
+3. Retried message is RECEIVED by the worker at once and held in memory until its ETA (not parked in Redis) -> keep countdown < visibility_timeout.
+4. `rate_limit="1/s"` = token bucket, capacity 1 (`consumer.py:262`), PER WORKER. 5 tasks -> 3.0s (predicted 4.0 - OPEN). A first run took 54.3s: messages waited in Redis ~50s for a worker that knew the task, then ran 1/s.
+5. SUCCESS = the function returned, not "the work worked". PENDING = "no record for this id" (typo, lost result write, never sent) - never trust PENDING without a timeout.
+
+**Mental models added:**
+- self.retry = hand-written Polly policy; autoretry_for = WaitAndRetryAsync with jitter
+- Redis is a server; worker and producer are both clients - Celery never starts Redis
+- Changed the tasks file? Restart the worker (node without nodemon). Unregistered task -> KeyError, message dropped
+- Unrelated apps sharing the default `celery` queue steal each other's messages
+
 ## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
 - Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
 - Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).

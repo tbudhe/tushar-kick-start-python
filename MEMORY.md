@@ -352,3 +352,8 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Celery acks_late (new files day58_tasks.py + day58_acks.py at his request): kill -9 mid-task -> same id redelivered on a fresh worker; acks_late=False control lost the task.
 - Manual 10s kill window missed twice - automated with a `& sleep 3; pkill -9` one-liner. Never make a proof depend on reaction time.
 - Next: Day 59 retry_backoff + rate_limit + prefetch=1. Exercise owed: charge_task duplicate side effect -> idempotent fix.
+
+**Session addendum - 2026-10-21 (Day 59)**
+- Celery retry on 429: self.retry 1/2/4 = 7.1s; autoretry_for + retry_backoff (jitter default) = 6.1s / 5.0s; rate_limit 1/s = 3.0s vs predicted 4.0 (open).
+- NO BLANKS (`____A____`) ever again - he pasted one as a string and asked for normal syntax. Give complete code; ask in words. Mark banner text as "look for, don't type".
+- After any tasks-file edit, tell him to restart the worker in the same step. Next: Day 60 Celery close.
