@@ -1014,6 +1014,19 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Changed the tasks file? Restart the worker (node without nodemon). Unregistered task -> KeyError, message dropped
 - Unrelated apps sharing the default `celery` queue steal each other's messages
 
+## Day 60 - Redis X-ray, concepts only + mock interview (2026-10-26)
+**One-liner:** Celery on Redis is a LIST - producers LPUSH, workers BRPOP - and the work runs in separate worker processes so it survives API restarts, doesn't steal request capacity, and scales on its own.
+
+1. Redis = single-threaded, in-memory data-structure server (like Node's event loop: one command at a time) -> every command is atomic. Pick the type per job: string (cache/counter), hash (object), list (queue), sorted set (scheduling, sliding window), TTL on any key. Default port 6379 ("MERZ").
+2. Rate limit across 50 servers: key `rate:user42:09:45`, `INCR` + 60s expiry, check the RETURNED value (100 vs 101, never 99/99). Over 100 -> 429 (NOT 409 = Conflict). Fixed window allows a 200-in-2s burst at the boundary -> sliding window = sorted set of timestamps.
+3. Celery's Redis features: list `celery` in db 0 (queue), `unacked` hash + sorted set (redelivery, visibility_timeout), `celery-task-meta-<id>` string with TTL in db 1 (results), pub/sub to wake `.get()`.
+4. BRPOP vs RPOP loop: blocking pop sleeps INSIDE Redis and wakes instantly; polling is late or floods Redis. = `await` vs `setInterval`. Only that one connection waits - nothing else blocks.
+5. Why a worker, not an API thread: (a) a thread dies with the API on deploy/crash, a message in Redis survives; (b) it steals request CPU/memory; (c) can't scale separately. The worker's MAIN process consumes and supervises; children execute (= Node `cluster` / PM2 primary). Pass a blob-storage REFERENCE in the message, not the PDF (his point).
+
+**Mental models added:**
+- Celery + Redis = BullMQ (queue.add = .delay, new Worker = celery worker, job.returnvalue = task-meta key)
+- Interview habit: FIRST sentence answers the question, then the why, then the trade-off. "I don't know" -> reason out loud from what you do know.
+
 ## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
 - Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
 - Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).

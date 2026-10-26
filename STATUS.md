@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-10-21 (Day 59 - PHASE 3: CELERY retry on 429 DONE - self.retry 1/2/4 = 7.1s; autoretry + jitter 6.1s / 5.0s; rate_limit 1/s = 3.0s (predicted 4.0, OPEN))
+Last Updated: 2026-10-26 (Day 60 - PHASE 3: REDIS X-RAY, concepts only + mock interview - Celery-on-Redis = list LPUSH/BRPOP; INCR rate limit; why a worker not a thread)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -27,15 +27,16 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
-Day: 59 COMPLETE (2026-10-21) | Week: PHASE 3, week 2 | Next session = Day 60.
+Day: 60 COMPLETE (2026-10-26) | Week: PHASE 3, week 2 | Next session = Day 61.
 Goal: Staff SWE -> AI Backend Engineer (Autodesk) -> Staff/Principal AI Engineer, Walmart, July 2027
-Topic: Day 59 - CELERY RETRY ON 429 + rate_limit. New files: `celery_lab/day59_tasks.py` (own app, threads x4; `fake_api(attempt)` raises RateLimited while attempt < 3; `call_api_auto` with autoretry_for + retry_backoff; `call_llm` with rate_limit="1/s"), producers `day59_retry.py`, `day59_auto.py`, `day59_rate.py`. Worker: `celery -A celery_lab.day59_tasks worker --loglevel=info`. (He replaced the step-1 manual `call_api` with `call_api_auto`, so day59_retry.py no longer imports.)
+Topic: Day 60 - REDIS X-RAY, CONCEPTS ONLY (he asked for no code). Concepts 1-2 of 5 taught: (1) Redis = single-threaded in-memory data-structure server, atomic commands, types per job; (2) Celery on Redis = list `celery` (db 0) LPUSH/BRPOP + `unacked` hash + `celery-task-meta-<id>` TTL string (db 1) + pub/sub. Plus his own design Qs: why worker not API thread, why main process supervises, why blocking is free. Mock interview: Q1 rate limit (lean hire - right instinct, buried under idempotency/queue, said 409 not 429), Q2 BRPOP (half - 'wait mode', then 'sorry I don't know'), Q3 thread-vs-Celery (described HOW not WHY; good blob-reference detail).
+PREV Day 59 - CELERY RETRY ON 429 + rate_limit. New files: `celery_lab/day59_tasks.py` (own app, threads x4; `fake_api(attempt)` raises RateLimited while attempt < 3; `call_api_auto` with autoretry_for + retry_backoff; `call_llm` with rate_limit="1/s"), producers `day59_retry.py`, `day59_auto.py`, `day59_rate.py`. Worker: `celery -A celery_lab.day59_tasks worker --loglevel=info`. (He replaced the step-1 manual `call_api` with `call_api_auto`, so day59_retry.py no longer imports.)
 RESULTS: manual `raise self.retry(exc=error, countdown=2 ** attempt)` -> same id, retries 0->3, waits 1/2/4 -> 7.1s (predicted 7.x). autoretry_for + retry_backoff=True -> waits 1/2/3 -> 6.1s, rerun 5.0s (jitter ON by default; utils/time.py:460 `random.randrange(countdown + 1)`). rate_limit="1/s", 5 tasks -> 3.0s (predicted 4.0).
-OPEN (start of Day 60, 3 min): the 3.0s vs 4.0s miss - rerun `python -m celery_lab.day59_rate` and read the 5 `call_llm N started` timestamps; expect two in the same second. Control run (remove rate_limit -> ~0.0s) not done. `worker_prefetch_multiplier = 1` line NOT added yet (goes below line 10 `app.conf.worker_concurrency = 4`).
+OPEN (carried, optional, needs code - skipped Day 60 at his request): the 3.0s vs 4.0s miss - rerun `python -m celery_lab.day59_rate` and read the 5 `call_llm N started` timestamps; expect two in the same second. Control run (remove rate_limit -> ~0.0s) not done. `worker_prefetch_multiplier = 1` line NOT added yet (goes below line 10 `app.conf.worker_concurrency = 4`).
 FINDINGS: (1) SUCCESS = function returned, PENDING = no record (his opening question). (2) retried message is received at once and held in WORKER memory until ETA -> countdown must stay < visibility_timeout. (3) a stale day58 `charge_task(43)` (redelivered=True) was still in the shared `celery` queue -> day59 worker KeyError, dropped. So order 43's idempotency guard was NOT proven on Day 58 -> order-44 rerun still owed (optional). (4) 54.3s first run = worker not running/restarted; messages waited in Redis, then ran 1/s.
 SESSION SHAPE: worked - he asked to finish ("go let's finish todays topic"). Slips, all Claude's: (a) `____A____` blank -> he pasted it as a string and said "don't use weird syntax" -> NO MORE BLANKS, give complete code and ask in words. (b) "check [tasks] lists `. celery_lab...`" -> he typed it as a shell command -> label banner text as "look for, don't type". (c) forgot to say "restart the worker" after adding call_llm -> 54.3s hang.
 Quiz results: 3/3 (Q2 added the visibility_timeout > longest task rule unprompted). He reran the jitter test a second time on his own.
-DAY 60 OPENING (max 3 single-part Qs): (1) In autoretry with jitter, can a wait ever be LONGER than 2**retries? (no - it is the ceiling) (2) What does PENDING really mean? (no record for that id) (3) Is rate_limit global across workers? (no - per worker) Then the 3-min OPEN item above, then CELERY CLOSE as planned.
+DAY 61 OPENING (max 3 single-part Qs): (1) Which Redis command does a Celery worker use to wait for messages? (BRPOP) (2) Why is INCR safe for a rate limit across 50 servers with no lock? (single-threaded -> atomic) (3) One reason background work belongs in a worker, not an API thread? (survives restarts / doesn't steal capacity / scales separately). Then CONCEPTS 3-5 (ack + visibility_timeout + at-least-once -> idempotency; result backend + PENDING; persistence/eviction/when RabbitMQ or SQS) with mock Qs, answer-first habit drilled.
 NVIDIA: HM round with Jerome Ansia done Thu 10/8. If silent, ONE nudge to Sophia Alvoeiro (salvoeiro@nvidia.com, JR2015832) Thu 10/15.
 OPEN: (a) paid ragas run - still needs yes/no + dollar cap (will not ask again); (b) Render service not created; (c) `scratch/dgx_sim.py`, `scratch/image_split.py` - not curriculum; (d) system_design/consistent_hashing.py has uncommitted edits (his).
 Project 1: SHIPPED. Project 2: pushed; remaining: Render service, remote eval run, model cost decision, ragas upgrade, paid ragas run, grow CASES; CORPUS GAP: no Place-a-Wall procedure page. Project 3 (LangGraph Autodesk agent): router (day46) + hand loop (day48) + prebuilt loop (day49) + RAG-as-tool with grounding rule (day50) + InMemorySaver (day51) + SqliteSaver persistence (day52). Celery: ingest as background task (day53); pool choice measured (day54); group (day55); separate queues + per-queue pool (day56); chord fan-in callback (day57); acks_late redelivery + control (day58); retry on 429 with backoff+jitter, rate_limit (day59).
@@ -46,11 +47,13 @@ BREAK SCHEDULE (decided 2026-10-14, Tushar chose OPTION B): break 10/15-10/25, b
 - Mon 10/19 Day 57 - Celery `chord` DONE (slid from Thu 10/15; 10/15-10/16 skipped).
 - Tue 10/20 Day 58 - `acks_late=True` + kill a worker mid-task DONE (redelivered, control lost).
 - Wed 10/21 Day 59 - retry on 429 (self.retry + autoretry/jitter) + rate_limit DONE; prefetch=1 + rate_limit control carried to Day 60.
-- Thu 10/22 Day 60 - CELERY CLOSE: 3-min rate_limit timestamp check + prefetch=1 line, then no new code. Say the interview line out loud; Days 53-59 recap.
-- Fri 10/23 Day 61 - Multi-agent SHAPE: LangGraph supervisor -> 2 worker agents (plain-code equivalent first).
-- Mon 10/26 Day 62 - Multi-agent BUILD on Project 3 (RAG agent + one other).
-- Tue 10/27 Day 63 - MCP SHAPE (server / client / tools) - plain-code equivalent first.
-- Forecast after the 2-day slide: Phase 3 done ~Nov 5 (was Nov 3); Dec projects milestone holds.
+- Thu 10/22 + Fri 10/23 - SKIPPED (slid).
+- Mon 10/26 Day 60 - REDIS X-RAY concepts 1-2 + mock interview DONE (no code, his call).
+- Tue 10/27 Day 61 - REDIS/CELERY CONCEPTS 3-5 + mock interview (closes Celery).
+- Wed 10/28 Day 62 - Multi-agent SHAPE: LangGraph supervisor -> 2 worker agents (plain-code equivalent first).
+- Thu 10/29 Day 63 - Multi-agent BUILD on Project 3.
+- Fri 10/30 Day 64 - MCP SHAPE (server / client / tools).
+- Forecast after the 10/22-23 skip + 1 added Redis day: Phase 3 done ~Nov 9 (was Nov 5); Guardrails mid/late Nov; Dec projects milestone holds.
 
 REPO LAYOUT (reorganized 2026-10-12 - run EVERYTHING from the repo root with `python -m folder.file`, no `.py`)
 - revit_rag/ = Project 2 package (app, rag_service, retriever, ingest_corpus, ingest, api.http, corpus/, revit_db_07_25/); revit_rag/evaluation/ = evals, precision_eval, ragas_evals, audit_corpus, debug_floor.
@@ -73,6 +76,7 @@ WEAK SPOTS (revisit)
 5. LABEL SETS / ANSWERHOOD (opened 2026-09-08) — labelled a precision test by SOURCE DOCUMENT, twice, including the known false-positive chunk. The rule to re-test: "if a reader got ONLY this chunk, could they do the thing?" Retest by asking him to label 3 new questions cold at the start of REVISION WEEK.
 6. PHASE 1 MODEL LAYER (opened 2026-09-17) - training vs inference collapsed into RAG vocabulary. Re-test the five sentences across REVISION WEEK, max 3 per session: Day 44 = tokens, attention, generation.
 7. IO-BOUND vs CPU-BOUND IN PYTHON (opened 2026-09-17, from a REAL AI-engineer interview): asked about Celery (said "I don't know", no bridge) and IO operations (answered spawn/exec/fork child processes - that is the CPU-bound answer). Fix: IO-bound -> asyncio or threads (GIL released while waiting); CPU-bound -> processes. Celery pools: prefork for CPU, gevent/threads for IO (LLM calls are IO). Fold into Day 44 agents block (Day 37 async). Also practise the BRIDGE answer for unknown tools.
+8. INTERVIEW DELIVERY (opened 2026-10-26, from Day 60 mocks): knows the mechanisms, but leads with adjacent ones and describes HOW when asked WHY; stops at 'sorry I don't know'; slips small facts (409 vs 429, port). Drill: first sentence answers the question, then why, then trade-off; unknowns -> reason out loud. Technical depth is NOT the gap.
 CLOSED 2026-08-28: DIRECTION INVERSIONS / SLOT SWAPS (open since Day 26).
 
 CARRIED FORWARD

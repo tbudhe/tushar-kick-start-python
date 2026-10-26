@@ -357,3 +357,8 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - Celery retry on 429: self.retry 1/2/4 = 7.1s; autoretry_for + retry_backoff (jitter default) = 6.1s / 5.0s; rate_limit 1/s = 3.0s vs predicted 4.0 (open).
 - NO BLANKS (`____A____`) ever again - he pasted one as a string and asked for normal syntax. Give complete code; ask in words. Mark banner text as "look for, don't type".
 - After any tasks-file edit, tell him to restart the worker in the same step. Next: Day 60 Celery close.
+
+**Session addendum - 2026-10-26 (Day 60)**
+- He asked "no code, concepts should be clear" -> Redis X-ray done as concepts + mock interview. BullMQ mapping and ioredis LPUSH/BRPOP landed; his own design Qs (worker vs thread, main process, why block) were the best part.
+- Claude slip: mock Q1 (rate limit) given without saying it was general Redis, not Celery - he answered with Celery ideas. Label every mock question's scope.
+- He asked "do I even look like a senior engineer?" -> answered with evidence: depth yes, delivery is the gap (weak spot 8). Next: Day 61 concepts 3-5 + mocks.
