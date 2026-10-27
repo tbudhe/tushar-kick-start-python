@@ -1027,6 +1027,19 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - Celery + Redis = BullMQ (queue.add = .delay, new Worker = celery worker, job.returnvalue = task-meta key)
 - Interview habit: FIRST sentence answers the question, then the why, then the trade-off. "I don't know" -> reason out loud from what you do know.
 
+## Day 61 - Celery reliability: acks + PENDING, concepts only (2026-10-27)
+**One-liner:** With acks_late a crash means a rerun, not a loss - so delivery is at-least-once and every task must be idempotent; and PENDING means "no record found", not "waiting".
+
+1. Ack = "done, forget it". Until then the message sits in Redis's `unacked` area; after `visibility_timeout` with no ack, it goes BACK on the queue.
+2. `acks_late=False` (default): ack on receive -> crash = task LOST (at-most-once). `acks_late=True`: ack after finish -> crash = task RUNS AGAIN (at-least-once). Proved on Day 58 with kill -9.
+3. At-least-once -> idempotent tasks (= Stripe `Idempotency-Key`), and visibility_timeout > slowest task, or a 2nd worker gets it while the 1st is still running.
+4. `AsyncResult(id).state` just looks up `celery-task-meta-<id>` in db 1. Missing key -> PENDING (= `jobs.get(id) ?? {status: "PENDING"}`).
+5. Stuck in PENDING? No worker on that queue (Day 59's 54.3s), result expired (`result_expires`, 1 day), or wrong id / `ignore_result`. Real job-status APIs store their own status row.
+
+**Mental models added:**
+- acks_late = retry-when-unsure, like a client retrying a timed-out payment call
+- PENDING = `undefined` with a default, not a state anyone wrote
+
 ## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
 - Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
 - Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).

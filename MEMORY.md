@@ -362,3 +362,7 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - He asked "no code, concepts should be clear" -> Redis X-ray done as concepts + mock interview. BullMQ mapping and ioredis LPUSH/BRPOP landed; his own design Qs (worker vs thread, main process, why block) were the best part.
 - Claude slip: mock Q1 (rate limit) given without saying it was general Redis, not Celery - he answered with Celery ideas. Label every mock question's scope.
 - He asked "do I even look like a senior engineer?" -> answered with evidence: depth yes, delivery is the gap (weak spot 8). Next: Day 61 concepts 3-5 + mocks.
+
+**Session addendum - 2026-10-27 (Day 61)**
+- Concepts 3-4 only (acks_late/at-least-once/idempotency; PENDING = no record); he stopped after concept 4 - short session, concept 5 + mock slid to Day 62.
+- Quiz 1.5/3: knows mechanisms, first sentence still not the answer (weak spot 8). Anchoring concepts to his OWN Day 58/59 results (kill -9, 54.3s hang) and a Stripe Idempotency-Key / `?? {status:'PENDING'}` analogy landed with no pushback.
