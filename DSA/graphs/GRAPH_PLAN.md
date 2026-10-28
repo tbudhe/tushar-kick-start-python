@@ -7,6 +7,14 @@ Started: 2026-10-26 · Pace: 1 pattern/session, review after #4 and #8 → ~10 s
 2. What is an **edge**?
 3. What is the **ask**? reach · shortest · order · groups · cheapest → this picks the pattern
 
+## Foundations (inserted 2026-10-27, before Pattern 4)
+| # | Foundation | Status |
+|---|---|---|
+| F1 | BFS on a graph from edges | ✅ 2026-10-27 |
+| F2 | DFS on the same graph | ✅ 2026-10-27 |
+| F3 | Cycle detection, undirected (visited + parent) | 🔧 fix 2 bugs → expect False, True |
+| F4 | Cycle detection, directed (DFS back edge / Kahn) | ⏭ |
+
 ## Patterns
 
 | # | Pattern | Signal in the question | Anchor problem | Status |
@@ -69,3 +77,10 @@ Goal output first → node/edge/ask out loud → I write the code → interviewe
 - Bugs fixed: `defaultdict(str)`→`list`, slice `[:i+1]`→`[i+1:]`, `append((a, b))`, added `visited`, `return 0` dedented out of loop, start count at 1 (words, not steps)
 - Design lesson: sorted-adjacent comparison misses edges (`hot`/`lot`) → compare all pairs, O(N²·L)
 - Why BFS = shortest: FIFO explores by distance, so first hit is shortest (only with equal edge weights). Follow-up: pattern map `h*t → [hit, hot]` for O(N·L²)
+
+### 2026-10-27 (afternoon) — Foundations F1–F3
+- F1 BFS `[0,1,2,3,4]` and F2 DFS `[0,1,3,2,4]` both correct, own code
+- Rule: `queue` = to-do list, `order` = done list; never append back into the queue you pop from
+- `visited` as array `[False]*n` when nodes are 0..n-1 (n = number of NODES, not edges); set otherwise
+- Cycle (undirected) = a visited neighbor that is NOT my parent → two roads to the same node
+- F3 bugs to fix: BFS check reversed → `neighbor == parent.get(node)`; DFS must `if visit(neighbor, node): return True`
