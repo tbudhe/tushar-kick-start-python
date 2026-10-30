@@ -79,7 +79,13 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **The label set IS the test (Day 40):** "My first golden set labelled by topic and scored 100% on a known bug. Label the chunk that ANSWERS, not the one ABOUT the topic."
 - **Grade the real evidence (Day 19):** "The judge grades the chunks the pipeline actually returned — re-retrieving in the eval is a guess about the past."
 - **Offline + online:** "Offline, I run the golden set plus judges on every prompt or model change, as a regression gate. Online, I trace production with LangSmith and sample real traffic into the dataset, so the eval set grows from real failures."
+- **Test the tester (Day 63):** "Before trusting my judge, I fed it my real chunks with a fabricated answer — it said NO. Faithfulness came out 4/4 on answered questions, refusals tracked separately at 1/5."
 
-## 7. Guardrails — coming Days 63–64
+## 7. Guardrails (Days 63–64)
+
+- **Prompt injection:** "Instructions and data reach the LLM as one token stream, so text in the data can act as an instruction — it's SQL injection with no parameterized query."
+- **Indirect injection:** "In RAG the dangerous one is indirect: a poisoned document gets ingested and retrieval hands it to the model — stored XSS for LLMs. Retrieved chunks are untrusted input."
+- **Injection defense (Day 63):** "Tags and scanning lower the odds; limiting what the model can do limits the damage. I planted an injection in my Revit RAG — Opus and Haiku both ignored it 0 for 3 even untagged — but I don't count model training as my defense. My RAG has no tools, so the worst case is a wrong answer; in my agent, write tools need human approval."
+
 ## 8. Multi-agent — coming Day 65
 ## 9. MCP — coming Day 66

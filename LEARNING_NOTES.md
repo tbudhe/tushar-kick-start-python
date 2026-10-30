@@ -1048,6 +1048,14 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. NON-DETERMINISM SEEN LIVE: two `answer_question()` calls on the same question gave two differently worded answers - exactly why generation can't use assertEqual.
 5. LANGSMITH = Datadog APM for LLM apps: traces (every LLM/tool call, latency, tokens, cost), datasets (golden set), experiments (judges over the dataset, v1 vs v2). No key yet in `.env`.
 
+## Day 63 - Judge finished + Guardrails I: prompt injection (2026-10-30)
+**One-liner:** Instructions and data reach the LLM as one token stream, so text in a retrieved chunk can act as an instruction - tags lower the odds, limiting what the model can DO limits the damage.
+1. JUDGE CLOSED: `revit_rag/day62_judge.py` loops 5 questions -> faithfulness 4/4 answered, refusal_rate 1/5 (refusals excluded from faithfulness). TEST THE TESTER: real door chunks + fake answer ("Ctrl+D...") -> NO. Without that, 4/4 could be a rubber stamp.
+2. PROMPT INJECTION = SQL injection with NO parameterized query. My `rag_service.py:35-37` concatenates chunks + question into one string. Direct = user types it; INDIRECT = poisoned doc ingested, retrieve() feeds it (= stored XSS). Retrieved chunks are untrusted input.
+3. FOUR LAYERS: (1) tag data `<document>` + system rule, (2) scan at ingest + request, (3) LIMIT DAMAGE - no tools / allowlist / human approval for writes (the one that matters), (4) output checks (Pydantic, cites-only-given-chunks).
+4. EXPERIMENT `revit_rag/day63_injection.py`: poisoned chunk asks for a fake license link, 3 runs each. Opus: untagged 0/3, tagged 0/3. Haiku 4.5: 0/3, 0/3. Model training resisted even untagged -> attack too weak to measure the tags. Model resistance is a layer I DON'T own (model swap/update/smarter attack changes it).
+5. CORRECTION: tags do NOT stop injection (my first summary said they do). Parameterized query = guarantee; tags = a request the model can be talked out of. Also: 404 `model:  claude-haiku...` = leading space in the model string - read the error's quoted input char by char.
+
 ## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
 - Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
 - Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).
