@@ -1056,6 +1056,14 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. EXPERIMENT `revit_rag/day63_injection.py`: poisoned chunk asks for a fake license link, 3 runs each. Opus: untagged 0/3, tagged 0/3. Haiku 4.5: 0/3, 0/3. Model training resisted even untagged -> attack too weak to measure the tags. Model resistance is a layer I DON'T own (model swap/update/smarter attack changes it).
 5. CORRECTION: tags do NOT stop injection (my first summary said they do). Parameterized query = guarantee; tags = a request the model can be talked out of. Also: 404 `model:  claude-haiku...` = leading space in the model string - read the error's quoted input char by char.
 
+## Reference - 7 vector index types (asked 2026-10-30, after Day 63)
+**One-liner:** Indexes either NARROW the search (IVF partitions, HNSW graph, LSH hash buckets, Annoy trees) or SHRINK the vectors (PQ); ScaNN does both. Everything except Flat is approximate (ANN): recall traded for speed.
+1. FLAT = full table scan: exact, O(N), fine to ~1M. It is the ground truth you measure every ANN index against (recall@k vs Flat - same method as my precision_eval.py).
+2. IVF = k-means clusters, search only `nprobe` nearest (= partition pruning / shards); needs training; misses if the answer sits in a skipped cluster. LSH = hash so SIMILAR vectors collide (= hash map where close keys share a bucket); weak in high dims, mostly superseded.
+3. HNSW = layered graph, greedy walk top->down (= SKIP LIST, what Redis sorted sets use). Best speed+recall, memory-heavy, insert-friendly. ChromaDB uses it -> my revit_docs_v2 runs on HNSW.
+4. ANNOY (Spotify) = forest of random-projection trees, memory-mapped, READ-ONLY after build. SCANN (Google) = partition + ranking-aware quantization + exact rescore of the top results.
+5. PQ = split vector into sub-vectors, replace each with a 1-byte codebook id (= lossy dictionary encoding): 384 floats 1,536 B -> ~48 B. IVF-PQ = billion-scale standard. CHOOSE: Flat small -> HNSW if RAM allows -> IVF-PQ when memory is the limit -> Annoy for static shared indexes.
+
 ## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
 - Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
 - Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).

@@ -38,6 +38,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Frameworks (Day 38):** "LlamaIndex gave me my own pipeline with its defaults — same chunks, same ranking. It buys less code, not better retrieval, and constants don't port: it reports exp(-distance), so my 1.2 became 0.301."
 - **Deploy (Day 41):** "The vector DB is derived data — rebuild it from the tracked corpus in the build step. And blue/green only works if someone flips the pointer: production served the toy corpus for two sessions."
 - **Health check (Day 42):** "My /health reports identity, not liveness — collection name, count, embedder, threshold — read from the same handle the request path uses."
+- **Vector indexes:** "Flat is exact and fine to about a million vectors; beyond that HNSW — a skip-list-like graph, what ChromaDB uses — for speed and recall if RAM allows, and IVF-PQ when memory is the limit at billion scale. Every ANN index trades recall for latency, so I measure recall@k against Flat as ground truth."
 
 ## 3. Structured output + API contracts (Days 22–25)
 
