@@ -1040,6 +1040,14 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - acks_late = retry-when-unsure, like a client retrying a timed-out payment call
 - PENDING = `undefined` with a default, not a state anyone wrote
 
+## Day 62 - Evals in two layers + LLM-as-judge on the real pipeline (2026-10-29)
+**One-liner:** Retrieval is tested exactly (golden set, hit@k / MRR, no LLM); generation is tested fuzzily by a second LLM with a narrow YES/NO rubric - and my first eval run found a real regression.
+1. TWO LAYERS: retrieval eval = Jest unit test (deterministic, free, every commit) - my `precision_eval.py` CASES + hit@k/MRR. Generation eval = LLM-as-judge (fuzzy, costs money) - faithfulness = every claim supported by the retrieved chunks.
+2. JUDGE DESIGN: give it the SAME chunks the answer saw (`response.sources`), ask ONE binary question, `max_tokens=5`. Return the raw word, not a bool, so an odd reply ("Yes.") is visible. Validate the judge against my own labels first. Door question -> JUDGE: YES.
+3. REGRESSION FOUND: `revit_rag/rag_service.py:2` still imported `prompting.revit_context_qa` after the 10/12 reorg (folder moved to `foundations/prompting/`) -> API broken since 10/12. Fixed. Prevention: grep for the old folder name after any move; an eval script doubles as a smoke test.
+4. NON-DETERMINISM SEEN LIVE: two `answer_question()` calls on the same question gave two differently worded answers - exactly why generation can't use assertEqual.
+5. LANGSMITH = Datadog APM for LLM apps: traces (every LLM/tool call, latency, tokens, cost), datasets (golden set), experiments (judges over the dataset, v1 vs v2). No key yet in `.env`.
+
 ## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
 - Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
 - Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).
