@@ -32,7 +32,9 @@ def answer_question(question, category=None):
             refused=True,
         )
 
-    context = "\n".join(c["text"] for c in chunks)
+    context = "\n".join(
+        f"<document id='{c['id']}'>\n{c['text']}\n</document>" for c in chunks
+    )
     answer = ask_revit_question([
         {"role": "user", "content": f"{context}\n\nQuestion: {question}"}
     ])
