@@ -1070,7 +1070,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 2. SHAPE: `redact(text)` -> (safe_text, {"[EMAIL_0]": "jo@acme.com"}); model sees only safe_text; `restore(answer, found)` puts real values back after the call.
 3. `re.findall(pattern, text)` = JS `text.match(/pattern/g)` - returns a LIST of every match (strings), empty list if none.
 4. LIMITS: regex catches fixed formats (email, phone, card); misses names/addresses -> add NER (Microsoft Presidio). Trade-off: if the answer depends on the redacted value, the model can't reason about it.
-5. WHERE: redact the user's QUESTION per request; redact the CORPUS once at INGEST (stored data - fix it where it enters, not on every read). My Revit corpus = public help pages -> question only. Quiz Day 64: 1/3 (Q3 right; Q1+Q2 answered with memorised lines from other questions - weak spot 8).
+5. WHERE: redact the user's QUESTION per request; redact the CORPUS once at INGEST (stored data - fix it where it enters, not on every read). My Revit corpus = public help pages -> question only. BUILT `revit_rag/day64_pii_llm.py`: probe for the email -> redacted run returns [EMAIL_0], raw control returns jo@acme.com = the model never saw it. 'Jo' leaked (names need NER); model greeted 'Hi [EMAIL_0]' (opaque token). Quiz Day 64: 1/3 (Q3 right; Q1+Q2 answered with memorised lines from other questions - weak spot 8).
 
 ## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
 - Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
