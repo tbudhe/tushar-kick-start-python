@@ -88,5 +88,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Indirect injection:** "In RAG the dangerous one is indirect: a poisoned document gets ingested and retrieval hands it to the model — stored XSS for LLMs. Retrieved chunks are untrusted input."
 - **Injection defense (Day 63):** "Tags and scanning lower the odds; limiting what the model can do limits the damage. I planted an injection in my Revit RAG — Opus and Haiku both ignored it 0 for 3 even untagged — but I don't count model training as my defense. My RAG has no tools, so the worst case is a wrong answer; in my agent, write tools need human approval."
 
+- **PII redaction (Day 64):** "I redact PII before the LLM call, because the prompt leaves my trust boundary — vendor API, logs, traces. Regex swaps emails and phones for placeholders and my code restores them after; names need NER like Presidio. User questions get redacted per request, the corpus once at ingest."
+
 ## 8. Multi-agent — coming Day 65
 ## 9. MCP — coming Day 66

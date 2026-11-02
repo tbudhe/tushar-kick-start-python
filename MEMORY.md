@@ -366,3 +366,5 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 **Session addendum - 2026-10-27 (Day 61)**
 - Concepts 3-4 only (acks_late/at-least-once/idempotency; PENDING = no record); he stopped after concept 4 - short session, concept 5 + mock slid to Day 62.
 - Quiz 1.5/3: knows mechanisms, first sentence still not the answer (weak spot 8). Anchoring concepts to his OWN Day 58/59 results (kill -9, 54.3s hang) and a Stripe Idempotency-Key / `?? {status:'PENDING'}` analogy landed with no pushback.
+
+- 2026-11-02 Day 64 (30 min): PII redaction before the LLM call closes Guardrails I; Guardrails II -> Day 65; interviews Intuit/Byn ~Nov 5-6.

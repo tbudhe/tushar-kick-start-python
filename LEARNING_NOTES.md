@@ -1064,6 +1064,14 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. ANNOY (Spotify) = forest of random-projection trees, memory-mapped, READ-ONLY after build. SCANN (Google) = partition + ranking-aware quantization + exact rescore of the top results.
 5. PQ = split vector into sub-vectors, replace each with a 1-byte codebook id (= lossy dictionary encoding): 384 floats 1,536 B -> ~48 B. IVF-PQ = billion-scale standard. CHOOSE: Flat small -> HNSW if RAM allows -> IVF-PQ when memory is the limit -> Annoy for static shared indexes.
 
+## Day 64 - Guardrails I concept 3: PII redaction before the LLM call (2026-11-02, 30 min)
+**One-liner:** The prompt leaves my trust boundary (vendor API, logs, traces), so PII is swapped for placeholders BEFORE the call and restored in MY code after.
+1. WHY: an LLM is one more downstream service that must not see plaintext PII - same rule as the Walmart PCI fix (card data never in plaintext) and pino `redact` before logging.
+2. SHAPE: `redact(text)` -> (safe_text, {"[EMAIL_0]": "jo@acme.com"}); model sees only safe_text; `restore(answer, found)` puts real values back after the call.
+3. `re.findall(pattern, text)` = JS `text.match(/pattern/g)` - returns a LIST of every match (strings), empty list if none.
+4. LIMITS: regex catches fixed formats (email, phone, card); misses names/addresses -> add NER (Microsoft Presidio). Trade-off: if the answer depends on the redacted value, the model can't reason about it.
+5. WHERE: redact the user's QUESTION per request; redact the CORPUS once at INGEST (stored data - fix it where it enters, not on every read). My Revit corpus = public help pages -> question only. Quiz Day 64: 1/3 (Q3 right; Q1+Q2 answered with memorised lines from other questions - weak spot 8).
+
 ## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
 - Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
 - Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).
