@@ -91,7 +91,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **PII redaction (Day 64):** "I redact PII before the LLM call, because the prompt leaves my trust boundary — vendor API, logs, traces. Regex swaps emails and phones for placeholders and my code restores them after; names need NER like Presidio. User questions get redacted per request, the corpus once at ingest." Proof (Day 64): I asked the model for the user's email — redacted it could only say [EMAIL_0], the raw control said the real address.
 
 - **Output + agent guardrails (Day 65):** "Input guardrails lower the odds; output and agent guardrails limit the damage. I validate output with a Pydantic schema, force the agent to answer only from tool results, give it a tool allowlist and a step budget — all already in my code — and any irreversible write pauses for human approval."
-- **Human-in-the-loop (Day 65):** "Reads run free; irreversible writes, like publishing a campaign in my Autodesk copilot, pause for a human. In LangGraph that's interrupt() plus a checkpointer, so the run can resume hours later on the same thread_id — and a denial goes back to the model as a tool result, not an exception."
+- **Human-in-the-loop (Day 65):** "Reads run free; irreversible writes, like publishing a campaign in my Autodesk copilot, pause for a human. In LangGraph that's interrupt() plus a checkpointer, so the run can resume hours later on the same thread_id — and a denial goes back to the model as a tool result, not an exception." Proof (Day 65): I gated a publish tool — on deny the agent told the user it was not published and suggested next steps, no crash.
 
 ## 8. Multi-agent — coming Day 66 or later
 ## 9. MCP — coming after multi-agent

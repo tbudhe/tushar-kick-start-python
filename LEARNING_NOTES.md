@@ -1069,7 +1069,7 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 1. FOUR LAYERS I ALREADY HAD: schema = `RagResponse` (refused is a field); grounding = NO_MATCH guard + "never fill gaps" prompt (day50); allowlist = `TOOLS` list; budget = `recursion_limit: 10`.
 2. HITL = reads run free, irreversible WRITES pause for a human (PR review before merge to main). MSSP's publish-campaign is the textbook case.
 3. DENIAL IS DATA: a rejected action returns "DENIED: ..." as the tool result so the model can recover - never raise inside the loop (same as is_error=True).
-4. LangGraph: `interrupt()` pauses the graph; needs a checkpointer (my SqliteSaver) because the human may answer hours later; `thread_id` resumes the exact run.
+4. BUILT `agents/day65_hitl.py`: deny -> 'DENIED' tool result -> Claude said NOT published and suggested next steps; 4 messages both runs, as predicted. LangGraph: `interrupt()` pauses the graph; needs a checkpointer (my SqliteSaver) because the human may answer hours later; `thread_id` resumes the exact run.
 5. Quiz 0.5/3 (Day 64 PII): answered adjacent questions - Q2 answer = names/addresses need NER (Presidio); Q3 answer = corpus redacted once at ingest. Weak spot 8.
 
 ## Day 64 - Guardrails I concept 3: PII redaction before the LLM call (2026-11-02, 30 min)
