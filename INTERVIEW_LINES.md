@@ -82,7 +82,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Offline + online:** "Offline, I run the golden set plus judges on every prompt or model change, as a regression gate. Online, I trace production with LangSmith and sample real traffic into the dataset, so the eval set grows from real failures."
 - **Test the tester (Day 63):** "Before trusting my judge, I fed it my real chunks with a fabricated answer — it said NO. Faithfulness came out 4/4 on answered questions, refusals tracked separately at 1/5."
 
-## 7. Guardrails (Days 63–64)
+## 7. Guardrails (Days 63–65)
 
 - **Prompt injection:** "Instructions and data reach the LLM as one token stream, so text in the data can act as an instruction — it's SQL injection with no parameterized query."
 - **Indirect injection:** "In RAG the dangerous one is indirect: a poisoned document gets ingested and retrieval hands it to the model — stored XSS for LLMs. Retrieved chunks are untrusted input."
@@ -90,5 +90,8 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 
 - **PII redaction (Day 64):** "I redact PII before the LLM call, because the prompt leaves my trust boundary — vendor API, logs, traces. Regex swaps emails and phones for placeholders and my code restores them after; names need NER like Presidio. User questions get redacted per request, the corpus once at ingest." Proof (Day 64): I asked the model for the user's email — redacted it could only say [EMAIL_0], the raw control said the real address.
 
-## 8. Multi-agent — coming Day 65
-## 9. MCP — coming Day 66
+- **Output + agent guardrails (Day 65):** "Input guardrails lower the odds; output and agent guardrails limit the damage. I validate output with a Pydantic schema, force the agent to answer only from tool results, give it a tool allowlist and a step budget — all already in my code — and any irreversible write pauses for human approval."
+- **Human-in-the-loop (Day 65):** "Reads run free; irreversible writes, like publishing a campaign in my Autodesk copilot, pause for a human. In LangGraph that's interrupt() plus a checkpointer, so the run can resume hours later on the same thread_id — and a denial goes back to the model as a tool result, not an exception."
+
+## 8. Multi-agent — coming Day 66 or later
+## 9. MCP — coming after multi-agent

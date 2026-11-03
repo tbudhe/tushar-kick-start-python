@@ -1064,6 +1064,14 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. ANNOY (Spotify) = forest of random-projection trees, memory-mapped, READ-ONLY after build. SCANN (Google) = partition + ranking-aware quantization + exact rescore of the top results.
 5. PQ = split vector into sub-vectors, replace each with a 1-byte codebook id (= lossy dictionary encoding): 384 floats 1,536 B -> ~48 B. IVF-PQ = billion-scale standard. CHOOSE: Flat small -> HNSW if RAM allows -> IVF-PQ when memory is the limit -> Annoy for static shared indexes.
 
+## Day 65 - Guardrails II: output + agent guardrails (2026-11-03, ~20 min)
+**One-liner:** Input guardrails lower the odds; output and agent guardrails limit the damage - schema, grounding, allowlist, budget, and a human approving irreversible writes.
+1. FOUR LAYERS I ALREADY HAD: schema = `RagResponse` (refused is a field); grounding = NO_MATCH guard + "never fill gaps" prompt (day50); allowlist = `TOOLS` list; budget = `recursion_limit: 10`.
+2. HITL = reads run free, irreversible WRITES pause for a human (PR review before merge to main). MSSP's publish-campaign is the textbook case.
+3. DENIAL IS DATA: a rejected action returns "DENIED: ..." as the tool result so the model can recover - never raise inside the loop (same as is_error=True).
+4. LangGraph: `interrupt()` pauses the graph; needs a checkpointer (my SqliteSaver) because the human may answer hours later; `thread_id` resumes the exact run.
+5. Quiz 0.5/3 (Day 64 PII): answered adjacent questions - Q2 answer = names/addresses need NER (Presidio); Q3 answer = corpus redacted once at ingest. Weak spot 8.
+
 ## Day 64 - Guardrails I concept 3: PII redaction before the LLM call (2026-11-02, 30 min)
 **One-liner:** The prompt leaves my trust boundary (vendor API, logs, traces), so PII is swapped for placeholders BEFORE the call and restored in MY code after.
 1. WHY: an LLM is one more downstream service that must not see plaintext PII - same rule as the Walmart PCI fix (card data never in plaintext) and pino `redact` before logging.
