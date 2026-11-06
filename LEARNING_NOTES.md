@@ -1064,6 +1064,14 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. ANNOY (Spotify) = forest of random-projection trees, memory-mapped, READ-ONLY after build. SCANN (Google) = partition + ranking-aware quantization + exact rescore of the top results.
 5. PQ = split vector into sub-vectors, replace each with a 1-byte codebook id (= lossy dictionary encoding): 384 floats 1,536 B -> ~48 B. IVF-PQ = billion-scale standard. CHOOSE: Flat small -> HNSW if RAM allows -> IVF-PQ when memory is the limit -> Annoy for static shared indexes.
 
+## Day 66 - RAG from scratch over a real PDF (2026-11-06, ~40 min)
+**One-liner:** Load the PDF page by page, chunk by words with overlap, embed once, score with a dot product, keep the top k above a measured threshold, and refuse in code before the LLM when nothing passes.
+1. INGEST: `PdfReader(path)` reads the bytes (= Node `fs.readFile` Buffer) and decodes each page's text layer; empty page = scanned -> needs OCR. Keep {text, source, page} per chunk for citations. Vector DB stores vectors + text + pointer; the file itself goes to blob storage.
+2. CHUNK: characters cut words ('worl'); words fix words, not sentences; production = recursive split (paragraph -> sentence -> word) measured in TOKENS. Ceiling = embedding model limit (MiniLM 256 tokens, rest silently dropped); floor = enough context to stand alone. Chunk count per run is the cheapest sanity check: 116 -> 700 (bug) -> 107.
+3. RETRIEVE: `normalize_embeddings=True` makes cosine = dot product -> `scores = vectors @ q` scores all chunks at once; `np.argsort(scores)[::-1][:3]`; THRESHOLD 0.3 from measurement (real 0.49-0.55, off-topic 0.07-0.17).
+4. GENERATE: `if not hits` -> refuse WITHOUT calling the LLM (guarantee, $0); else prompt with ONLY the hit chunks, tagged [page N]. Result cited page 3 even though top-1 was page 8 (mentions vs answers -> reranking).
+5. Python runs top to bottom: a second `def chunk` below the loop never ran. Quiz Day 66: 2.5/3 - Q2 answer = irreversible WRITES need approval, reads run free.
+
 ## Day 65 - Guardrails II: output + agent guardrails (2026-11-03, ~20 min)
 **One-liner:** Input guardrails lower the odds; output and agent guardrails limit the damage - schema, grounding, allowlist, budget, and a human approving irreversible writes.
 1. FOUR LAYERS I ALREADY HAD: schema = `RagResponse` (refused is a field); grounding = NO_MATCH guard + "never fill gaps" prompt (day50); allowlist = `TOOLS` list; budget = `recursion_limit: 10`.

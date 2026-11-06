@@ -39,6 +39,10 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Deploy (Day 41):** "The vector DB is derived data — rebuild it from the tracked corpus in the build step. And blue/green only works if someone flips the pointer: production served the toy corpus for two sessions."
 - **Health check (Day 42):** "My /health reports identity, not liveness — collection name, count, embedder, threshold — read from the same handle the request path uses."
 - **Vector indexes:** "Flat is exact and fine to about a million vectors; beyond that HNSW — a skip-list-like graph, what ChromaDB uses — for speed and recall if RAM allows, and IVF-PQ when memory is the limit at billion scale. Every ANN index trades recall for latency, so I measure recall@k against Flat as ground truth."
+- **RAG from scratch (Day 66):** "Chunk by words with overlap, embed once, score with a dot product, keep the top k above a measured threshold - and if nothing passes, refuse in code before the LLM is ever called. That refusal is a guarantee, not a prompt request."
+- **Chunk size (Day 66):** "The ceiling is the embedding model's token limit - MiniLM silently drops everything past 256 tokens. The floor is enough context to stand alone. Between those I tune with my retrieval eval."
+- **PDF ingestion (Day 66):** "Extraction is lossy - scanned pages have no text and need OCR, and hyphenation and ligatures need cleaning. Each chunk keeps source and page for citations; the file goes to blob storage, the vector DB holds the vector, the text and a pointer."
+- **Why rerank (Day 66):** "Embeddings score each chunk before the question exists, so they rank aboutness. A cross-encoder reads question and chunk together and scores answerhood - too slow for every chunk, so I retrieve 20-50 cheaply and rerank to the top 3. My eval showed why: hit@10 = 1.0 but hit@2 = 0.75."
 
 ## 3. Structured output + API contracts (Days 22–25)
 
