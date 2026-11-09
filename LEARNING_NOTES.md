@@ -1064,6 +1064,14 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. ANNOY (Spotify) = forest of random-projection trees, memory-mapped, READ-ONLY after build. SCANN (Google) = partition + ranking-aware quantization + exact rescore of the top results.
 5. PQ = split vector into sub-vectors, replace each with a 1-byte codebook id (= lossy dictionary encoding): 384 floats 1,536 B -> ~48 B. IVF-PQ = billion-scale standard. CHOOSE: Flat small -> HNSW if RAM allows -> IVF-PQ when memory is the limit -> Annoy for static shared indexes.
 
+## Day 67 - Multi-agent SHAPE: supervisor + specialists, by hand (2026-11-09, ~35 min)
+**One-liner:** A supervisor is a router whose branches are full agents - each with its own prompt, tools and history; the split buys isolation and least privilege and costs one extra LLM hop.
+1. SHAPE: `supervisor_route()` (= Day 46 llm_route, labels reader/publisher, unknown -> reader = the SAFE agent) -> `run_agent(name, system, task, tools)` = the Day 26-37 tool loop. A specialist = that one loop + its own prompt + its own tool list. Node analogy: API gateway in front of microservices.
+2. BUILT `agents/day67_supervisor.py` (plain anthropic SDK, no LangGraph): steps 1-4 of 5, every printout matched (tools -> reader loop -> router labels -> routed run: hero-42 -> reader -> get_entry; spring-sale -> publisher -> publish_campaign).
+3. HIS QUESTION: "same MODEL, isn't this just the LangGraph router?" Answer: yes structurally; an agent = prompt + tools + history, not a model. Differences: each branch runs its own tool loop; isolated messages/tools; a TRUE supervisor loops and treats agents as its tools (read then publish). Lever: router on Haiku, specialists on Opus.
+4. COST: 3 LLM calls per question (route + tool request + answer) vs 2 for one agent. Rule: start with one agent; split when the tool list or permissions demand it.
+5. SLIP (twice): ran before saving -> same output as the previous step. Fix: check the VS Code save dot first; File -> Auto Save. Quiz 0.5/3 (all Day 66 - learned in 40 min on interview morning).
+
 ## Day 66 - RAG from scratch over a real PDF (2026-11-06, ~40 min)
 **One-liner:** Load the PDF page by page, chunk by words with overlap, embed once, score with a dot product, keep the top k above a measured threshold, and refuse in code before the LLM when nothing passes.
 1. INGEST: `PdfReader(path)` reads the bytes (= Node `fs.readFile` Buffer) and decodes each page's text layer; empty page = scanned -> needs OCR. Keep {text, source, page} per chunk for citations. Vector DB stores vectors + text + pointer; the file itself goes to blob storage.

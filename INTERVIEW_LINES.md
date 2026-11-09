@@ -97,5 +97,8 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Output + agent guardrails (Day 65):** "Input guardrails lower the odds; output and agent guardrails limit the damage. I validate output with a Pydantic schema, force the agent to answer only from tool results, give it a tool allowlist and a step budget — all already in my code — and any irreversible write pauses for human approval."
 - **Human-in-the-loop (Day 65):** "Reads run free; irreversible writes, like publishing a campaign in my Autodesk copilot, pause for a human. In LangGraph that's interrupt() plus a checkpointer, so the run can resume hours later on the same thread_id — and a denial goes back to the model as a tool result, not an exception." Proof (Day 65): I gated a publish tool — on deny the agent told the user it was not published and suggested next steps, no crash.
 
-## 8. Multi-agent — coming Day 66 or later
+## 8. Multi-agent (Day 67)
+
+- **Supervisor (Day 67):** "A supervisor is a router whose branches are full agents, each with its own prompt, tools and history. Same model is fine - an agent is prompt plus tools, not a model. The split buys isolation and least privilege, and costs one extra LLM hop."
+- **When to split (Day 67):** "Start with one agent; split only when the tool list or permissions demand it. In my copilot the reader can't publish because publish isn't in its tool list - architecture, not a prompt request - and unknown routes fall back to the read-only agent."
 ## 9. MCP — coming after multi-agent
