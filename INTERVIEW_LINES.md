@@ -101,4 +101,9 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 
 - **Supervisor (Day 67):** "A supervisor is a router whose branches are full agents, each with its own prompt, tools and history. Same model is fine - an agent is prompt plus tools, not a model. The split buys isolation and least privilege, and costs one extra LLM hop."
 - **When to split (Day 67):** "Start with one agent; split only when the tool list or permissions demand it. In my copilot the reader can't publish because publish isn't in its tool list - architecture, not a prompt request - and unknown routes fall back to the read-only agent."
-## 9. MCP — coming after multi-agent
+
+## 9. MCP (Day 68)
+
+- **MCP in one breath (Day 68):** "MCP is a standard protocol that moves tools out of my agent into a separate server, and every server answers the same two calls: tools/list and tools/call. I built one - a Contentful server exposing get_entry, and a client with no tool code that discovered it and called it. The agent loop doesn't change; it forwards the call instead of running the function."
+- **Why MCP (Day 68):** "Reuse and a clean boundary. The tool is written once in the server, and my agent, a teammate's agent and Claude Desktop all connect to it instead of each copying the schemas."
+- **stdio vs HTTP (Day 68):** "Stdio starts the server as a child process - fine on a laptop. In Kubernetes a child lives inside its parent's container and shares its memory limit - I've seen spawned browser processes take pods down under Playwright - so in production the MCP server is its own Deployment behind a URL."

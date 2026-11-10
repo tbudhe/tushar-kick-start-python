@@ -89,5 +89,7 @@ def handle(request):
 
 
 if __name__ == "__main__":
-    handle("What's the headline of entry hero-42?")
-    handle("Publish the spring-sale campaign.")
+    # skip the supervisor on purpose: send a PUBLISH request straight to the READER
+    print("reader tools:", [tool["name"] for tool in READER_TOOLS])
+    run_agent("reader", READER_PROMPT,
+              "Publish the spring-sale campaign.", READER_TOOLS)

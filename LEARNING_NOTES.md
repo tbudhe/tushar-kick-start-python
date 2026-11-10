@@ -1064,6 +1064,14 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. ANNOY (Spotify) = forest of random-projection trees, memory-mapped, READ-ONLY after build. SCANN (Google) = partition + ranking-aware quantization + exact rescore of the top results.
 5. PQ = split vector into sub-vectors, replace each with a 1-byte codebook id (= lossy dictionary encoding): 384 floats 1,536 B -> ~48 B. IVF-PQ = billion-scale standard. CHOOSE: Flat small -> HNSW if RAM allows -> IVF-PQ when memory is the limit -> Annoy for static shared indexes.
 
+## Day 68 - MCP SHAPE: the server owns the tool, the client asks by name (2026-11-10, ~45 min)
+**One-liner:** MCP moves my tools out of the agent into a separate server with two standard calls - tools/list and tools/call - so any client can discover and run them without copying tool code.
+1. SHAPE: server = owns the function + schema (a noun: Contentful, GitHub, Postgres); client = the AI app that asks (my agent loop, Claude Desktop). Same as a microservice: `GET /openapi.json` = `client.list_tools()`, `POST /charge` = `client.call_tool(name, args)`. The agent loop is unchanged; Claude still only requests.
+2. BUILT `agents/day68_mcp_server.py` (`MCPServer("contentful")` + `@server.tool()` on `get_entry` - type hints + docstring become the schema) and `agents/day68_mcp_client.py` (`async with Client(SERVER)` -> `list_tools()` -> `call_tool("get_entry", {"entry_id": "hero-42"})`). Output matched: tools: ['get_entry'] / result: Design without limits. Run: `python -m agents.day68_mcp_client`.
+3. VERSION: my mcp is 2.3.0 - `FastMCP` was renamed `MCPServer` (`from mcp.server.mcpserver import MCPServer`); 1.x tutorials will not import.
+4. STDIO = child PROCESS, not thread (Node `child_process.spawn`, not `worker_threads`): own memory, so messages over stdin/stdout only. `StdioServerParameters` is only the recipe; the spawn happens at `async with Client(SERVER)`. A spawned child lives inside its parent's container (shares the memory limit and /dev/shm - my Playwright-on-pods disconnects), so in Kubernetes the MCP server is its own Deployment over HTTP.
+5. Day 67 step 5 closed: reader asked to publish -> no tool call, "my access is read-only" - the tool list is the boundary. Quiz Day 68: 3/3. Slip: pasted the client over the server file -> it started itself in a loop (new file = New File first, then paste).
+
 ## Day 67 - Multi-agent SHAPE: supervisor + specialists, by hand (2026-11-09, ~35 min)
 **One-liner:** A supervisor is a router whose branches are full agents - each with its own prompt, tools and history; the split buys isolation and least privilege and costs one extra LLM hop.
 1. SHAPE: `supervisor_route()` (= Day 46 llm_route, labels reader/publisher, unknown -> reader = the SAFE agent) -> `run_agent(name, system, task, tools)` = the Day 26-37 tool loop. A specialist = that one loop + its own prompt + its own tool list. Node analogy: API gateway in front of microservices.
