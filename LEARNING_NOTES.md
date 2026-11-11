@@ -50,7 +50,6 @@ Staff Software Engineer → AI Backend Engineer (Autodesk) → target: Staff/Pri
 2. Distance vs. similarity: Chroma gives distance, not similarity — the read flips. Lower distance = better match (<0.5 cutoff used), instead of higher = better.
 3. Pizza query returned distances >2.0 — why, and whose job is filtering? ChromaDB always returns the N nearest documents in the collection, no matter how far away they actually are — it has no concept of "good enough," only "closest available." Filtering by a distance threshold is application code's job, not the database's.
 
-
 ## Day 6 — Chunking
 **One-liner:** Chunking splits documents into small pieces so each embedding stays sharp; overlap ensures a sentence cut at a boundary still appears whole in at least one chunk.
 
@@ -998,7 +997,6 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 - LangChain = model/tool layer; LangGraph = the runtime that owns the loop and the state
 - Wall clock mixes model latency + tool time + network; stamp the thing you are actually measuring
 
-
 ## Day 59 - Celery retry on 429: backoff + jitter, and rate_limit (2026-10-21)
 **One-liner:** a retry is the SAME task id re-sent through Redis with `retries` +1 and a countdown; the thread is freed while waiting. `autoretry_for` + `retry_backoff=True` does it for you WITH jitter; `rate_limit` stops the 429 from happening at all.
 
@@ -1064,37 +1062,12 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. ANNOY (Spotify) = forest of random-projection trees, memory-mapped, READ-ONLY after build. SCANN (Google) = partition + ranking-aware quantization + exact rescore of the top results.
 5. PQ = split vector into sub-vectors, replace each with a 1-byte codebook id (= lossy dictionary encoding): 384 floats 1,536 B -> ~48 B. IVF-PQ = billion-scale standard. CHOOSE: Flat small -> HNSW if RAM allows -> IVF-PQ when memory is the limit -> Annoy for static shared indexes.
 
-## Day 68 - MCP SHAPE: the server owns the tool, the client asks by name (2026-11-10, ~45 min)
-**One-liner:** MCP moves my tools out of the agent into a separate server with two standard calls - tools/list and tools/call - so any client can discover and run them without copying tool code.
-1. SHAPE: server = owns the function + schema (a noun: Contentful, GitHub, Postgres); client = the AI app that asks (my agent loop, Claude Desktop). Same as a microservice: `GET /openapi.json` = `client.list_tools()`, `POST /charge` = `client.call_tool(name, args)`. The agent loop is unchanged; Claude still only requests.
-2. BUILT `agents/day68_mcp_server.py` (`MCPServer("contentful")` + `@server.tool()` on `get_entry` - type hints + docstring become the schema) and `agents/day68_mcp_client.py` (`async with Client(SERVER)` -> `list_tools()` -> `call_tool("get_entry", {"entry_id": "hero-42"})`). Output matched: tools: ['get_entry'] / result: Design without limits. Run: `python -m agents.day68_mcp_client`.
-3. VERSION: my mcp is 2.3.0 - `FastMCP` was renamed `MCPServer` (`from mcp.server.mcpserver import MCPServer`); 1.x tutorials will not import.
-4. STDIO = child PROCESS, not thread (Node `child_process.spawn`, not `worker_threads`): own memory, so messages over stdin/stdout only. `StdioServerParameters` is only the recipe; the spawn happens at `async with Client(SERVER)`. A spawned child lives inside its parent's container (shares the memory limit and /dev/shm - my Playwright-on-pods disconnects), so in Kubernetes the MCP server is its own Deployment over HTTP.
-5. Day 67 step 5 closed: reader asked to publish -> no tool call, "my access is read-only" - the tool list is the boundary. Quiz Day 68: 3/3. Slip: pasted the client over the server file -> it started itself in a loop (new file = New File first, then paste).
-
-## Day 67 - Multi-agent SHAPE: supervisor + specialists, by hand (2026-11-09, ~35 min)
-**One-liner:** A supervisor is a router whose branches are full agents - each with its own prompt, tools and history; the split buys isolation and least privilege and costs one extra LLM hop.
-1. SHAPE: `supervisor_route()` (= Day 46 llm_route, labels reader/publisher, unknown -> reader = the SAFE agent) -> `run_agent(name, system, task, tools)` = the Day 26-37 tool loop. A specialist = that one loop + its own prompt + its own tool list. Node analogy: API gateway in front of microservices.
-2. BUILT `agents/day67_supervisor.py` (plain anthropic SDK, no LangGraph): steps 1-4 of 5, every printout matched (tools -> reader loop -> router labels -> routed run: hero-42 -> reader -> get_entry; spring-sale -> publisher -> publish_campaign).
-3. HIS QUESTION: "same MODEL, isn't this just the LangGraph router?" Answer: yes structurally; an agent = prompt + tools + history, not a model. Differences: each branch runs its own tool loop; isolated messages/tools; a TRUE supervisor loops and treats agents as its tools (read then publish). Lever: router on Haiku, specialists on Opus.
-4. COST: 3 LLM calls per question (route + tool request + answer) vs 2 for one agent. Rule: start with one agent; split when the tool list or permissions demand it.
-5. SLIP (twice): ran before saving -> same output as the previous step. Fix: check the VS Code save dot first; File -> Auto Save. Quiz 0.5/3 (all Day 66 - learned in 40 min on interview morning).
-
-## Day 66 - RAG from scratch over a real PDF (2026-11-06, ~40 min)
-**One-liner:** Load the PDF page by page, chunk by words with overlap, embed once, score with a dot product, keep the top k above a measured threshold, and refuse in code before the LLM when nothing passes.
-1. INGEST: `PdfReader(path)` reads the bytes (= Node `fs.readFile` Buffer) and decodes each page's text layer; empty page = scanned -> needs OCR. Keep {text, source, page} per chunk for citations. Vector DB stores vectors + text + pointer; the file itself goes to blob storage.
-2. CHUNK: characters cut words ('worl'); words fix words, not sentences; production = recursive split (paragraph -> sentence -> word) measured in TOKENS. Ceiling = embedding model limit (MiniLM 256 tokens, rest silently dropped); floor = enough context to stand alone. Chunk count per run is the cheapest sanity check: 116 -> 700 (bug) -> 107.
-3. RETRIEVE: `normalize_embeddings=True` makes cosine = dot product -> `scores = vectors @ q` scores all chunks at once; `np.argsort(scores)[::-1][:3]`; THRESHOLD 0.3 from measurement (real 0.49-0.55, off-topic 0.07-0.17).
-4. GENERATE: `if not hits` -> refuse WITHOUT calling the LLM (guarantee, $0); else prompt with ONLY the hit chunks, tagged [page N]. Result cited page 3 even though top-1 was page 8 (mentions vs answers -> reranking).
-5. Python runs top to bottom: a second `def chunk` below the loop never ran. Quiz Day 66: 2.5/3 - Q2 answer = irreversible WRITES need approval, reads run free.
-
-## Day 65 - Guardrails II: output + agent guardrails (2026-11-03, ~20 min)
-**One-liner:** Input guardrails lower the odds; output and agent guardrails limit the damage - schema, grounding, allowlist, budget, and a human approving irreversible writes.
-1. FOUR LAYERS I ALREADY HAD: schema = `RagResponse` (refused is a field); grounding = NO_MATCH guard + "never fill gaps" prompt (day50); allowlist = `TOOLS` list; budget = `recursion_limit: 10`.
-2. HITL = reads run free, irreversible WRITES pause for a human (PR review before merge to main). MSSP's publish-campaign is the textbook case.
-3. DENIAL IS DATA: a rejected action returns "DENIED: ..." as the tool result so the model can recover - never raise inside the loop (same as is_error=True).
-4. BUILT `agents/day65_hitl.py`: deny -> 'DENIED' tool result -> Claude said NOT published and suggested next steps; 4 messages both runs, as predicted. LangGraph: `interrupt()` pauses the graph; needs a checkpointer (my SqliteSaver) because the human may answer hours later; `thread_id` resumes the exact run.
-5. Quiz 0.5/3 (Day 64 PII): answered adjacent questions - Q2 answer = names/addresses need NER (Presidio); Q3 answer = corpus redacted once at ingest. Weak spot 8.
+## System Design 1 - Helm + ACR + Kubernetes (hands-on, 2026-10-12)
+- Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
+- Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).
+- replicaCount is used only when autoscaling.enabled=false; minReplicas belongs to the HPA.
+- Upgrade = rolling update (new pod-template hash, staggered pod ages); rollback creates a NEW revision and reuses the old ReplicaSet hash.
+- Real ACR differences: az acr create, helm registry login with token, HTTPS (no --plain-http), az aks update --attach-acr.
 
 ## Day 64 - Guardrails I concept 3: PII redaction before the LLM call (2026-11-02, 30 min)
 **One-liner:** The prompt leaves my trust boundary (vendor API, logs, traces), so PII is swapped for placeholders BEFORE the call and restored in MY code after.
@@ -1104,9 +1077,35 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. LIMITS: regex catches fixed formats (email, phone, card); misses names/addresses -> add NER (Microsoft Presidio). Trade-off: if the answer depends on the redacted value, the model can't reason about it.
 5. WHERE: redact the user's QUESTION per request; redact the CORPUS once at INGEST (stored data - fix it where it enters, not on every read). My Revit corpus = public help pages -> question only. BUILT `revit_rag/day64_pii_llm.py`: probe for the email -> redacted run returns [EMAIL_0], raw control returns jo@acme.com = the model never saw it. 'Jo' leaked (names need NER); model greeted 'Hi [EMAIL_0]' (opaque token). Quiz Day 64: 1/3 (Q3 right; Q1+Q2 answered with memorised lines from other questions - weak spot 8).
 
-## Day 53 — System Design 1: Helm + ACR + Kubernetes (hands-on)
-- Built the full flow locally: registry:2 (fake ACR) + kind (fake AKS) + Helm 4 chart.
-- Two pulls: Helm pulls the CHART on my machine; the NODE pulls the IMAGE. Separate permissions (AcrPull on AKS).
-- replicaCount is used only when autoscaling.enabled=false; minReplicas belongs to the HPA.
-- Upgrade = rolling update (new pod-template hash, staggered pod ages); rollback creates a NEW revision and reuses the old ReplicaSet hash.
-- Real ACR differences: az acr create, helm registry login with token, HTTPS (no --plain-http), az aks update --attach-acr.
+## Day 65 - Guardrails II: output + agent guardrails (2026-11-03, ~20 min)
+**One-liner:** Input guardrails lower the odds; output and agent guardrails limit the damage - schema, grounding, allowlist, budget, and a human approving irreversible writes.
+1. FOUR LAYERS I ALREADY HAD: schema = `RagResponse` (refused is a field); grounding = NO_MATCH guard + "never fill gaps" prompt (day50); allowlist = `TOOLS` list; budget = `recursion_limit: 10`.
+2. HITL = reads run free, irreversible WRITES pause for a human (PR review before merge to main). MSSP's publish-campaign is the textbook case.
+3. DENIAL IS DATA: a rejected action returns "DENIED: ..." as the tool result so the model can recover - never raise inside the loop (same as is_error=True).
+4. BUILT `agents/day65_hitl.py`: deny -> 'DENIED' tool result -> Claude said NOT published and suggested next steps; 4 messages both runs, as predicted. LangGraph: `interrupt()` pauses the graph; needs a checkpointer (my SqliteSaver) because the human may answer hours later; `thread_id` resumes the exact run.
+5. Quiz 0.5/3 (Day 64 PII): answered adjacent questions - Q2 answer = names/addresses need NER (Presidio); Q3 answer = corpus redacted once at ingest. Weak spot 8.
+
+## Day 66 - RAG from scratch over a real PDF (2026-11-06, ~40 min)
+**One-liner:** Load the PDF page by page, chunk by words with overlap, embed once, score with a dot product, keep the top k above a measured threshold, and refuse in code before the LLM when nothing passes.
+1. INGEST: `PdfReader(path)` reads the bytes (= Node `fs.readFile` Buffer) and decodes each page's text layer; empty page = scanned -> needs OCR. Keep {text, source, page} per chunk for citations. Vector DB stores vectors + text + pointer; the file itself goes to blob storage.
+2. CHUNK: characters cut words ('worl'); words fix words, not sentences; production = recursive split (paragraph -> sentence -> word) measured in TOKENS. Ceiling = embedding model limit (MiniLM 256 tokens, rest silently dropped); floor = enough context to stand alone. Chunk count per run is the cheapest sanity check: 116 -> 700 (bug) -> 107.
+3. RETRIEVE: `normalize_embeddings=True` makes cosine = dot product -> `scores = vectors @ q` scores all chunks at once; `np.argsort(scores)[::-1][:3]`; THRESHOLD 0.3 from measurement (real 0.49-0.55, off-topic 0.07-0.17).
+4. GENERATE: `if not hits` -> refuse WITHOUT calling the LLM (guarantee, $0); else prompt with ONLY the hit chunks, tagged [page N]. Result cited page 3 even though top-1 was page 8 (mentions vs answers -> reranking).
+5. Python runs top to bottom: a second `def chunk` below the loop never ran. Quiz Day 66: 2.5/3 - Q2 answer = irreversible WRITES need approval, reads run free.
+
+## Day 67 - Multi-agent SHAPE: supervisor + specialists, by hand (2026-11-09, ~35 min)
+**One-liner:** A supervisor is a router whose branches are full agents - each with its own prompt, tools and history; the split buys isolation and least privilege and costs one extra LLM hop.
+1. SHAPE: `supervisor_route()` (= Day 46 llm_route, labels reader/publisher, unknown -> reader = the SAFE agent) -> `run_agent(name, system, task, tools)` = the Day 26-37 tool loop. A specialist = that one loop + its own prompt + its own tool list. Node analogy: API gateway in front of microservices.
+2. BUILT `agents/day67_supervisor.py` (plain anthropic SDK, no LangGraph): steps 1-4 of 5, every printout matched (tools -> reader loop -> router labels -> routed run: hero-42 -> reader -> get_entry; spring-sale -> publisher -> publish_campaign).
+3. HIS QUESTION: "same MODEL, isn't this just the LangGraph router?" Answer: yes structurally; an agent = prompt + tools + history, not a model. Differences: each branch runs its own tool loop; isolated messages/tools; a TRUE supervisor loops and treats agents as its tools (read then publish). Lever: router on Haiku, specialists on Opus.
+4. COST: 3 LLM calls per question (route + tool request + answer) vs 2 for one agent. Rule: start with one agent; split when the tool list or permissions demand it.
+5. SLIP (twice): ran before saving -> same output as the previous step. Fix: check the VS Code save dot first; File -> Auto Save. Quiz 0.5/3 (all Day 66 - learned in 40 min on interview morning).
+
+## Day 68 - MCP SHAPE: the server owns the tool, the client asks by name (2026-11-10, ~45 min)
+**One-liner:** MCP moves my tools out of the agent into a separate server with two standard calls - tools/list and tools/call - so any client can discover and run them without copying tool code.
+1. SHAPE: server = owns the function + schema (a noun: Contentful, GitHub, Postgres); client = the AI app that asks (my agent loop, Claude Desktop). Same as a microservice: `GET /openapi.json` = `client.list_tools()`, `POST /charge` = `client.call_tool(name, args)`. The agent loop is unchanged; Claude still only requests.
+2. BUILT `agents/day68_mcp_server.py` (`MCPServer("contentful")` + `@server.tool()` on `get_entry` - type hints + docstring become the schema) and `agents/day68_mcp_client.py` (`async with Client(SERVER)` -> `list_tools()` -> `call_tool("get_entry", {"entry_id": "hero-42"})`). Output matched: tools: ['get_entry'] / result: Design without limits. Run: `python -m agents.day68_mcp_client`.
+3. VERSION: my mcp is 2.3.0 - `FastMCP` was renamed `MCPServer` (`from mcp.server.mcpserver import MCPServer`); 1.x tutorials will not import.
+4. STDIO = child PROCESS, not thread (Node `child_process.spawn`, not `worker_threads`): own memory, so messages over stdin/stdout only. `StdioServerParameters` is only the recipe; the spawn happens at `async with Client(SERVER)`. A spawned child lives inside its parent's container (shares the memory limit and /dev/shm - my Playwright-on-pods disconnects), so in Kubernetes the MCP server is its own Deployment over HTTP.
+5. Day 67 step 5 closed: reader asked to publish -> no tool call, "my access is read-only" - the tool list is the boundary. Quiz Day 68: 3/3. Slip: pasted the client over the server file -> it started itself in a loop (new file = New File first, then paste).
+
