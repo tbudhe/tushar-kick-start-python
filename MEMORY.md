@@ -370,3 +370,4 @@ Tushar has completed Day 0 through Day 26 of the curriculum — Phase 1 FULLY CO
 - 2026-11-06 Day 66 (~40 min, morning of Intuit): RAG from scratch over the real Lewis 2020 PDF in rag_minimal.py; predicted every printout; he asked strong design Qs (char vs word chunks, buffer vs text). Quiz 2.5/3.
 - 2026-11-03 Day 65 (~20 min): Guardrails II - 4 of 5 layers already in his code, HITL new (interrupt + checkpointer); closes Guardrails concepts. rag_minimal.py spec to confirm; Intuit Fri 11/6.
 - 2026-11-02 Day 64 (30 min): PII redaction before the LLM call closes Guardrails I; Guardrails II -> Day 65; interviews Intuit/Byn ~Nov 5-6.
+- 2026-11-12 Day 70 (~30 min): finished the notes MCP server end to end (day70_notes_client.py - list_tools -> Claude tools= -> Claude picked interview_line -> call_tool); GenAI vs Agentic landed (corrected thinking-mode vs agent-mode). Three predicted steps, one layer per answer - that shape worked. Quiz 2.5/3. Next: Project 3 assembly.

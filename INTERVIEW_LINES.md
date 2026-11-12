@@ -102,7 +102,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Supervisor (Day 67):** "A supervisor is a router whose branches are full agents, each with its own prompt, tools and history. Same model is fine - an agent is prompt plus tools, not a model. The split buys isolation and least privilege, and costs one extra LLM hop."
 - **When to split (Day 67):** "Start with one agent; split only when the tool list or permissions demand it. In my copilot the reader can't publish because publish isn't in its tool list - architecture, not a prompt request - and unknown routes fall back to the read-only agent."
 
-## 9. MCP (Day 68)
+## 9. MCP (Days 68–70)
 
 - **MCP in one breath (Day 68):** "MCP is a standard protocol that moves tools out of my agent into a separate server, and every server answers the same two calls: tools/list and tools/call. I built one - a Contentful server exposing get_entry, and a client with no tool code that discovered it and called it. The agent loop doesn't change; it forwards the call instead of running the function."
 - **Why MCP (Day 68):** "Reuse and a clean boundary. The tool is written once in the server, and my agent, a teammate's agent and Claude Desktop all connect to it instead of each copying the schemas."
@@ -110,3 +110,9 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Who calls the tool (Day 69):** "The model never calls anything. It returns a tool name and an arguments dict - that's all. My own loop does the call: one line, FUNCTIONS[name](**args) for a local tool, or client.call_tool(name, args) over MCP. Same position in the same loop."
 - **Why no URL per tool (Day 69):** "An MCP server isn't N routes - it's two endpoints with the tool name inside the message. That's what lets one client talk to GitHub, Drive and my own notes server without learning three URL layouts."
 - **Registering a tool (Day 69):** "`@server.tool()` is registration, like app.get at startup - not a call. The type hints become the JSON schema and the docstring is shipped to the model as the description, so the docstring is load-bearing, not a comment."
+- **MCP wired to the model (Day 70):** "I list the server's tools and pass them straight to the model as its tool list - the description is my docstring, the schema is my type hints. The model returns a name and arguments, and my client forwards that to the server with call_tool. I built it over my own notes repo and the model picked the right tool from the docstrings alone."
+- **@tool vs MCP (Day 70):** "Both generate the schema from type hints and a docstring. A LangChain @tool lives inside one app; an MCP tool lives in a server any client can share. One agent, one codebase - @tool. Several agents or teams - MCP."
+
+## 10. GenAI vs Agentic AI (Day 70)
+
+- **GenAI vs Agentic (Day 70):** "GenAI generates, agentic AI acts. In GenAI my code owns the control flow - my RAG service is a fixed path: retrieve, prompt, answer. In agentic AI the model owns the control flow, inside guardrails that I set - tool allowlist, step budget, human approval on writes."
