@@ -96,6 +96,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 
 - **Output + agent guardrails (Day 65):** "Input guardrails lower the odds; output and agent guardrails limit the damage. I validate output with a Pydantic schema, force the agent to answer only from tool results, give it a tool allowlist and a step budget — all already in my code — and any irreversible write pauses for human approval."
 - **Human-in-the-loop (Day 65):** "Reads run free; irreversible writes, like publishing a campaign in my Autodesk copilot, pause for a human. In LangGraph that's interrupt() plus a checkpointer, so the run can resume hours later on the same thread_id — and a denial goes back to the model as a tool result, not an exception." Proof (Day 65): I gated a publish tool — on deny the agent told the user it was not published and suggested next steps, no crash.
+- **Prompt asks, gate enforces (Day 71):** "When I assembled my agent, the model asked the user to confirm the publish on its own - because my tool description says 'Irreversible' - so my approval gate never fired. That's a courtesy, not a control. The prompt asks; the gate in code enforces, because a different model or an injected instruction skips the courtesy."
 
 ## 8. Multi-agent (Day 67)
 
@@ -116,3 +117,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 ## 10. GenAI vs Agentic AI (Day 70)
 
 - **GenAI vs Agentic (Day 70):** "GenAI generates, agentic AI acts. In GenAI my code owns the control flow - my RAG service is a fixed path: retrieve, prompt, answer. In agentic AI the model owns the control flow, inside guardrails that I set - tool allowlist, step budget, human approval on writes."
+
+## 11. Project 3 assembled agent (Day 71)
+
+- **Project 3 in one breath (Day 71):** "My Project 3 agent is one LangGraph loop with three tools - a price lookup, my Revit RAG pipeline wrapped as a tool, and a publish action behind a human-approval gate - plus a SQLite checkpointer, so the thread_id carries memory across turns. One four-turn run proved memory, RAG, tool use and the write gate."

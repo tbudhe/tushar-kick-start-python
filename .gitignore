@@ -31,3 +31,5 @@ _to_delete/
 
 # LangGraph SqliteSaver checkpoint files (Day 52)
 memory.db
+project3.db
+Claude outputs/

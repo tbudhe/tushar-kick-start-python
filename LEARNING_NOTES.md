@@ -1124,3 +1124,11 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 3. BRAIN AND HANDS IN TWO LINES: `print("Claude picked:", block.name, block.input)` = Claude decided (nothing has run); `await client.call_tool(block.name, block.input)` = my line runs it. Claude picked interview_line {'topic': 'who calls the tool'} from the docstrings alone.
 4. `@tool` (LangChain) vs `@server.tool()` (MCP): both GENERATE the schema from type hints + docstring. `@tool` = the tool lives inside one app; `@server.tool()` = the tool lives in a shared server any client can use. One LangGraph agent -> `@tool`.
 5. GenAI vs AGENTIC: GenAI generates, agentic AI acts. GenAI = my code owns the control flow (rag_service.answer_question, fixed path). Agentic = the model owns it, inside guardrails I set. "Thinking mode" is NOT GenAI - thinking is how long the brain reasons and works in both; the pair is chat mode vs agent mode.
+
+## Day 71 - Project 3 assembled: one agent with memory, RAG, tools and a write gate (2026-11-13, ~25 min)
+**One-liner:** One LangGraph loop, three tools, a SQLite checkpointer and a HITL gate - built in 5 predicted steps, and the run showed the prompt asks but only the gate enforces.
+1. BUILT `agents/project3_agent.py` from day48/50/52/65: tools get_price + search_revit_docs (Project 2 RAG) + publish_campaign; TOOLS is a DICT because the gate looks tools up by name; bind_tools gets the values.
+2. `add_messages` = append merge rule -> nodes return ONLY new messages (`[response]`, `results`). Returning the whole list like day65 would store every message twice.
+3. Own DB file `project3.db` so thread "tushar" starts empty - reusing memory.db would load day52's old thread.
+4. RUN: 4 turns -> 14 messages. Turn 2 resolved "my ticker" = memory. Turn 3 = RAG answered the door question. Turn 1 called get_price unprompted (my "always call get_price" prompt over-triggered).
+5. FINDING: turn 4 Claude asked for confirmation in TEXT because the description says "Irreversible" - the gate never fired. Prompt asks, gate enforces: the model's caution is a courtesy, the code gate is the control.
