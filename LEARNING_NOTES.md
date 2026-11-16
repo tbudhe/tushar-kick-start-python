@@ -1132,3 +1132,11 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 3. Own DB file `project3.db` so thread "tushar" starts empty - reusing memory.db would load day52's old thread.
 4. RUN: 4 turns -> 14 messages. Turn 2 resolved "my ticker" = memory. Turn 3 = RAG answered the door question. Turn 1 called get_price unprompted (my "always call get_price" prompt over-triggered).
 5. FINDING: turn 4 Claude asked for confirmation in TEXT because the description says "Irreversible" - the gate never fired. Prompt asks, gate enforces: the model's caution is a courtesy, the code gate is the control.
+
+## Day 72 - Write gate proven: deny path, non-determinism, checkpoint-before-call (2026-11-16, ~20 min)
+**One-liner:** Turn 5 made the gate fire; the same prompt behaved differently across runs, which is exactly why the gate lives in code.
+1. RECAP: the gate sits inside the `tools` node, and the only way in is `should_continue` seeing `tool_calls`. A text reply -> END -> gate never runs. Prompt asks, gate enforces.
+2. `add_messages` appends what a node returns, so a node returns only the NEW piece (`[response]`) - like dispatching a Redux action payload, not the whole store. It's about state, not about what the human sees.
+3. NON-DETERMINISM: run 2 turn 4 asked for confirmation in text; run 3 turn 4 called publish_campaign directly. Same code, same prompt. The gate caught every real attempt (y -> PUBLISHED, n -> DENIED twice).
+4. 19 instead of 18: LangGraph checkpoints the input BEFORE the agent node calls Claude, so the DNS-crashed run left an orphan HumanMessage. Like a DB write that commits before the downstream API call fails -> retries must be idempotent.
+5. DEBUG: `APIConnectionError` / `Errno 8 nodename nor servname` = DNS, not code. One-bit test: `curl -I https://www.google.com`. Fix was a laptop restart. Typo trap: `python -m agents.project3_agent.` (trailing dot) -> ModuleNotFoundError.

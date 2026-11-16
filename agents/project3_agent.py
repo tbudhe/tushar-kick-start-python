@@ -101,6 +101,7 @@ if __name__ == "__main__":
         "What's the price of my ticker?",
         "How do I add a door in Revit?",
         "Publish the campaign 'Spring Sale'.",
+        "Yes, publish it.",
     ]
     for i, text in enumerate(TURNS, start=1):
         print(f"===== thread=tushar | TURN {i} | {text} =====")

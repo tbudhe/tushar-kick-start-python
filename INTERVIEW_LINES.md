@@ -121,3 +121,5 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 ## 11. Project 3 assembled agent (Day 71)
 
 - **Project 3 in one breath (Day 71):** "My Project 3 agent is one LangGraph loop with three tools - a price lookup, my Revit RAG pipeline wrapped as a tool, and a publish action behind a human-approval gate - plus a SQLite checkpointer, so the thread_id carries memory across turns. One four-turn run proved memory, RAG, tool use and the write gate."
+- **Why the gate is in code (Day 72):** "Because the model is non-deterministic - with the same prompt, one run asked for confirmation in text and the next called the publish tool directly. The prompt is a suggestion; the approval gate in my tools node is the control, and it caught every real attempt."
+- **Checkpoint before the call (Day 72):** "LangGraph checkpoints the input before the node runs, so a run that crashed on a network error still left the user message in the thread - same as a DB write that commits before a downstream API call fails. So retries on an agent thread need to be idempotent."
