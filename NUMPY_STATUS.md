@@ -1,6 +1,6 @@
 # NUMPY_STATUS.md — NumPy daily drills (SINGLE SOURCE OF TRUTH for NumPy)
 
-Last Updated: 2026-11-13 (Drill 1 done; ladder now covers the HackerRank NumPy track)
+Last Updated: 2026-11-16 (Drill 2 done - axis)
 Linked from: STATUS.md -> "NUMPY DAILY" line (this file lives at repo root)
 
 ## WHY
@@ -14,14 +14,14 @@ I switched to TypeScript because I wasn't comfortable. Goal: NumPy muscle memory
 - One new idea per drill. Started from zero on 2026-11-13.
 
 ## CURRENT POSITION
-Next drill: **Drill 2 — axis** (mean per column vs mean per row)
+Next drill: **Drill 3 — HackerRank input** (read stdin -> np.array)
 
 ## LADDER (two goals: HackerRank NumPy track + AI-style NumPy)
 | # | Topic | Status |
 |---|---|---|
 | 1 | np.array, .shape, arr * 2, arr[0], arr[1, 2] | DONE 2026-11-13 |
-| 2 | axis: .mean(axis=0) vs .mean(axis=1) | next |
-| 3 | HackerRank input: read stdin -> np.array (`input().split()`, `map(int, ...)`) | |
+| 2 | axis: .mean(axis=0) vs .mean(axis=1) | DONE 2026-11-16 |
+| 3 | HackerRank input: read stdin -> np.array (`input().split()`, `map(int, ...)`) | next |
 | 4 | reshape, transpose, flatten | |
 | 5 | zeros / ones / eye / identity, dtype | |
 | 6 | concatenate (axis), stacking | |
@@ -40,6 +40,11 @@ Next drill: **Drill 2 — axis** (mean per column vs mean per row)
 - `arr = np.array(data)` — must ASSIGN it; `np.array(data)` alone builds it and throws it away (like `.map()` without assigning in JS).
 - `arr.shape` = (rows, columns); a plain Python list has no `.shape`.
 - `arr * 2` = math on every element, no loop. `arr[1, 2]` = row 1, col 2 (JS: `data[1][2]`).
+
+### Drill 2 — 2026-11-16 — axis
+- `arr.mean(axis=0)` = one answer per COLUMN (the totals row at the bottom of a spreadsheet) -> [2. 3. 4. 5.].
+- `arr.mean(axis=1)` = one answer per ROW (the totals column on the right) -> [2.5 3.5 4.5].
+- axis = the direction that gets squashed. Both predictions matched on first run.
 
 ## KEY RULES TO REMEMBER
 - Always `import numpy as np`.
