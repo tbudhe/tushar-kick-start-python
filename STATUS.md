@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-11-16 (Day 72 - WRITE GATE PROVEN: turn 5 added, DENIED fired on turns 4 and 5; findings: LLM non-determinism + checkpoint-before-call orphan message; quiz 1/3)
+Last Updated: 2026-11-17 (Day 73 - AI SD MOCK #1 steps 1-2 + KNN vs ANN; quiz 2.5/3)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -28,6 +28,14 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
+Day: 73 COMPLETE (2026-11-17, ~30 min, 12:38-13:05) | Week: PHASE 3, week 2 (BREADTH PASS) | Next session = Day 74.
+Day 73: AI SYSTEM DESIGN MOCK #1 (RAG over 2M Autodesk docs, 12 langs, daily updates) - STOPPED AFTER STEP 2 + KNN/ANN (his call). Step 1 clarifying Qs: strong - diagrams/multimodal, success bar, users, UI scope, QPS/p99, "originals stay source of truth, don't break existing systems" (Staff-level). Missed: ACL / who-can-see-which-doc. Size math slip: 100MB max/file is not a total - ask AVERAGE (2M x ~2MB = ~4TB).
+Step 2 (Excalidraw): first draw mixed ingest + query into ONE pipeline. Fix that landed: TWO PATHS = CQRS (write path offline per doc change, read path online per request). His redrawn WRITE PATH was right: CMS/S3 -> change event -> Kafka -> consumer -> image/text processing -> vector DB, incremental index, Redis task status. Owed: chunk+embed box + per-chunk metadata (doc_id, version, page, lang, ACL) -> delete-by-doc_id then insert on new version. READ PATH NOT YET REDRAWN (old mixed diagram still there). Corrections: all-MiniLM-L6-v2 = EMBEDDING model, not an LLM; RAG needs no tool-call loop (my code owns control flow, Day 70).
+KNN vs ANN (his ask, added to curriculum): KNN = exact full scan (rows.sort().slice), fine < ~100K vectors or eval ground truth; ANN = HNSW index (like Redis sorted-set skip list), ~1% recall loss, ms lookups - required at 40M chunks. His Chroma is already HNSW = ANN. NumPy KNN = `chunks @ query` + argsort (previews Drill 13).
+Quiz Day 73: 2.5/3 - Q1 half (keyword list again, weak spot 8), Q2 right, Q3 right.
+DAY 74 OPENING (max 3 single-part Qs): (1) say section 12 'KNN vs ANN' line cold; (2) in this design, which path has the 2-second budget - write or read? (read); (3) when v2 of a doc arrives, what do you delete before inserting? (all chunks where doc_id = X). Per weekly plan Wed = AI BUILD: Render deploy (his account, open since 9/10). Mock #1 RESUMES at step 2b (redraw read path: question -> embed -> ANN + ACL filter -> rerank top 5 -> Claude + citations -> answer / I don't know), then 4 scale & cost, 5 evals + curveball, 6 scorecard - next Tue slot or a spare 20 min. NumPy Drill 3 (HackerRank input) still next.
+EXERCISE (his, 15 min): in Excalidraw, delete the old mixed diagram and draw the READ PATH as one row of 5 boxes under the write path; add 'chunk -> embed' + metadata note to the write path. Screenshot for Day 74.
+--- history below ---
 Day: 72 COMPLETE (2026-11-16, ~20 min in work breaks, 11:45-14:50) | Week: PHASE 3, week 2 (BREADTH PASS) | Next session = Day 73.
 Day 72: WRITE GATE PROVEN in `agents/project3_agent.py`. Added TURN 5 "Yes, publish it." Three runs: (1) DNS outage - Errno 8 / APIConnectionError = network, not code (curl google failed too; laptop restart fixed it) (2) typed y -> PUBLISHED, 19 msgs (3) fresh db, typed n -> DENIED on turn 4 AND turn 5, Claude said "not published".
 FINDINGS: (a) NON-DETERMINISM: run 2 turn 4 asked in TEXT, run 3 turn 4 called publish_campaign directly - same code, same prompt. The gate caught every real attempt -> gate in code, not prompt. (b) 19 = 18 + 1 orphan HumanMessage from the crashed run: the checkpointer saves the input BEFORE the agent node calls Claude (like a DB write committed before a downstream API call fails). (c) run 3 predicted 20 (5 turns x 4) - count line not pasted yet.

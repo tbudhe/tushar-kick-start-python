@@ -1140,3 +1140,12 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 3. NON-DETERMINISM: run 2 turn 4 asked for confirmation in text; run 3 turn 4 called publish_campaign directly. Same code, same prompt. The gate caught every real attempt (y -> PUBLISHED, n -> DENIED twice).
 4. 19 instead of 18: LangGraph checkpoints the input BEFORE the agent node calls Claude, so the DNS-crashed run left an orphan HumanMessage. Like a DB write that commits before the downstream API call fails -> retries must be idempotent.
 5. DEBUG: `APIConnectionError` / `Errno 8 nodename nor servname` = DNS, not code. One-bit test: `curl -I https://www.google.com`. Fix was a laptop restart. Typo trap: `python -m agents.project3_agent.` (trailing dot) -> ModuleNotFoundError.
+
+## Day 73 - AI SD mock #1 (RAG over 2M docs) + KNN vs ANN (2026-11-17, ~30 min)
+**One-liner:** RAG at scale is two paths - an offline write path that indexes doc changes and an online read path with the latency budget - and the read path needs ANN, not KNN.
+1. Clarify first: users, QPS/latency, freshness, accuracy bar, multimodal (diagrams), source of truth. Don't forget ACL (who can see which doc). Size = count x AVERAGE size (2M x ~2MB = ~4TB), not the max.
+2. TWO PATHS = CQRS. Write: CMS/S3 -> change event -> Kafka -> worker (parse + OCR) -> chunk -> embed -> vector index. Read: question -> embed -> ANN + ACL filter -> rerank -> Claude + citations -> answer / "I don't know".
+3. Incremental index: store doc_id + version per chunk; on a new version delete all chunks for doc_id, then insert. all-MiniLM-L6-v2 is an embedding model, not an LLM. Plain RAG = one Claude call, no tool loop.
+4. KNN = exact full scan (`chunks @ query` + argsort), fine < ~100K vectors or eval ground truth. ANN (HNSW, a layered graph like Redis's skip list) = ~1% recall loss, millisecond lookups - required at 40M chunks.
+5. Chroma already uses HNSW, so my Revit RAG was ANN all along. Rerank the ANN top 50 to win precision back.
+
