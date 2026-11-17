@@ -1,6 +1,6 @@
 # NUMPY_STATUS.md — NumPy daily drills (SINGLE SOURCE OF TRUTH for NumPy)
 
-Last Updated: 2026-11-16 (Drill 2 done - axis)
+Last Updated: 2026-11-17 (Drill 3 done - HackerRank input)
 Linked from: STATUS.md -> "NUMPY DAILY" line (this file lives at repo root)
 
 ## WHY
@@ -14,15 +14,15 @@ I switched to TypeScript because I wasn't comfortable. Goal: NumPy muscle memory
 - One new idea per drill. Started from zero on 2026-11-13.
 
 ## CURRENT POSITION
-Next drill: **Drill 3 — HackerRank input** (read stdin -> np.array)
+Next drill: **Drill 4 — reshape, transpose, flatten**
 
 ## LADDER (two goals: HackerRank NumPy track + AI-style NumPy)
 | # | Topic | Status |
 |---|---|---|
 | 1 | np.array, .shape, arr * 2, arr[0], arr[1, 2] | DONE 2026-11-13 |
 | 2 | axis: .mean(axis=0) vs .mean(axis=1) | DONE 2026-11-16 |
-| 3 | HackerRank input: read stdin -> np.array (`input().split()`, `map(int, ...)`) | next |
-| 4 | reshape, transpose, flatten | |
+| 3 | HackerRank input: read stdin -> np.array (`input().split()`, `map(int, ...)`) | DONE 2026-11-17 |
+| 4 | reshape, transpose, flatten | next |
 | 5 | zeros / ones / eye / identity, dtype | |
 | 6 | concatenate (axis), stacking | |
 | 7 | element-wise math, floor / ceil / rint, sum / prod / min / max | |
