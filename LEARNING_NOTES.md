@@ -1149,3 +1149,21 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. KNN = exact full scan (`chunks @ query` + argsort), fine < ~100K vectors or eval ground truth. ANN (HNSW, a layered graph like Redis's skip list) = ~1% recall loss, millisecond lookups - required at 40M chunks.
 5. Chroma already uses HNSW, so my Revit RAG was ANN all along. Rerank the ANN top 50 to win precision back.
 
+---
+## Day 74 - AI Ops: eval gate on LangSmith (2026-11-18, ~60 min)
+**One-liner:** An eval gate turns a judge's score into an exit code, so a quality drop blocks the deploy the way a failing `npm test` blocks a merge.
+1. LangSmith dataset = fixed test suite (revit-rag-golden, 5 Qs); every experiment runs against the same examples, so Opus vs Haiku is a fair comparison.
+2. `evaluate(target, data, evaluators)`: target = my answer_question wrapper; evaluator = opus YES/NO faithfulness judge. Refused -> score None (nothing to judge, excluded from the average).
+3. Gate: average < THRESHOLD -> `sys.exit(1)`; CI reads the non-zero exit and turns the pipeline red.
+4. Finding: the door question flipped YES -> NO between runs; 0.75 passed exactly at the line.
+5. Flaky gate: with 4 judged questions one vote = 25%. Fix: 30-50 questions + `num_repetitions=3`.
+
+---
+## Day 75 - Eval gate FAIL proven + TTFT (2026-11-20, ~85 min)
+**One-liner:** I proved the gate goes red on a bad answer, and latency splits into TTFT (driven by input) plus generation time (driven by output).
+1. `day75_eval_fail.py`: real chunks + fake answer -> 4x NO -> 0.00 -> EVAL GATE: FAIL -> exit 1. A gate is only real once you have seen it fail.
+2. Secrets: load_dotenv() puts .env into os.environ; langsmith reads LANGSMITH_API_KEY itself. Revoked key -> 403 until .env had the new key. No cache - each run is a new process.
+3. TTFT = time to first token; measure by streaming and timestamping the first chunk; track p95, not average.
+4. Total latency = TTFT + output tokens x time per token. TTFT: prompt caching, smaller prompt, parallel retrieval, small model for routing. Output: cap max_tokens, stream.
+5. NumPy: zeros/ones default float (`0.`), dtype=int; eye(3, k=1); np.diag reads (2-D) or builds (1-D); anti-diagonal = np.diag(np.fliplr(a)); np.zeros(2, 3) -> TypeError (2nd arg is dtype).
+

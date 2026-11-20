@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-11-17 (Day 73 - AI SD MOCK #1 steps 1-2 + KNN vs ANN; quiz 2.5/3)
+Last Updated: 2026-11-20 (Day 75 - eval gate FAIL path proven, TTFT, NumPy 5, STAR Q1 5/8; Day 74 written up)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -28,6 +28,21 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
+Day: 75 COMPLETE (2026-11-20, ~85 min, 04:34-05:58 incl. a 25-min break) | Week: PHASE 3, week 2 (BREADTH PASS) | Next session = Day 76.
+Day 75: EVAL GATE FAIL PATH PROVEN. New file `revit_rag/day75_eval_fail.py` (real chunks, FAKE answer): 4x NO, DWG None -> faithfulness 0.00 -> EVAL GATE: FAIL -> exit 1. Predicted exactly. KEY ROTATION: revoked the old LangSmith key -> 403 Forbidden (old key still in .env) -> new key in .env -> works. Same code ran 57s vs 7s = provider latency (why p95, not one run).
+HIS RULE (2026-11-20, his correction): EVERY DAY = A NEW FILE. Never modify an earlier day's file - Claude proposed editing day74_eval.py, he pushed back, he was right.
+HIS Q: how does LangSmith get the key with no code naming it? load_dotenv() copies .env into os.environ; the library reads LANGSMITH_API_KEY itself (like AWS SDK + process.env). Fresh process each run - no cache; the source is the .env file.
+TTFT (the 11-19 interview gap): total latency = TTFT + output tokens x time/token. TTFT grows with INPUT (prompt size, queueing) -> prompt caching, smaller prompt, parallel retrieval. Total grows with OUTPUT -> cap max_tokens, stream. Line in INTERVIEW_LINES section 13.
+NumPy Drill 5 DONE (+ np.diag, fliplr anti-diagonal, trace; his bug: `print(np.diag(ones), k=1)` - kwarg landed on print). STAR Q1 attempt 2 = 5/8 with a NEW story (Oracle -> MongoDB cart migration, primary CPU 85%) - banked in STAR_STATUS.md.
+Quiz Day 75 (on Day 74): 0.5/3 - Q1 half: exit code yes, but CI reads it to block the deploy (he argued process.on('uncaughtException') - same mechanism, different purpose: a verdict, not a crash); Q2 missed (4 judged Qs -> one vote = 25%); Q3 wrong (None = nothing to judge; 0 would punish a correct refusal).
+DAY 76 OPENING (max 3 single-part Qs): (1) say section 13 'TTFT' line cold; (2) who reads the eval gate's exit code? (CI - turns the pipeline red, blocks the deploy); (3) why is 0.75 on 4 judged questions a flaky gate? (one vote = 25%; fix: 30-50 Qs + num_repetitions=3). Weekly plan: Mon = AI build -> TRACING (LangSmith traces on answer_question; key is in .env) then the gate in GitHub Actions. OWED: Day 74 door-row NO diagnosis (experiment revit-rag-haiku-78939777: answer changed or judge changed?). Mock #1 resumes at step 2b (read path). Classic SD mock #1 (rate limiter) slid from Thu 11-19. NumPy Drill 6 (concatenate). STAR Q2.
+EXERCISE (his, 15 min): NEW file `revit_rag/day76_eval_reps.py` (copy of day74_eval.py) - add `num_repetitions=3` to evaluate(). Goal: 15 rows printed (5 Qs x 3), faithfulness = average of 12 judged rows; does the door row flip between repetitions?
+--- history below ---
+Day: 74 COMPLETE (2026-11-18, ~60 min; written up 11-20) | Week: PHASE 3, week 2 (BREADTH PASS) | Next session = Day 75.
+Day 74: AI OPS = EVAL GATE ON LANGSMITH. Render deploy DROPPED as a lesson (his call: has hosted ~100 apps; click through it alone for a portfolio URL). `revit_rag/day74_dataset.py`: 5 golden Qs -> dataset revit-rag-golden (has_dataset guard = CREATE TABLE IF NOT EXISTS). `revit_rag/day74_eval.py`: evaluate(target = answer_question wrapper, evaluators = [faithful: opus YES/NO judge; refused -> None]) -> experiment in LangSmith -> gate THRESHOLD 0.75 -> sys.exit(1).
+FINDING: run 99f921eb fine; run 78939777 door = NO (Day 62 was YES) -> 0.75 -> PASS exactly at the line = FLAKY GATE (4 judged Qs, one vote = 25%). Fix: 30-50 Qs + num_repetitions=3. Cause of door NO not diagnosed. NumPy Drill 4 done. STAR track created, Q1 attempt 1 = 3/8 (Azure failover = incident story, not performance).
+11-19: no session (4 interviews incl. OnePay Karat). He got stuck on 'how do you know TTFT / improve latency' -> taught Day 75.
+--- history below ---
 Day: 73 COMPLETE (2026-11-17, ~30 min, 12:38-13:05) | Week: PHASE 3, week 2 (BREADTH PASS) | Next session = Day 74.
 Day 73: AI SYSTEM DESIGN MOCK #1 (RAG over 2M Autodesk docs, 12 langs, daily updates) - STOPPED AFTER STEP 2 + KNN/ANN (his call). Step 1 clarifying Qs: strong - diagrams/multimodal, success bar, users, UI scope, QPS/p99, "originals stay source of truth, don't break existing systems" (Staff-level). Missed: ACL / who-can-see-which-doc. Size math slip: 100MB max/file is not a total - ask AVERAGE (2M x ~2MB = ~4TB).
 Step 2 (Excalidraw): first draw mixed ingest + query into ONE pipeline. Fix that landed: TWO PATHS = CQRS (write path offline per doc change, read path online per request). His redrawn WRITE PATH was right: CMS/S3 -> change event -> Kafka -> consumer -> image/text processing -> vector DB, incremental index, Redis task status. Owed: chunk+embed box + per-chunk metadata (doc_id, version, page, lang, ACL) -> delete-by-doc_id then insert on new version. READ PATH NOT YET REDRAWN (old mixed diagram still there). Corrections: all-MiniLM-L6-v2 = EMBEDDING model, not an LLM; RAG needs no tool-call loop (my code owns control flow, Day 70).

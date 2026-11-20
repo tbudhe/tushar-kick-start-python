@@ -86,6 +86,9 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Offline + online:** "Offline, I run the golden set plus judges on every prompt or model change, as a regression gate. Online, I trace production with LangSmith and sample real traffic into the dataset, so the eval set grows from real failures."
 - **Test the tester (Day 63):** "Before trusting my judge, I fed it my real chunks with a fabricated answer — it said NO. Faithfulness came out 4/4 on answered questions, refusals tracked separately at 1/5."
 
+- **Eval gate (Day 74):** "My eval gate runs the golden set through LangSmith with a faithfulness judge and exits non-zero below a threshold, so CI blocks the deploy even when every unit test passes - swapping Haiku for Opus is a deploy too."
+- **Flaky gate (Day 74):** "With only four judged questions one vote moves the score 25 percent, so the gate flips on noise. I fix that with 30 to 50 questions and three repetitions per question, averaged."
+
 ## 7. Guardrails (Days 63–65)
 
 - **Prompt injection:** "Instructions and data reach the LLM as one token stream, so text in the data can act as an instruction — it's SQL injection with no parameterized query."
@@ -129,3 +132,6 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **KNN vs ANN (Day 73):** "KNN is an exact full scan - fine under about 100K vectors or for eval ground truth. At 40 million chunks I'd use ANN, an HNSW index, which trades about one percent recall for millisecond lookups, and then I rerank the top 50 to win the precision back."
 - **Two paths (Day 73):** "RAG at scale is two paths, like CQRS: an offline write path where change events go through Kafka to workers that parse, chunk, embed and index, and an online read path that embeds the question, does ANN search with a permission filter, reranks, and has Claude answer with citations."
 
+## 13. Latency - TTFT (Day 75)
+
+- **TTFT (Day 75):** "I measure TTFT by streaming and timestamping the first chunk, and track p95, not the average. TTFT grows with input - prompt size and queueing - so I cut it with prompt caching, smaller prompts and parallel retrieval. Total time grows with output, so I cap max_tokens and stream."
