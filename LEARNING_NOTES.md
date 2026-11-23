@@ -1167,3 +1167,12 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. Total latency = TTFT + output tokens x time per token. TTFT: prompt caching, smaller prompt, parallel retrieval, small model for routing. Output: cap max_tokens, stream.
 5. NumPy: zeros/ones default float (`0.`), dtype=int; eye(3, k=1); np.diag reads (2-D) or builds (1-D); anti-diagonal = np.diag(np.fliplr(a)); np.zeros(2, 3) -> TypeError (2nd arg is dtype).
 
+---
+## Day 76 - Tracing a RAG request (2026-11-23, ~40 min)
+**One-liner:** A trace is a per-step stopwatch for one request - mine showed Claude is 91% of the latency, so that is where I optimise.
+1. Tracing = my Walmart p99 investigation for an LLM: break one request into steps, time each, fix the slow one. `.env` needs LANGSMITH_TRACING=true - the API key is permission, not the on-switch.
+2. `traceable(name=...)(fn)` wraps without editing the file (Node: `const t = trace(fn)`). `from x import y` gives the importing module its own copy of the name, so swap it INSIDE the module (`rag_service.retrieve = ...`), like jest.spyOn.
+3. Result: retrieve 0.10s, ask_claude 1.45s, total 1.59s (~91% Claude). Levers: smaller prompt, prompt caching, streaming - not faster vector search.
+4. Bug I hit: timing the wrapping line measures 0.00005s. Time the CALL - the stopwatch goes inside the wrapper, around `fn(*args)`.
+5. Unit tests are deterministic (one failure = real bug, block). LLM judges are not (same code, YES -> NO), so gate on a threshold over enough samples (30-50 Qs x 3 reps) - like a load-test p95.
+

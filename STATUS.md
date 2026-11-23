@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-11-20 (Day 75 - eval gate FAIL path proven, TTFT, NumPy 5, STAR Q1 5/8; Day 74 written up)
+Last Updated: 2026-11-23 (Day 76 - TRACING: per-step stopwatch, Claude = 91% of latency; flaky gate vs unit tests)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -28,6 +28,16 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
+Day: 76 COMPLETE (2026-11-23, ~40 min, 09:22-10:00) | Week: PHASE 3, week 2 (BREADTH PASS) | Next session = Day 77.
+Day 76: TRACING. `.env` += LANGSMITH_TRACING=true + LANGSMITH_PROJECT=revit-rag-traces (key alone = permission, not the switch). New file `revit_rag/day76_trace.py`: step 2 traceable(answer_question) -> 1 row in LangSmith, 2.08s. Step 3: swapped names INSIDE rag_service (jest.spyOn style - `from x import y` gives the module its own copy of the name) + plain `stopwatch()` wrapper -> retrieve 0.10s / ask_claude 1.45s / total 1.59s = Claude ~91% (predicted ~90%). Optimise the LLM call (smaller prompt, prompt caching, streaming), not vector search.
+HIS OWN STOPWATCH (unprompted): he added time.time() around lines 10/14 -> 0.00005s = timed the WRAPPING (`const t = trace(fn)`), not the CALL (`await t()`). Fix = stopwatch inside the wrapper. Building it himself = concept landed.
+WHAT LANDED after "I feel like I am just doing, not understanding": Claude's fault - gave spyOn/module mechanics before the picture. Fix that worked: "tracing = your Walmart p99 investigation (5s -> payment gateway path), a per-step stopwatch for one request." Lead with HIS Walmart story for any observability topic.
+HIS Q (good): "a single failing unit test already stops CI - why a threshold?" -> unit tests deterministic (fail = real bug); LLM judge non-deterministic (door YES->NO, no code change) -> gate on a threshold over enough samples; closest Node analogy = load test p95, not a unit test.
+Quiz Day 76 (on Day 75): 1.5/3 - Q1 right (TTFT line; tighten "smaller prompt", "prompt caching"), Q2 half (said LangSmith reads the exit code - it's GitHub Actions/the CI runner; LangSmith stores the experiment), Q3 missed -> taught via Jest 4-test suite (one test = 25%).
+MORALE (11-23 close): "concepts not clear, how will I get a job?" - answered with same-session evidence (own stopwatch, staff-level CI question, 91% read correctly). Do NOT open Day 77 with a pep talk.
+DAY 77 OPENING (max 3 single-part Qs): (1) say section 14 'Tracing' line cold; (2) your first stopwatch printed 0.00005s - what did it actually time? (the wrapping line, not the call); (3) retrieve 0.10s vs ask_claude 1.45s - which step do you optimise? (the Claude call). Weekly plan Tue = AI SYSTEM DESIGN: mock #1 resumes at step 2b (redraw read path). Wed build = eval gate in GitHub Actions. STILL OWED: Day 74 door-row NO diagnosis; classic SD mock #1 (rate limiter); NumPy Drill 6 (concatenate); STAR Q2.
+EXERCISE (his, 15 min, carried from Day 75): NEW file `revit_rag/day76_eval_reps.py` (copy of day74_eval.py) - add `num_repetitions=3` to evaluate(). Goal: 15 rows printed (5 Qs x 3), faithfulness = average of the 12 judged rows; does the door row flip between repetitions? Bonus: open the experiment's traces in LangSmith - retrieve vs Claude share per row.
+--- history below ---
 Day: 75 COMPLETE (2026-11-20, ~85 min, 04:34-05:58 incl. a 25-min break) | Week: PHASE 3, week 2 (BREADTH PASS) | Next session = Day 76.
 Day 75: EVAL GATE FAIL PATH PROVEN. New file `revit_rag/day75_eval_fail.py` (real chunks, FAKE answer): 4x NO, DWG None -> faithfulness 0.00 -> EVAL GATE: FAIL -> exit 1. Predicted exactly. KEY ROTATION: revoked the old LangSmith key -> 403 Forbidden (old key still in .env) -> new key in .env -> works. Same code ran 57s vs 7s = provider latency (why p95, not one run).
 HIS RULE (2026-11-20, his correction): EVERY DAY = A NEW FILE. Never modify an earlier day's file - Claude proposed editing day74_eval.py, he pushed back, he was right.

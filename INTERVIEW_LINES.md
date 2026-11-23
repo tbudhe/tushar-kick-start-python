@@ -89,6 +89,8 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Eval gate (Day 74):** "My eval gate runs the golden set through LangSmith with a faithfulness judge and exits non-zero below a threshold, so CI blocks the deploy even when every unit test passes - swapping Haiku for Opus is a deploy too."
 - **Flaky gate (Day 74):** "With only four judged questions one vote moves the score 25 percent, so the gate flips on noise. I fix that with 30 to 50 questions and three repetitions per question, averaged."
 
+- **Unit tests vs eval gate (Day 76):** "Unit tests are deterministic, so one failure blocks. LLM evals are probabilistic, so I gate on a threshold over enough samples - 30 to 50 questions, three repetitions - that one random judge vote can't flip the build."
+
 ## 7. Guardrails (Days 63–65)
 
 - **Prompt injection:** "Instructions and data reach the LLM as one token stream, so text in the data can act as an instruction — it's SQL injection with no parameterized query."
@@ -135,3 +137,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 ## 13. Latency - TTFT (Day 75)
 
 - **TTFT (Day 75):** "I measure TTFT by streaming and timestamping the first chunk, and track p95, not the average. TTFT grows with input - prompt size and queueing - so I cut it with prompt caching, smaller prompts and parallel retrieval. Total time grows with output, so I cap max_tokens and stream."
+
+## 14. Tracing (Day 76)
+
+- **Tracing (Day 76):** "I trace each step of a RAG request. In mine, retrieval was 0.1 seconds and the LLM call was 1.45 of 1.59 seconds - about 91% - so I optimise the LLM call with a smaller prompt, prompt caching and streaming, not the vector search."
