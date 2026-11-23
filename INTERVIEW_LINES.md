@@ -25,6 +25,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Why LLMs hallucinate:** "Softmax always picks some next token — there's no 'I don't know' option — so without the facts it produces a confident, plausible wrong answer."
 - **Prefill vs decode:** "Prefill reads the whole prompt in parallel and sets time-to-first-token; decode generates one token at a time and sets streaming speed."
 - **Model choice:** "It's a spec-sheet decision — context window, cost, latency, quality on my task — not 'biggest model wins'."
+- **Temperature (Day 76):** "Temperature controls how random the next-token pick is - it divides the scores before softmax. Low, near 0, almost always picks the top token, so I use it for RAG answers, extraction and LLM judges. High, around 1, spreads the picks for creative text. Even 0 isn't perfectly deterministic, so evals still need repetitions."
 - **Fine-tune vs RAG vs prompt:** "One question: did it not know, or did it know and misbehave? Knowledge gap → RAG. Behaviour gap → prompting first, fine-tuning only if prompting maxes out."
 
 ## 2. RAG (Days 2–7, 17–21, 38–42)
