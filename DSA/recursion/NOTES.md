@@ -166,3 +166,15 @@ def dfs(start, path):
 | NEXT | i + 1 | i |
 
 **Re-solve dates:** 11/11 evening (blank file, 15 min), 11/14, 11/18, 11/25
+
+## Generate Parentheses (LC 22) — 2026-11-23 — Round 6, 6/10
+**Signal:** build a string char by char with 2 fixed choices + a validity rule → no for-loop, two `if` branches.
+**Knobs:** DONE = len(path) == 2n | CHOICE = "(" or ")" | NOT_ALLOWED = "(" only if open < n; ")" only if close < open | NEXT = (open, close, path)
+**Key lines:**
+    if open_count < n:          dfs(open_count + 1, close_count, path + "(")
+    if close_count < open_count: dfs(open_count, close_count + 1, path + ")")
+**Complexity:** Time O(4^n · n) upper bound (2 choices ^ 2n levels; real count = Catalan). Aux space O(n).
+**String vs list path:** string = no undo, safer for short strings; list = append/pop, use for non-char paths.
+**My mistakes:** missing order rule (generated all 2n-arrangements: 6/20/70); `>=` instead of `>`; said 2·2^n instead of 2^(2n); path=[] default came back; wrote `===`.
+**Habit:** test every comparison on the EQUAL case.
+**Re-solve (blank file, 10 min):** 11/24, 11/26, 11/30
