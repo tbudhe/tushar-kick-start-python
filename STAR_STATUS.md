@@ -1,6 +1,6 @@
 # STAR_STATUS.md — Behavioral (STAR) daily practice (SINGLE SOURCE OF TRUTH for STAR)
 
-Last Updated: 2026-11-20 (Q1 attempt 2 = 5/8, MongoDB story banked)
+Last Updated: 2026-11-23 (Q2 attempt 1 = 3/8, Lua blue/green traffic-split story banked)
 Linked from: STATUS.md -> "STAR DAILY" line (this file lives at repo root)
 
 ## WHY
@@ -20,13 +20,13 @@ answering before thinking, too much "we", no number in the Result.
 - R (~20s): a number + one line of what I learned.
 
 ## CURRENT POSITION
-Next: **Q2 — disagreed with a senior engineer/manager**
+Next: **Q3 — a failure or mistake**
 
 ## LADDER (10 questions)
 | # | Question | Likely story | Score | Status |
 |---|---|---|---|---|
 | 1 | Hard production performance problem | Oracle -> MongoDB cart, primary CPU 85% (checkout p99 = backup) | 3/8 -> 5/8 | banked; retry cold in 2nd pass |
-| 2 | Disagreed with a senior engineer/manager | | | |
+| 2 | Disagreed with a senior engineer/manager | Scan & Go fuel: % traffic split via Lua on Torbit gateway | 3/8 | banked; fill 2 numbers, retry cold in 2nd pass |
 | 3 | A failure or mistake | | | |
 | 4 | Led without formal authority | | | |
 | 5 | Delivered under a tight deadline | | | |
@@ -46,8 +46,13 @@ Second, I shipped a same-day mitigation: for 5 seconds after a write I read that
 Third, I found the root cause was config: setting the driver's read preference to secondaryPreferred moved reads to the replicas. I deleted my workaround, stress-tested, and shipped the config fix two weeks later.
 Result: CPU went from 85% back to <my real number>, and 500s back to baseline. What I learned: after a migration, check the new database's defaults - the code was fine, the config wasn't."
 
+### Q2 — Disagreement: percentage rollouts on the Torbit gateway (~90s)
+"At Walmart I was redesigning releases for Scan & Go fuel. Every release was all-or-nothing, so one bad deploy hit every customer at the pump. I proposed percentage-based traffic shifting - send a small slice to the new version first. My manager and the principal engineer pushed back: they thought the gateway layer made it too complex and risky.
+I tested the concern instead of arguing it. First, I traced the whole path - front end, API gateway, microservices - and found the gateway already ran Lua on Torbit and supported blue/green. Second, I learned enough Lua in about 8 hours to build a prototype: a cookie pins each user to blue or green for 24 hours, so a session never flips mid-transaction. Third, I demoed it with that evidence and the design was approved.
+Result: percentage rollouts became the release pattern across the org - <how many teams use it>, <one outcome, e.g. rollback in minutes>. What I learned: I showed the prototype to the architect and director before my manager and the principal had seen it. I won the decision but cost trust. Now I bring the evidence to the people who raised the concern first, and we escalate together."
 
 ## LOG
 - 2026-11-18: track created; Q1 asked.
 - 2026-11-18: Q1 attempt 1 = 3/8 (S1 T0 A1 R1). Told the Azure outage/failover story; it fits an INCIDENT question better than a PERFORMANCE one. Banked as the story for 'production incident'. Fixes: T must say what I owned; use 'automated region failover', not 'canary'; R needs a number; drop 'trademark'.
 - 2026-11-20: Q1 attempt 2 = 5/8 (S1 T1 A2 R1). New story: Oracle -> MongoDB cart migration, primary CPU 85%. Fixes: S needs scale + stakes; T = what I owned (not triage steps); readConcern 'majority' does NOT route reads - readPreference=secondaryPreferred does; R needs the CPU number + a lesson.
+- 2026-11-23: Q2 attempt 1 = 3/8 (S1 T0 A1 R1). Strong technical core (Lua in 8h, cookie-pinned 24h blue/green split, org-wide adoption). Fixes: S needs the stake (all-or-nothing releases); T was actions - say what I owned; NEVER say 'skipped my manager / pressured them' as a win - turn it into the lesson; NEVER mention the layoff or the manager's motives in an interview; R needs a number.

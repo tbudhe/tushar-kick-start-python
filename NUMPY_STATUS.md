@@ -1,6 +1,6 @@
 # NUMPY_STATUS.md — NumPy daily drills (SINGLE SOURCE OF TRUTH for NumPy)
 
-Last Updated: 2026-11-20 (Drill 5 done - zeros/ones/eye/dtype + diag)
+Last Updated: 2026-11-23 (Drill 6 done - concatenate axis 0/1)
 Linked from: STATUS.md -> "NUMPY DAILY" line (this file lives at repo root)
 
 ## WHY
@@ -14,7 +14,7 @@ I switched to TypeScript because I wasn't comfortable. Goal: NumPy muscle memory
 - One new idea per drill. Started from zero on 2026-11-13.
 
 ## CURRENT POSITION
-Next drill: **Drill 6 — concatenate (axis), stacking**
+Next drill: **Drill 7 — element-wise math, floor / ceil / rint, sum / prod / min / max**
 
 ## LADDER (two goals: HackerRank NumPy track + AI-style NumPy)
 | # | Topic | Status |
@@ -24,7 +24,7 @@ Next drill: **Drill 6 — concatenate (axis), stacking**
 | 3 | HackerRank input: read stdin -> np.array (`input().split()`, `map(int, ...)`) | DONE 2026-11-17 |
 | 4 | reshape, transpose, flatten | DONE 2026-11-18 |
 | 5 | zeros / ones / eye / identity, dtype | DONE 2026-11-20 |
-| 6 | concatenate (axis), stacking | next |
+| 6 | concatenate (axis), stacking | DONE 2026-11-23 |
 | 7 | element-wise math, floor / ceil / rint, sum / prod / min / max | |
 | 8 | mean / var / std | |
 | 9 | broadcasting (array + row, array * column) | |
@@ -55,6 +55,11 @@ Next drill: **Drill 6 — concatenate (axis), stacking**
 - `np.zeros((2, 3))` = float (`0.`); `np.ones((2, 3), dtype=int)`; shape is ONE tuple - `np.zeros(2, 3)` = TypeError (2nd arg is dtype).
 - `np.eye(3, k=1)` shifts the diagonal. `np.diag(a)` reads (2-D) / builds (1-D); anti-diagonal = `np.diag(np.fliplr(a))`; `np.trace(a)` = sum.
 - My bug: `print(np.diag(ones), k=1)` - kwarg went to print. Put it before the inner `)`.
+
+### Drill 6 — 2026-11-23 — concatenate
+- `np.concatenate((a, b), axis=0)` = stack on TOP -> more rows (2,2)+(2,2) -> (4,2); like `[...a, ...b]`.
+- `axis=1` = side by side -> longer rows -> (2,4). Arrays go in ONE tuple `(a, b)`; plain lists are converted for you.
+- My slip: named the axis=0 result `np_cols` - axis=0 adds ROWS. Both arrays right on first run.
 
 ## KEY RULES TO REMEMBER
 - Always `import numpy as np`.
