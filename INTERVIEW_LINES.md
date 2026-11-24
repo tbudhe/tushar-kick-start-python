@@ -25,7 +25,7 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 - **Why LLMs hallucinate:** "Softmax always picks some next token — there's no 'I don't know' option — so without the facts it produces a confident, plausible wrong answer."
 - **Prefill vs decode:** "Prefill reads the whole prompt in parallel and sets time-to-first-token; decode generates one token at a time and sets streaming speed."
 - **Model choice:** "It's a spec-sheet decision — context window, cost, latency, quality on my task — not 'biggest model wins'."
-- **Temperature (Day 76):** "Temperature controls how random the next-token pick is - it divides the scores before softmax. Low, near 0, almost always picks the top token, so I use it for RAG answers, extraction and LLM judges. High, around 1, spreads the picks for creative text. Even 0 isn't perfectly deterministic, so evals still need repetitions."
+- **Temperature (Day 76):** "Temperature controls how random the next-token pick is - it divides the scores before softmax. Low, near 0, almost always picks the top token, so I use it for RAG answers, extraction and LLM judges. High, around 1, spreads the picks for creative text. Even 0 isn't perfectly deterministic, so evals still need repetitions. And some newer models, like the one I use, reject temperature entirely, so repeatability has to come from the eval design - more questions and repetitions - not a sampling knob."
 - **Fine-tune vs RAG vs prompt:** "One question: did it not know, or did it know and misbehave? Knowledge gap → RAG. Behaviour gap → prompting first, fine-tuning only if prompting maxes out."
 
 ## 2. RAG (Days 2–7, 17–21, 38–42)
@@ -142,3 +142,8 @@ Updated at the end of every session. Next session opens with ONE line said cold.
 ## 14. Tracing (Day 76)
 
 - **Tracing (Day 76):** "I trace each step of a RAG request. In mine, retrieval was 0.1 seconds and the LLM call was 1.45 of 1.59 seconds - about 91% - so I optimise the LLM call with a smaller prompt, prompt caching and streaming, not the vector search."
+
+## 15. Eval gate in CI (Day 77)
+
+- **Eval gate in CI (Day 77):** "My eval gate runs in GitHub Actions on every push to main: it rebuilds the vector index from the repo, runs my golden questions three times each through an LLM judge, and exits 1 below 0.75 faithfulness, so the build goes red."
+- **Stability (Day 77):** "LLM output isn't repeatable, so the gate gets stability from sample size and repetitions, and the judge returns the unsupported claim with every NO so a red build is debuggable. It sits before docker build, so a regression never becomes a deployable image."

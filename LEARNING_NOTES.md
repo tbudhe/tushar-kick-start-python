@@ -1176,3 +1176,12 @@ PART C2 two agent runs via asyncio.gather         -> wall clock  6.9s  (exactly 
 4. Bug I hit: timing the wrapping line measures 0.00005s. Time the CALL - the stopwatch goes inside the wrapper, around `fn(*args)`.
 5. Unit tests are deterministic (one failure = real bug, block). LLM judges are not (same code, YES -> NO), so gate on a threshold over enough samples (30-50 Qs x 3 reps) - like a load-test p95.
 
+
+---
+## Day 77 - Eval gate in GitHub Actions (2026-11-24, ~70 min)
+**One-liner:** My eval gate now runs in CI on every push to main - it rebuilds the index from the repo, runs 5 Qs x 3 reps through a judge that explains every NO, and exits 1 below 0.75.
+1. Door-row diagnosis: one frozen answer judged 5x at temperature 1.0 -> NO x5 (judge consistent); a fresh answer -> YES. The flaky part is the GENERATOR (answer_question), not the judge.
+2. `claude-opus-4-8` rejects temperature=0 with 400 "`temperature` is deprecated for this model" (1.0, the default, is accepted). Server-side validation, not my code. Repeatability must come from eval design: more Qs + `num_repetitions`.
+3. `day77_eval_gate.py`: judge returns "NO + quoted claim", score = startswith("YES"), num_repetitions=3 -> 15 rows, 12 judged, 1.00 PASS. ~12s/row = ~3 min and ~27 Claude calls per run -> trigger on main + manual only.
+4. `.github/workflows/eval-gate.yml`: checkout -> setup-python 3.13 -> pip install -> `ingest_corpus` (DB is gitignored, rebuild it) -> gate. Secrets in GitHub -> env; load_dotenv() is a no-op in CI. Path must be `.github/workflows/` or GitHub never runs it.
+5. CI's first finding: requirements.txt line 151 was `python-3.13.4` (runtime.txt content) -> "No matching distribution". Worked on my laptop because .venv was already built. Read the LAST error line first. Run 3 = green.

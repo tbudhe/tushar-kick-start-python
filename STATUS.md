@@ -1,6 +1,6 @@
 STATUS.md — Tushar's AI Learning (SINGLE SOURCE OF TRUTH)
 
-Last Updated: 2026-11-23 (Day 76 - TRACING: per-step stopwatch, Claude = 91% of latency; flaky gate vs unit tests)
+Last Updated: 2026-11-24 (Day 77 - EVAL GATE IN GITHUB ACTIONS: green on run 3; door-row NO = generator, not judge)
 
 RULE FOR CLAUDE: "CURRENT STATUS" here overrides ALL other documents. If any doc conflicts, this file wins.
 
@@ -30,6 +30,15 @@ MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
 CURRENT STATUS
+Day: 77 COMPLETE (2026-11-24, ~70 min, 08:43-09:52) | Week: PHASE 3, week 2 (AI BUILD phase per 11-23 sequence decision) | Next session = Day 78.
+Day 77: EVAL GATE IN CI - GREEN. `.github/workflows/eval-gate.yml` (push to main + workflow_dispatch): checkout -> setup-python 3.13 -> pip install -> `python -m revit_rag.ingest_corpus` (DB gitignored, CI rebuilds it) -> `python -m revit_rag.day77_eval_gate`. Secrets CLAUDE_API_KEY + LANGSMITH_API_KEY added in GitHub. `day77_eval_gate.py` = day74 + judge returns "NO + quoted claim" + num_repetitions=3 -> local run 15 rows / 12 judged / 1.00 PASS (~3 min, ~27 Claude calls -> main-only trigger). Run 45417306848 green.
+DOOR-ROW DIAGNOSIS CLOSED: `day77_judge_temp.py` - one frozen answer judged 5x at 1.0 -> NO x5 (judge consistent); fresh answer -> YES; 3 reps in the gate -> YES x3. The GENERATOR varies, not the judge. Temperature lead DEAD: claude-opus-4-8 returns 400 "`temperature` is deprecated for this model" for 0 (1.0 accepted). Claude predicted from memory - VERSION FIDELITY rule again.
+CI FINDINGS: (a) yml was saved at `workflows/` not `.github/workflows/` (GitHub ignores it) - Claude moved it. (b) requirements.txt line 151 `python-3.13.4` (runtime.txt content, from commit a240b8e) broke pip in 20s - removed. Laptop never failed because .venv was prebuilt = why CI exists.
+HIS Qs: why did temperature 0 error (server 400 validation, like zod rejecting a retired field); "can CI build a docker image?" -> yes, second job `needs: eval`, gate before build; no Dockerfile yet -> Project 4.
+Quiz Day 77 (on Day 76): 2/3 - Q1 right (+ good counter-Q: parallel retrieval saves <=6% here), Q2 missed (timed creating the wrapper, not the call), Q3 right.
+DAY 78 OPENING (max 3 single-part Qs): (1) say section 15 'Eval gate in CI' line cold; (2) why can't you fix judge randomness with temperature=0 on claude-opus-4-8? (model rejects it -> samples + reps); (3) why did CI fail when your laptop worked? (requirements.txt had a bad line; .venv was prebuilt). Next AI build per sequence decision = PROJECT 3 PRODUCTION FEATURES #1 (Postgres checkpointer replacing SqliteSaver). Then Project 4 (FastAPI + Dockerfile + image built in CI after the gate). OPEN: STAR + NumPy daily drills during AI phase.
+EXERCISE (his, 15 min): NEW file `revit_rag/day77_add_questions.py` - add 5 more golden Qs to revit-rag-golden with `ls.create_examples` (pick from corpus titles: levels, walls overview, plan views, window, door types). Goal: "dataset now has 10 examples"; then Actions -> eval-gate -> Run workflow -> 30 rows. Moves the gate toward 30-50 Qs.
+--- history below ---
 Day: 76 COMPLETE (2026-11-23, ~40 min, 09:22-10:00) | Week: PHASE 3, week 2 (BREADTH PASS) | Next session = Day 77.
 Day 76: TRACING. `.env` += LANGSMITH_TRACING=true + LANGSMITH_PROJECT=revit-rag-traces (key alone = permission, not the switch). New file `revit_rag/day76_trace.py`: step 2 traceable(answer_question) -> 1 row in LangSmith, 2.08s. Step 3: swapped names INSIDE rag_service (jest.spyOn style - `from x import y` gives the module its own copy of the name) + plain `stopwatch()` wrapper -> retrieve 0.10s / ask_claude 1.45s / total 1.59s = Claude ~91% (predicted ~90%). Optimise the LLM call (smaller prompt, prompt caching, streaming), not vector search.
 HIS OWN STOPWATCH (unprompted): he added time.time() around lines 10/14 -> 0.00005s = timed the WRAPPING (`const t = trace(fn)`), not the CALL (`await t()`). Fix = stopwatch inside the wrapper. Building it himself = concept landed.
