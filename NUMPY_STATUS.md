@@ -1,6 +1,6 @@
 # NUMPY_STATUS.md — NumPy daily drills (SINGLE SOURCE OF TRUTH for NumPy)
 
-Last Updated: 2026-11-23 (Drill 6 done - concatenate axis 0/1)
+Last Updated: 2026-11-24 (Drill 7 done - rounding, sum/prod/min/max)
 Linked from: STATUS.md -> "NUMPY DAILY" line (this file lives at repo root)
 
 ## WHY
@@ -14,7 +14,7 @@ I switched to TypeScript because I wasn't comfortable. Goal: NumPy muscle memory
 - One new idea per drill. Started from zero on 2026-11-13.
 
 ## CURRENT POSITION
-Next drill: **Drill 7 — element-wise math, floor / ceil / rint, sum / prod / min / max**
+Next drill: **Drill 8 — mean / var / std**
 
 ## LADDER (two goals: HackerRank NumPy track + AI-style NumPy)
 | # | Topic | Status |
@@ -25,7 +25,7 @@ Next drill: **Drill 7 — element-wise math, floor / ceil / rint, sum / prod / m
 | 4 | reshape, transpose, flatten | DONE 2026-11-18 |
 | 5 | zeros / ones / eye / identity, dtype | DONE 2026-11-20 |
 | 6 | concatenate (axis), stacking | DONE 2026-11-23 |
-| 7 | element-wise math, floor / ceil / rint, sum / prod / min / max | |
+| 7 | element-wise math, floor / ceil / rint, sum / prod / min / max | DONE 2026-11-24 |
 | 8 | mean / var / std | |
 | 9 | broadcasting (array + row, array * column) | |
 | 10 | boolean masks (arr[arr > 3]) | |
@@ -60,6 +60,11 @@ Next drill: **Drill 7 — element-wise math, floor / ceil / rint, sum / prod / m
 - `np.concatenate((a, b), axis=0)` = stack on TOP -> more rows (2,2)+(2,2) -> (4,2); like `[...a, ...b]`.
 - `axis=1` = side by side -> longer rows -> (2,4). Arrays go in ONE tuple `(a, b)`; plain lists are converted for you.
 - My slip: named the axis=0 result `np_cols` - axis=0 adds ROWS. Both arrays right on first run.
+
+### Drill 7 — 2026-11-24 — rounding + sum / prod / min / max
+- `np.floor` always down, `np.ceil` always up (-1.5 -> -2 / -1); whole array at once, like `arr.map(Math.floor)`.
+- `np.rint`: exact .5 goes to the EVEN neighbour (2.5 -> 2., -1.5 -> -2.) = banker's rounding; JS Math.round(2.5) = 3. Want 3? `np.floor(x + 0.5)`.
+- `np.sum(b, axis=0)` -> [4 6], `np.prod(b, axis=1)` -> [2 12], no axis = whole array. All 6 lines matched first run.
 
 ## KEY RULES TO REMEMBER
 - Always `import numpy as np`.
