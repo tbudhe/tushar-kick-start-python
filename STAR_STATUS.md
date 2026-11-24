@@ -27,7 +27,7 @@ Next: **Q4 — led without formal authority** (Q3 needs his real ownership line 
 |---|---|---|---|---|
 | 1 | Hard production performance problem | Oracle -> MongoDB cart, primary CPU 85% (checkout p99 = backup) | 3/8 -> 5/8 | banked; retry cold in 2nd pass |
 | 2 | Disagreed with a senior engineer/manager | Scan & Go fuel: % traffic split via Lua on Torbit gateway | 3/8 | banked; fill 2 numbers, retry cold in 2nd pass |
-| 3 | A failure or mistake | Scan & Go cache logic moved to DB -> DB outage | 3/8 | draft banked; fill MY mistake + numbers |
+| 3 | A failure or mistake | Scan & Go FUEL module: cache logic moved to DB -> DB outage | 3/8 | draft banked; fill MY mistake + numbers |
 | 4 | Led without formal authority | | | |
 | 5 | Delivered under a tight deadline | | | |
 | 6 | Ambiguous requirements | Autodesk marketing copilot | | |
@@ -52,7 +52,7 @@ I tested the concern instead of arguing it. First, I traced the whole path - fro
 Result: percentage rollouts became the release pattern across the org - <how many teams use it>, <one outcome, e.g. rollback in minutes>. What I learned: I showed the prototype to the architect and director before my manager and the principal had seen it. I won the decision but cost trust. Now I bring the evidence to the people who raised the concern first, and we escalate together."
 
 ### Q3 — Mistake: cache logic moved to the DB -> outage (~90s, DRAFT - <...> = his real facts)
-"At Walmart I owned the cache layer for Scan & Go checkout. A principal engineer proposed moving that logic into the database to save cost. My mistake: I saw the risk, but I only raised it in a meeting - <I didn't put numbers on it / didn't ask for a load test> - so it shipped.
+"At Walmart I owned the Scan & Go fuel module, including its cache layer. A principal engineer proposed moving the cache logic into the database to save cost. My mistake: I saw the risk, but I only raised it in a meeting - <I didn't put numbers on it / didn't ask for a load test> - so it shipped.
 Under peak load the database couldn't take the extra reads and we had an outage: <checkout errors / minutes down>.
 First, I stopped the bleeding the same day: I raised the DB connection pool and timeouts and moved reads to secondaries - config only, and the system recovered.
 Second, I brought the data to two more principal engineers, including the one focused on cost: latency and error numbers before and after.
