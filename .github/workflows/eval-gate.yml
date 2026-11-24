@@ -1,0 +1,23 @@
+name: eval-gate
+
+on:
+  push:
+    branches: [main]        # slow + costs API calls -> main only, not every branch
+  workflow_dispatch:        # adds a "Run workflow" button in the Actions tab
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    env:                                  # secrets -> os.environ (no .env in CI)
+      CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      LANGSMITH_TRACING: "true"
+      LANGSMITH_PROJECT: revit-rag-ci
+    steps:
+      - uses: actions/checkout@v4                       # git clone
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt            # = npm ci
+      - run: python -m revit_rag.ingest_corpus          # = seed the vector DB
+      - run: python -m revit_rag.day77_eval_gate        # exit 1 -> job turns red
