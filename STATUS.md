@@ -24,6 +24,8 @@ PROTOCOLS (condensed — full history in LEARNING_NOTES.md)
 
 MCP TIMING DECISION (2026-08-28, Tushar's call): KEEP THE SEQUENCE. MCP stays in Phase 3 (~Nov 2026); no spike day, no reorder. Reassess only at Phase 2 close.
 
+SEQUENCE DECISION (2026-11-23, Tushar's call): FINISH AI LEARNING FIRST (remaining AI builds: eval gate in GitHub Actions, Project 3 prod features, Project 4 - ~7 sessions, all weekday slots, ~Dec 7). THEN mock phase: 5.5 AI SD mocks + 6 classic SD mocks + STAR behavioral (~12 sessions, ~early Jan 2027). DSA continues on weekends THROUGHOUT both phases. Replaces the 2026-11-13 interleaved Mon/Tue/Wed/Thu plan. Finish date unchanged (~early Jan); Feb job search holds. Known cost: classic SD stays at 0/6 during live interviews until ~Dec 7. OPEN: whether STAR + NumPy daily 10-min drills continue during the AI phase.
+
 MILESTONES (recalibrate at each phase end)
 Sep 2026: Phase 2 complete (tool use, LangChain/LlamaIndex, Project 2 hardened) → REVISION WEEK → Nov 2026: Phase 3 complete (LangGraph, agents, MCP, LangSmith) (incl. 2-session CELERY BUILD in week 2) → late Nov 2026: GUARDRAILS MODULE (added 2026-09-17, 4 sessions) → Dec 2026: Projects 3+4 shipped → Feb 2027: job search opens → Jul 2027: Walmart Staff/Principal AI Engineer.
 
